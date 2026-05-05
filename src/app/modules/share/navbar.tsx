@@ -2,13 +2,16 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Menu, X, GraduationCap, LogIn } from "lucide-react";
+import { Menu, X, GraduationCap, LogIn, User } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/hooks/useAuth";
 
 const navLinks = [
+  { name: "Home", href: "/" },
   { name: "Dashboard", href: "/dashboard" },
   { name: "Students", href: "/students" },
-  { name: "Gradebook", href: "/gradebook" },
+  { name: "Apply for Admission", href: "/apply-for-admission" },
+  { name: "Apply for Teaching", href: "/apply-for-Teaching" },
   { name: "Schedules", href: "/schedules" },
 ];
 
@@ -16,6 +19,8 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const [userOpen, setUserOpen] = useState(false);
+  const { user, isAuthenticated, logout } = useAuth();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -82,15 +87,62 @@ export default function Navbar() {
 
         {/* CTA */}
         <div className="hidden md:flex items-center gap-3">
-          <motion.button
-            whileHover={{ scale: 1.05, y: -2 }}
-            whileTap={{ scale: 0.97 }}
-            className="group relative inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-sky-500 to-blue-600 text-white text-sm font-semibold shadow-lg shadow-sky-500/30 overflow-hidden"
-          >
-            <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-sky-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            <span className="relative">Portal Login</span>
-            <LogIn size={16} className="relative" />
-          </motion.button>
+          {!isAuthenticated ? (
+            <>
+              <Link
+                href="/register"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold text-slate-700 hover:text-sky-600"
+              >
+                Register
+              </Link>
+              <motion.div whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.97 }}>
+                <Link
+                  href="/login"
+                  className="group relative inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-sky-500 to-blue-600 text-white text-sm font-semibold shadow-lg shadow-sky-500/30 overflow-hidden"
+                >
+                  <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-sky-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <span className="relative">Portal Login</span>
+                  <LogIn size={16} className="relative" />
+                </Link>
+              </motion.div>
+            </>
+          ) : (
+            <div className="relative">
+              <button
+                onClick={() => setUserOpen((v) => !v)}
+                className="flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-sm"
+              >
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-sky-500 to-blue-600 text-white text-xs font-bold">
+                  {user?.name?.slice(0, 2).toUpperCase() || "U"}
+                </span>
+                <span className="hidden lg:block">{user?.name || "User"}</span>
+                <User size={16} />
+              </button>
+              <AnimatePresence>
+                {userOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 8 }}
+                    className="absolute right-0 mt-2 w-48 rounded-xl border border-slate-200 bg-white shadow-lg"
+                  >
+                    <div className="px-4 py-3 text-xs text-slate-500">
+                      {user?.email}
+                    </div>
+                    <button
+                      onClick={() => {
+                        setUserOpen(false);
+                        logout();
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-slate-50"
+                    >
+                      Logout
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
         </div>
 
         {/* Mobile toggle */}
@@ -130,9 +182,32 @@ export default function Navbar() {
                   </Link>
                 </motion.li>
               ))}
-              <button className="mt-2 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-gradient-to-r from-sky-500 to-blue-600 text-white font-semibold">
-                Portal Login <LogIn size={16} />
-              </button>
+              {!isAuthenticated ? (
+                <div className="mt-2 flex flex-col gap-2">
+                  <Link
+                    href="/register"
+                    className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full border border-slate-200 bg-white text-slate-700 font-semibold"
+                  >
+                    Register
+                  </Link>
+                  <Link
+                    href="/login"
+                    className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-gradient-to-r from-sky-500 to-blue-600 text-white font-semibold"
+                  >
+                    Portal Login <LogIn size={16} />
+                  </Link>
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    setMobileOpen(false);
+                    logout();
+                  }}
+                  className="mt-2 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-red-500 text-white font-semibold"
+                >
+                  Logout
+                </button>
+              )}
             </ul>
           </motion.div>
         )}

@@ -1,5 +1,5 @@
-import { useAuthStore } from "@/store/authStore";
-import { authService } from "@/services/auth.service";
+import { useAuthStore } from "@/store/authstore";
+import { authService } from "@/service/auth.service";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 

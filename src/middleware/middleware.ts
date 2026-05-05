@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { jwtDecode } from "jwt-decode";
 
 const roleRoutes = {
-  ADMIN:   ["/dashboard", "/students", "/teachers", "/classes", "/subjects", "/attendance", "/exams", "/results", "/fees", "/notices", "/admission", "/timetable", "/notifications"],
-  TEACHER: ["/dashboard", "/attendance", "/exams", "/results", "/notices", "/timetable", "/notifications"],
-  STUDENT: ["/dashboard", "/results", "/fees", "/notices", "/timetable", "/notifications"],
+  ADMIN:   ["/students", "/teachers", "/classes", "/subjects", "/attendance", "/exams", "/results", "/fees", "/notices", "/admission", "/timetable", "/notifications"],
+  TEACHER: ["/attendance", "/exams", "/results", "/notices", "/timetable", "/notifications"],
+  STUDENT: ["/results", "/fees", "/notices", "/timetable", "/notifications"],
 };
 
 export async function middleware(req: NextRequest) {
@@ -29,11 +29,15 @@ export async function middleware(req: NextRequest) {
       // Backend এ refresh 
       try {
         const refreshRes = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`,
+          `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh-token`,
           {
             method: "POST",
-            headers: { Cookie: `refreshToken=${refreshToken}` },
+            headers: {
+              "Content-Type": "application/json",
+              Cookie: `refreshToken=${refreshToken}`,
+            },
             credentials: "include",
+            body: JSON.stringify({ refreshToken }),
           }
         );
 
@@ -50,7 +54,9 @@ export async function middleware(req: NextRequest) {
     }
 
     // → login
-    return NextResponse.redirect(new URL("/login", req.url));
+    const loginUrl = new URL("/login", req.url);
+    loginUrl.searchParams.set("redirect", pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
   // Access Token decode 
@@ -59,10 +65,20 @@ export async function middleware(req: NextRequest) {
 
     // Expire 
     if (decoded.exp * 1000 < Date.now()) {
-      return NextResponse.redirect(new URL("/login", req.url));
+      const loginUrl = new URL("/login", req.url);
+      loginUrl.searchParams.set("redirect", pathname);
+      return NextResponse.redirect(loginUrl);
     }
 
     // Role check
+    if (pathname.startsWith("/dashboard/")) {
+      const rolePath = `/dashboard/${decoded.role.toLowerCase()}`;
+      if (!pathname.startsWith(rolePath)) {
+        return NextResponse.redirect(new URL("/dashboard", req.url));
+      }
+      return NextResponse.next();
+    }
+
     const allowed = roleRoutes[decoded.role as keyof typeof roleRoutes] || [];
     const hasAccess = allowed.some((r) => pathname.startsWith(r));
 
@@ -73,7 +89,9 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
 
   } catch {
-    const res = NextResponse.redirect(new URL("/login", req.url));
+    const loginUrl = new URL("/login", req.url);
+    loginUrl.searchParams.set("redirect", pathname);
+    const res = NextResponse.redirect(loginUrl);
     res.cookies.delete("accessToken");
     res.cookies.delete("refreshToken");
     return res;

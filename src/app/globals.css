@@ -128,3 +128,51 @@
     @apply font-sans;
   }
 }
+
+html {
+  scroll-behavior: auto;
+}
+
+html.lenis, html.lenis body {
+  height: auto;
+}
+
+@layer utilities {
+  .gradient-primary {
+    background: linear-gradient(135deg, #0f766e 0%, #059669 45%, #22c55e 100%);
+  }
+  .gradient-card {
+    background: linear-gradient(160deg, rgba(255,255,255,0.7), rgba(255,255,255,0.95));
+  }
+  .shadow-soft {
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  }
+  .shadow-elegant {
+    box-shadow: 0 18px 50px rgba(15, 23, 42, 0.18);
+  }
+  .glass {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(18px);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+  }
+}
+
+:root {
+  --sidebar-bg: #0f172a;
+  --sidebar-fg: #e2e8f0;
+  --sidebar-muted: #94a3b8;
+  --success: #16a34a;
+}
+
+.dark {
+  --sidebar-bg: #0b1220;
+  --sidebar-fg: #e2e8f0;
+  --sidebar-muted: #94a3b8;
+  --success: #22c55e;
+}
+
+.bg-sidebar-bg { background-color: var(--sidebar-bg); }
+.text-sidebar-fg { color: var(--sidebar-fg); }
+.text-sidebar-muted { color: var(--sidebar-muted); }
+.text-success { color: var(--success); }
+.bg-success\/10 { background-color: color-mix(in oklab, var(--success) 10%, transparent); }
