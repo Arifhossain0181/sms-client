@@ -5,6 +5,19 @@ export interface Exam {
     id: string;
     name: string;
   };
+  schedules?: {
+    id: string;
+    examDate: string;
+    subject?: {
+      id: string;
+      name: string;
+      fullMarks?: number;
+    };
+    class?: {
+      id: string;
+      name: string;
+    };
+  }[];
   subjectId: string;
   class?: {
     id: string;

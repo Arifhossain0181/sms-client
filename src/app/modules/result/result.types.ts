@@ -19,5 +19,8 @@ export interface Result {
 export interface CreateResultPayload {
   examId: string;
   studentId: string;
-  marksObtained: number;
+  marks: Array<{
+    subjectId: string;
+    marksObtained: number;
+  }>;
 }

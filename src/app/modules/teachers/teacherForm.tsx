@@ -10,7 +10,8 @@ import { Teacher } from "./teacher.types";
 const schema = z.object({
   name:        z.string().min(2, "নাম দাও"),
   email:       z.string().email("Valid email দাও"),
-  TeachersId:  z.string().min(3, "Teacher ID দাও"),
+  TeachersId:  z.string().optional()
+  ,
   designation: z.string().min(2, "Designation দাও"),
   department:  z.string().optional(),
   qualification: z.string().min(2, "Qualification দাও"),
@@ -109,7 +110,7 @@ export default function TeacherForm({ teacher, onClose }: Props) {
 
 
           <div>
-            <label className="block text-sm font-medium mb-1">Teacher ID</label>
+            <label className="block text-sm font-medium mb-1">Teacher ID(optional)</label>
             <input
               {...register("TeachersId")}
               placeholder="EMP-001"

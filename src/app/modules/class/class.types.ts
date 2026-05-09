@@ -4,6 +4,7 @@ export interface Class {
   numericLevel: number;
   sections?: { id: string; name: string; maxCapacity: number }[];
   students?: { id: string; name: string }[];
+  studentCount?: number;
   createdAt: string;
 }
 

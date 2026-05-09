@@ -31,20 +31,26 @@ export default function TeachingApplicationList() {
   const list = Array.isArray(data) ? data : [];
   const filtered = useMemo(() => {
     return list.filter((item) => {
-      const matchSearch = item.name.toLowerCase().includes(search.toLowerCase())
-        || item.email.toLowerCase().includes(search.toLowerCase());
+      const matchSearch =
+        item.name.toLowerCase().includes(search.toLowerCase()) ||
+        item.email.toLowerCase().includes(search.toLowerCase());
       const matchStatus = filterStatus ? item.status === filterStatus : true;
       return matchSearch && matchStatus;
     });
   }, [list, search, filterStatus]);
 
   const handleApprove = (id: string) => {
-    if (confirm("Approve করবেন?")) updateStatus({ id, data: { status: "APPROVED" } });
+    if (confirm("Approve করবেন?"))
+      updateStatus({ id, data: { status: "APPROVED" } });
   };
 
   const handleReject = (id: string) => {
     const reason = prompt("Reject reason লিখুন (optional)") ?? undefined;
-    if (confirm("Reject করবেন?")) updateStatus({ id, data: { status: "REJECTED", rejectionReason: reason } });
+    if (confirm("Reject করবেন?"))
+      updateStatus({
+        id,
+        data: { status: "REJECTED", rejectionReason: reason },
+      });
   };
 
   const handleView = (item: TeachingApplication) => {
@@ -69,8 +75,12 @@ export default function TeachingApplicationList() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Teaching Applications</h1>
-          <p className="text-sm text-gray-500">মোট {list.length} টি application</p>
+          <h1 className="text-2xl font-bold text-gray-800">
+            Teaching Applications
+          </h1>
+          <p className="text-sm text-gray-500">
+            মোট {list.length} টি application
+          </p>
         </div>
       </div>
 
@@ -116,7 +126,9 @@ export default function TeachingApplicationList() {
                 <td className="px-6 py-3">{item.designation}</td>
                 <td className="px-6 py-3">{item.experience} yrs</td>
                 <td className="px-6 py-3">
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColor[item.status]}`}>
+                  <span
+                    className={`px-3 py-1 rounded-full text-sm font-medium ${statusColor[item.status]}`}
+                  >
                     {item.status}
                   </span>
                 </td>
@@ -144,7 +156,9 @@ export default function TeachingApplicationList() {
                         </button>
                       </>
                     ) : (
-                      <span className="text-gray-400 text-xs ml-2">No action</span>
+                      <span className="text-gray-400 text-xs ml-2">
+                        No action
+                      </span>
                     )
                   ) : (
                     <span className="text-gray-400 text-xs ml-2">—</span>
@@ -169,7 +183,12 @@ export default function TeachingApplicationList() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold">Teaching Application</h2>
-              <button onClick={handleClose} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+              <button
+                onClick={handleClose}
+                className="text-gray-400 hover:text-gray-600 text-xl"
+              >
+                ✕
+              </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -211,7 +230,9 @@ export default function TeachingApplicationList() {
               </div>
               <div>
                 <p className="text-gray-500">Subject</p>
-                <p className="font-medium">{selected.subjectSpecialization || "—"}</p>
+                <p className="font-medium">
+                  {selected.subjectSpecialization || "—"}
+                </p>
               </div>
               <div>
                 <p className="text-gray-500">Expected Salary</p>
@@ -223,11 +244,15 @@ export default function TeachingApplicationList() {
               </div>
               <div className="md:col-span-2">
                 <p className="text-gray-500">Resume URL</p>
-                <p className="font-medium break-words">{selected.resumeUrl || "—"}</p>
+                <p className="font-medium break-words">
+                  {selected.resumeUrl || "—"}
+                </p>
               </div>
               <div className="md:col-span-2">
                 <p className="text-gray-500">Cover Letter</p>
-                <p className="font-medium whitespace-pre-wrap">{selected.coverLetter || "—"}</p>
+                <p className="font-medium whitespace-pre-wrap">
+                  {selected.coverLetter || "—"}
+                </p>
               </div>
             </div>
 

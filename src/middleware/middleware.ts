@@ -71,6 +71,9 @@ export async function middleware(req: NextRequest) {
     }
 
     // Role check
+    if (pathname === "/dashboard") {
+      return NextResponse.next();
+    }
     if (pathname.startsWith("/dashboard/")) {
       const rolePath = `/dashboard/${decoded.role.toLowerCase()}`;
       if (!pathname.startsWith(rolePath)) {

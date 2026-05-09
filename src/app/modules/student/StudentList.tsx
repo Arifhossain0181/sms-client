@@ -22,7 +22,7 @@ export default function StudentList() {
   const filteredStudents = studentList.filter(
     (student) =>
       student.name.toLowerCase().includes(search.toLowerCase()) ||
-      student.email.toLowerCase().includes(search.toLowerCase())
+      (student.email ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
   const handleEdit = (student: Student) => {
@@ -104,8 +104,8 @@ export default function StudentList() {
                     {student.name}
                   </Link>
                 </td>
-                <td className="px-6 py-4 text-gray-600">{student.email}</td>
-                <td className="px-6 py-4 text-gray-600">{student.phone}</td>
+                <td className="px-6 py-4 text-gray-600">{student.email ?? "—"}</td>
+                <td className="px-6 py-4 text-gray-600">{student.phone ?? "—"}</td>
                 <td className="px-6 py-4 text-gray-600">
                   {student.class?.name ?? "—"}
                 </td>

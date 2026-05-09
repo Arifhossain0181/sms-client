@@ -50,10 +50,13 @@ export default function ResultTable() {
 
   const handleSubmit = () => {
     if (!examId) return;
+    const subjectId = selectedExam?.subjectId;
+    if (!subjectId) return;
+
     const payload = classStudents.map((s) => ({
       examId,
       studentId: s.id,
-      marksObtained: marks[s.id] ?? 0,
+      marks: [{ subjectId, marksObtained: marks[s.id] ?? 0 }],
     }));
     submitResults(payload);
   };

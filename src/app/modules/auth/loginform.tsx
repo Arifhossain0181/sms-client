@@ -10,6 +10,7 @@ import { authService } from "@/service/auth.service";
 import { useAuthStore } from "@/store/authstore";
 import { motion } from "framer-motion";
 import { GraduationCap, ShieldCheck, BookOpenCheck } from "lucide-react";
+import api from "@/lib/axios";
 
 const getErrorMessage = (err: unknown, fallback: string) => {
   if (err && typeof err === "object" && "response" in err) {
@@ -39,6 +40,20 @@ export default function LoginForm() {
       if (redirect && !redirect.startsWith("/login") && !redirect.startsWith("/register")) {
         router.push(redirect);
         return;
+      }
+
+      if (user?.role === "STUDENT") {
+        try {
+          await api.get("/students/me");
+          router.push("/dashboard/student");
+          return;
+        } catch (error: unknown) {
+          const status = (error as { response?: { status?: number } }).response?.status;
+          if (status === 404) {
+            router.push("/apply-for-admission");
+            return;
+          }
+        }
       }
 
       const roleRoute = user?.role === "ADMIN"

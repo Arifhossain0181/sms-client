@@ -18,7 +18,7 @@ export interface CreateTeacherPayload {
   name: string;
   email: string;
   password?: string;
-  TeachersId: string;
+  TeachersId?: string;
   designation: string;
   department?: string;
   qualification: string;

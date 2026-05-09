@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import api from "@/lib/axios";
 import { Result, CreateResultPayload } from "@/app/modules/result/result.types";
 
@@ -9,14 +10,18 @@ export const resultService = {
 
   // Exam অনুযায়ী result আনো
   getByExam: async (examId: string): Promise<Result[]> => {
-    const res = await api.get(`/results?examId=${examId}`);
-    return res.data;
+    const res = await api.get(`/results/exam/${examId}`);
+    const data = res.data?.data ?? res.data;
+    if (!data?.results) {
+      return data
+    }
+    return [];
   },
 
   // Student এর সব result আনো
   getByStudent: async (studentId: string): Promise<Result[]> => {
-    const res = await api.get(`/results?studentId=${studentId}`);
-    return res.data;
+    const res = await api.get(`/results/student/${studentId}`);
+    return res.data?.data ?? res.data;
   },
 
   // Result দাও

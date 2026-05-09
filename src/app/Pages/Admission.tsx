@@ -52,6 +52,7 @@ export default function Admission() {
 	});
 	const [stripeVerifying, setStripeVerifying] = useState(false);
 	const [stripePaid, setStripePaid] = useState(false);
+	const [submitSuccess, setSubmitSuccess] = useState(false);
 	const searchParams = useSearchParams();
 	const router = useRouter();
 	const autoSubmitRef = useRef(false);
@@ -70,6 +71,60 @@ export default function Admission() {
 	const paymentAmount = Number(watch("paymentAmount") ?? 0);
 	const applicantName = watch("applicantName");
 	const targetClassId = watch("targetClassId");
+	const isStripeFlow = payNow && paymentMethod === "STRIPE";
+
+	const finalizeSuccess = () => {
+		setSubmitSuccess(true);
+		reset();
+		setValue("payNow", false);
+		setValue("paymentMethod", undefined);
+		setValue("paymentAmount", undefined);
+		setValue("transactionId", undefined);
+		setPhotoUrl(null);
+		setBirthCertUrl(null);
+		setStripePaid(false);
+		autoSubmitRef.current = false;
+		if (typeof window !== "undefined") {
+			window.sessionStorage.removeItem("admissionDraft");
+		}
+		router.replace("/apply-for-admission?success=1");
+	};
+
+	const submitDraftForStripe = async (sessionId: string, amountTotal?: number | null) => {
+		if (typeof window === "undefined") return;
+		const raw = window.sessionStorage.getItem("admissionDraft");
+		if (!raw) {
+			toast.error("Form data missing. Please fill the form before paying.");
+			return;
+		}
+		const draft = JSON.parse(raw) as FormInput & { photoUrl?: string; birthCertUrl?: string };
+		const requiredMissing = [
+			draft.applicantName,
+			draft.dob,
+			draft.gender,
+			draft.address,
+			draft.guardianName,
+			draft.guardianPhone,
+			draft.guardianEmail,
+			draft.targetClassId,
+		].some((value) => !value);
+		if (requiredMissing) {
+			toast.error("Stripe payment complete হয়েছে, কিন্তু form data অসম্পূর্ণ। ফর্ম পূরণ করুন।");
+			return;
+		}
+
+		await api.post("/admission/apply", {
+			...draft,
+			payNow: true,
+			paymentMethod: "STRIPE",
+			paymentAmount: amountTotal ?? draft.paymentAmount,
+			transactionId: sessionId,
+			photoUrl: draft.photoUrl,
+			birthCertUrl: draft.birthCertUrl,
+		});
+		toast.success("Admission application submit হয়েছে");
+		finalizeSuccess();
+	};
 
 	const saveDraft = () => {
 		if (typeof window === "undefined") return;
@@ -172,9 +227,7 @@ export default function Admission() {
 
 					if (!autoSubmitRef.current) {
 						autoSubmitRef.current = true;
-						setTimeout(() => {
-							handleSubmit(onSubmit)();
-						}, 0);
+						await submitDraftForStripe(sessionId, payload.amountTotal);
 					}
 				} else {
 					toast.error("Stripe payment not completed");
@@ -225,19 +278,7 @@ export default function Admission() {
 				birthCertUrl: birthCertUrl || undefined,
 			});
 			toast.success("Admission application submit হয়েছে");
-			reset();
-			setValue("payNow", false);
-			setValue("paymentMethod", undefined);
-			setValue("paymentAmount", undefined);
-			setValue("transactionId", undefined);
-			setPhotoUrl(null);
-			setBirthCertUrl(null);
-			setStripePaid(false);
-			autoSubmitRef.current = false;
-			if (typeof window !== "undefined") {
-				window.sessionStorage.removeItem("admissionDraft");
-			}
-			router.replace("/apply-for-admission");
+			finalizeSuccess();
 		} catch (err: any) {
 			toast.error(err?.response?.data?.message || "Application failed");
 		}
@@ -266,6 +307,14 @@ export default function Admission() {
 	return (
 		<div className="min-h-screen bg-[#f7f4ee] pt-28 pb-16">
 			<div className="mx-auto w-full max-w-4xl px-6">
+				{submitSuccess && (
+					<div className="mb-8 rounded-3xl border border-emerald-200 bg-emerald-50 px-6 py-5 text-emerald-800">
+						<h2 className="text-xl font-semibold">Payment verified and admission submitted!</h2>
+						<p className="mt-2 text-sm text-emerald-700">
+							আপনার Stripe payment verify হয়েছে। Admission application সফলভাবে submit হয়েছে।
+						</p>
+					</div>
+				)}
 				<div className="mb-8">
 					<h1 className="text-3xl font-bold text-slate-900">Student Admission Form</h1>
 					<p className="mt-2 text-sm text-slate-500">
@@ -275,7 +324,9 @@ export default function Admission() {
 
 				<form
 					onSubmit={handleSubmit(onSubmit)}
-					className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur"
+					className={`rounded-3xl border border-white/60 bg-white/80 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur ${
+						submitSuccess ? "hidden" : "block"
+					}`}
 				>
 					<div className="grid gap-5 md:grid-cols-2">
 						<div>
@@ -524,12 +575,21 @@ export default function Admission() {
 					<div className="mt-8 flex justify-end gap-3">
 						<button
 							type="submit"
-							disabled={isSubmitting}
+							disabled={isSubmitting || (isStripeFlow && !stripePaid)}
 							className="rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/30 disabled:opacity-50"
 						>
-							{isSubmitting ? "Submitting..." : "Submit Admission"}
+							{isSubmitting
+								? "Submitting..."
+								: isStripeFlow && !stripePaid
+									? "Complete Stripe Payment"
+									: "Submit Admission"}
 						</button>
 					</div>
+					{isStripeFlow && !stripePaid && (
+						<p className="mt-2 text-sm text-slate-500">
+							Stripe payment complete হলে application auto submit হবে।
+						</p>
+					)}
 				</form>
 			</div>
 		</div>

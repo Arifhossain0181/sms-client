@@ -14,6 +14,8 @@ const schema = z.object({
   subjectId:  z.string().min(1, "Subject select করো"),
   classId:    z.string().min(1, "Class select করো"),
   date:       z.string().min(1, "Date দাও"),
+  startTime: z.string().min(1, "Start time দাও"),
+  endTime: z.string().min(1, "End time দাও"),
   totalMarks: z.coerce.number().min(1, "Total marks দাও"),
 });
 
@@ -97,11 +99,16 @@ export default function ExamForm({ exam, onClose }: Props) {
               className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
             >
               <option value="">Select Class</option>
-              {classes?.map((cls) => (
-                <option key={cls.id} value={cls.id}>
-                  {cls.name} — {cls.section}
-                </option>
-              ))}
+              {classes?.map((cls) => {
+                const sectionNames = cls.sections?.map((section) => section.name).join(", ");
+                const sectionLabel = sectionNames && sectionNames.length > 0 ? sectionNames : "—";
+
+                return (
+                  <option key={cls.id} value={cls.id}>
+                    {cls.name} — {sectionLabel}
+                  </option>
+                );
+              })}
             </select>
             {errors.classId && <p className="text-red-500 text-xs mt-1">{errors.classId.message}</p>}
           </div>
@@ -115,6 +122,32 @@ export default function ExamForm({ exam, onClose }: Props) {
             />
             {errors.date && <p className="text-red-500 text-xs mt-1">{errors.date.message}</p>}
           </div>
+          <div>
+  <label className="block text-sm font-medium mb-1">Start Time</label>
+  <input
+    {...register("startTime")}
+    type="time"
+    className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+  />
+  {errors.startTime && (
+    <p className="text-red-500 text-xs mt-1">
+      {errors.startTime.message}
+    </p>
+  )}
+</div>
+<div>
+  <label className="block text-sm font-medium mb-1">End Time</label>
+  <input
+    {...register("endTime")}
+    type="time"
+    className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+  />
+  {errors.endTime && (
+    <p className="text-red-500 text-xs mt-1">
+      {errors.endTime.message}
+    </p>
+  )}
+</div>
 
           <div>
             <label className="block text-sm font-medium mb-1">Total Marks</label>

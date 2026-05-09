@@ -7,7 +7,13 @@ import { toast } from "sonner";
 export const useExams = () => {
   return useQuery({
     queryKey: ["exams"],
-    queryFn: examService.getAll,
+    queryFn:async() =>{
+       const data= await examService.getAll();
+         console.log("Exam data:", data);
+         return data;
+      }
+
+
   });
 };
 

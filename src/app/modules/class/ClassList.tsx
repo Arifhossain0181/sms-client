@@ -99,7 +99,7 @@ export default function ClassList() {
                   {(cls.sections ?? []).map((section) => section.maxCapacity).join(", ") || "—"}
                 </td>
                 <td className="px-6 py-4 text-gray-600">
-                  {cls.students?.length ?? 0} জন
+                  {cls.studentCount ?? cls.students?.length ?? 0} জন
                 </td>
                 <td className="px-6 py-4 text-gray-600">
                   {formatDate(cls.createdAt)}

@@ -17,7 +17,8 @@ export default function ExamList() {
   const [selected, setSelected] = useState<Exam | null>(null);
   const [search, setSearch] = useState("");
 
-  const filtered = exams?.filter((e) =>
+  const examList = Array.isArray(exams) ? exams : [];
+  const filtered = examList.filter((e) =>
     e.name.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -48,7 +49,7 @@ export default function ExamList() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Exams</h1>
-          <p className="text-sm text-gray-500">মোট {exams?.length ?? 0} টি exam</p>
+          <p className="text-sm text-gray-500">মোট {examList.length} টি exam</p>
         </div>
 
         {role && hasPermission(role, "add_result") && (
@@ -85,21 +86,29 @@ export default function ExamList() {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {filtered?.map((exam) => (
+              (() => {
+                const schedule = exam.schedules?.[0];
+                const subjectName = exam.subject?.name ?? schedule?.subject?.name ?? "—";
+                const className = exam.class?.name ?? schedule?.class?.name ?? "—";
+                const dateValue = exam.date ?? schedule?.examDate;
+                const totalMarks = exam.totalMarks ?? schedule?.subject?.fullMarks ?? "—";
+
+                return (
               <tr key={exam.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 font-medium text-gray-800">
                   {exam.name}
                 </td>
                 <td className="px-6 py-4 text-gray-600">
-                  {exam.subject?.name ?? "—"}
+                  {subjectName}
                 </td>
                 <td className="px-6 py-4 text-gray-600">
-                  {exam.class?.name ?? "—"}
+                  {className}
                 </td>
                 <td className="px-6 py-4 text-gray-600">
-                  {formatDate(exam.date)}
+                  {dateValue ? formatDate(dateValue) : "—"}
                 </td>
                 <td className="px-6 py-4 text-gray-600">
-                  {exam.totalMarks}
+                  {totalMarks}
                 </td>
                 {role && hasPermission(role, "add_result") && (
                   <td className="px-6 py-4">
@@ -120,6 +129,8 @@ export default function ExamList() {
                   </td>
                 )}
               </tr>
+                );
+              })()
             ))}
 
             {filtered?.length === 0 && (

@@ -90,7 +90,7 @@ export default function AdmissionList() {
         )}
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-3">
         <div className="bg-white rounded-xl shadow p-4 border-l-4 border-yellow-400">
           <p className="text-xs text-gray-500 mb-1">Pending</p>
           <p className="text-2xl font-bold text-yellow-600">{pending}</p>
@@ -105,18 +105,18 @@ export default function AdmissionList() {
         </div>
       </div>
 
-      <div className="flex gap-3 mb-4">
+      <div className="flex flex-col gap-3 mb-4 sm:flex-row">
         <input
           type="text"
           placeholder="নাম দিয়ে খুঁজুন..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 max-w-sm border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full sm:flex-1 sm:max-w-sm border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
-          className="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          className="w-full sm:w-auto border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
         >
           <option value="">সব Status</option>
           <option value="PENDING">Pending</option>
@@ -125,8 +125,78 @@ export default function AdmissionList() {
         </select>
       </div>
 
-      <div className="bg-white rounded-xl shadow overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="grid gap-4 md:hidden">
+        {filtered.map((admission) => (
+          <div key={admission.id} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-800">{admission.applicantName}</p>
+                <p className="text-xs text-gray-500">{admission.guardianEmail}</p>
+                <p className="text-xs text-gray-500">{admission.guardianPhone}</p>
+              </div>
+              <span
+                className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor[admission.status]}`}
+              >
+                {admission.status}
+              </span>
+            </div>
+            <div className="mt-3 text-xs text-gray-600">
+              <p>
+                Class: {admission.targetClass?.name} (Class {admission.targetClass?.numericLevel})
+              </p>
+              <p>Apply: {admission.createdAt}</p>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2 text-sm">
+              <button
+                onClick={() => handleDetail(admission)}
+                className="text-blue-600 hover:underline"
+              >
+                View
+              </button>
+              {role && hasPermission(role, "manage_admission") && (
+                <>
+                  <button
+                    onClick={() => handleApprove(admission.id)}
+                    disabled={admission.status === "APPROVED"}
+                    className={
+                      admission.status === "APPROVED"
+                        ? "text-gray-400 cursor-not-allowed"
+                        : "text-green-600 hover:underline"
+                    }
+                  >
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => handleReject(admission.id)}
+                    disabled={admission.status === "APPROVED"}
+                    className={
+                      admission.status === "APPROVED"
+                        ? "text-gray-400 cursor-not-allowed"
+                        : "text-red-600 hover:underline"
+                    }
+                  >
+                    Reject
+                  </button>
+                  <button
+                    onClick={() => handleDelete(admission.id)}
+                    className="text-gray-600 hover:underline"
+                  >
+                    Delete
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        ))}
+
+        {filtered.length === 0 && (
+          <div className="text-center py-6 text-gray-500">No admissions found.</div>
+        )}
+      </div>
+
+      <div className="hidden md:block bg-white rounded-xl shadow overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[900px]">
           <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
             <tr>
               <th className="px-6 py-3 text-left">নাম</th>
@@ -166,13 +236,23 @@ export default function AdmissionList() {
                     <>
                       <button
                         onClick={() => handleApprove(admission.id)}
-                        className="text-green-600 hover:underline ml-2"
+                        disabled={admission.status === "APPROVED"}
+                        className={`ml-2 ${
+                          admission.status === "APPROVED"
+                            ? "text-gray-400 cursor-not-allowed"
+                            : "text-green-600 hover:underline"
+                        }`}
                       >
                         Approve
                       </button>
                       <button
                         onClick={() => handleReject(admission.id)}
-                        className="text-red-600 hover:underline ml-2"
+                        disabled={admission.status === "APPROVED"}
+                        className={`ml-2 ${
+                          admission.status === "APPROVED"
+                            ? "text-gray-400 cursor-not-allowed"
+                            : "text-red-600 hover:underline"
+                        }`}
                       >
                         Reject
                       </button>
@@ -196,7 +276,8 @@ export default function AdmissionList() {
               </tr>
             )}
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
 
       {showForm && <AdmissionForm onClose={handleClose} />}
