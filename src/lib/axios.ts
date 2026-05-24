@@ -81,11 +81,17 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Response interceptor — 401 refresh 
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+
+    // Log all errors for debugging
+    if (!error.response) {
+      console.error(
+        `[Network Error] ${error.message} - URL: ${error.config?.url || 'unknown'}`
+      );
+    }
 
     // 401  retry 
     if (error.response?.status === 401 && !originalRequest._retry) {

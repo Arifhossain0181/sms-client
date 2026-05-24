@@ -88,18 +88,18 @@ export default function MarkAttendance() {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Attendance নিন</h1>
-        <p className="text-sm text-gray-500">Class এবং তারিখ select করুন</p>
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Attendance নিন</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Class এবং তারিখ select করুন</p>
       </div>
 
       {/* Filter */}
-      <div className="bg-white rounded-xl shadow p-4 mb-6 flex flex-wrap gap-4">
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow p-4 mb-6 flex flex-wrap gap-4">
         <div className="flex-1 min-w-[200px]">
-          <label className="block text-sm font-medium mb-1">Class</label>
+          <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">Class</label>
           <select
             value={classId}
             onChange={(e) => handleClassChange(e.target.value)}
-            className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 dark:text-white dark:border-slate-700"
           >
             <option value="">Class select করুন</option>
             {(Array.isArray(classes) ? classes : []).map((cls) => (
@@ -111,11 +111,11 @@ export default function MarkAttendance() {
         </div>
 
         <div className="flex-1 min-w-[200px]">
-          <label className="block text-sm font-medium mb-1">Section</label>
+          <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">Section</label>
           <select
             value={sectionId}
             onChange={(e) => setSectionId(e.target.value)}
-            className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 dark:text-white dark:border-slate-700"
           >
             <option value="">Section select করুন</option>
             {(Array.isArray(classes) ? classes : [])
@@ -129,11 +129,11 @@ export default function MarkAttendance() {
 
         {role === "ADMIN" && (
           <div className="flex-1 min-w-[200px]">
-            <label className="block text-sm font-medium mb-1">Teacher</label>
+            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">Teacher</label>
             <select
               value={teacherId}
               onChange={(e) => setTeacherId(e.target.value)}
-              className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 dark:text-white dark:border-slate-700"
             >
               <option value="">Teacher select করুন</option>
               {(Array.isArray(teachers) ? teachers : []).map((teacher) => (
@@ -146,23 +146,23 @@ export default function MarkAttendance() {
         )}
 
         <div className="flex-1 min-w-[200px]">
-          <label className="block text-sm font-medium mb-1">তারিখ</label>
+          <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">তারিখ</label>
           <input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 dark:text-white dark:border-slate-700"
           />
         </div>
       </div>
 
       {/* Attendance Table */}
       {attendanceList.length > 0 && (
-        <div className="bg-white rounded-xl shadow overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-xl shadow overflow-hidden">
 
           {/* Mark All Buttons */}
-          <div className="flex gap-2 p-4 border-b">
-            <span className="text-sm font-medium text-gray-600 mr-2">সবাইকে:</span>
+          <div className="flex gap-2 p-4 border-b dark:border-slate-700">
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-300 mr-2">সবাইকে:</span>
             <button
               onClick={() => handleMarkAll("PRESENT")}
               className="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-medium hover:bg-green-200"
@@ -184,18 +184,18 @@ export default function MarkAttendance() {
           </div>
 
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
+            <thead className="bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-gray-300 uppercase text-xs">
               <tr>
                 <th className="px-6 py-3 text-left">#</th>
                 <th className="px-6 py-3 text-left">Student নাম</th>
                 <th className="px-6 py-3 text-left">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
               {attendanceList.map((item, index) => (
-                <tr key={item.studentId} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 text-gray-500">{index + 1}</td>
-                  <td className="px-6 py-4 font-medium text-gray-800">{item.name}</td>
+                <tr key={item.studentId} className="hover:bg-gray-50 dark:hover:bg-slate-800">
+                  <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{index + 1}</td>
+                  <td className="px-6 py-4 font-medium text-gray-800 dark:text-white">{item.name}</td>
                   <td className="px-6 py-4">
                     <div className="flex gap-2">
                       {(["PRESENT", "ABSENT", "LATE"] as AttendanceStatus[]).map((s) => (
@@ -205,7 +205,7 @@ export default function MarkAttendance() {
                           className={`px-3 py-1 rounded-lg text-xs font-medium border transition ${
                             item.status === s
                               ? statusColor[s]
-                              : "bg-gray-50 text-gray-400 border-gray-200"
+                              : "bg-gray-50 dark:bg-slate-800 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-slate-700"
                           }`}
                         >
                           {s === "PRESENT" ? "Present" : s === "ABSENT" ? "Absent" : "Late"}
@@ -219,7 +219,7 @@ export default function MarkAttendance() {
           </table>
 
           {/* Submit */}
-          <div className="p-4 border-t flex justify-end">
+          <div className="p-4 border-t dark:border-slate-700 flex justify-end">
             <button
               onClick={handleSubmit}
               disabled={isPending}
@@ -233,14 +233,14 @@ export default function MarkAttendance() {
 
       {/* No class selected */}
       {!classId && (
-        <div className="text-center py-20 text-gray-400">
+        <div className="text-center py-20 text-gray-400 dark:text-gray-500">
           Class select করুন
         </div>
       )}
 
       {/* Class selected but no students */}
       {classId && attendanceList.length === 0 && (
-        <div className="text-center py-20 text-gray-400">
+        <div className="text-center py-20 text-gray-400 dark:text-gray-500">
           এই class এ কোনো student নেই
         </div>
       )}

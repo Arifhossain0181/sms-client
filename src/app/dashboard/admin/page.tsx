@@ -1,31 +1,26 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { AlertCircle, CalendarCheck, Layers, UserCheck, Users, Wallet } from "lucide-react";
+import {
+  AlertCircle,
+  CalendarCheck,
+  Layers,
+  UserCheck,
+  Users,
+  Wallet,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useLenis } from "@/hooks/useLenis";
 import { useAuth } from "@/hooks/useAuth";
 import api from "@/lib/axios";
-import { StatCard } from "../components/StatCard";
 import { AttendanceChart } from "../components/AttendanceChart";
 import { RevenueChart } from "../components/RevenueChart";
 import { FeeCollection } from "../components/FeeCollection";
 import { RecentAdmissions } from "../components/RecentAdmissions";
 import { UpcomingExams } from "../components/UpcomingExams";
 
-type AdmissionItem = {
-  id: string;
-  name: string;
-  grade: string;
-  status: string;
-};
-
-type UpcomingExamItem = {
-  id: string;
-  title: string;
-  date: string;
-};
-
+type AdmissionItem = { id: string; name: string; grade: string; status: string };
+type UpcomingExamItem = { id: string; title: string; date: string };
 type AdminStats = {
   totalStudents: number;
   totalTeachers: number;
@@ -44,6 +39,13 @@ const formatShortDate = (value: string | Date) =>
     typeof value === "string" ? new Date(value) : value
   );
 
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(value);
+
 const DashboardInner = () => {
   useLenis();
   const { role } = useAuth();
@@ -60,6 +62,7 @@ const DashboardInner = () => {
   const [recentAdmissions, setRecentAdmissions] = useState<AdmissionItem[]>([]);
   const [upcomingExams, setUpcomingExams] = useState<UpcomingExamItem[]>([]);
   const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     if (role && role !== "ADMIN") {
       window.location.href = "/dashboard";
@@ -71,6 +74,17 @@ const DashboardInner = () => {
     const month = String(now.getMonth() + 1).padStart(2, "0");
     return `${now.getFullYear()}-${month}`;
   }, []);
+
+  const todayLabel = useMemo(
+    () =>
+      new Intl.DateTimeFormat("en-GB", {
+        weekday: "long",
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      }).format(new Date()),
+    []
+  );
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -96,16 +110,21 @@ const DashboardInner = () => {
 
         const studentsPayload = unwrap<{ meta?: { total?: number } }>(studentsRes);
         const teachersPayload = unwrap<{ meta?: { total?: number } }>(teachersRes);
-        const classesPayload = unwrap<Array<{ id: string; sections?: Array<{ id: string; classId: string }> }>>(classesRes);
+        const classesPayload = unwrap<Array<{ id: string; sections?: any[] }>>(classesRes);
         const admissionsPayload = unwrap<{ data?: Array<any> }>(admissionsRes);
         const admissionStats = unwrap<{ pending?: number }>(admissionStatsRes);
-        const feeSummary = unwrap<{ totalPaid: number; outstanding: number; overdueCount: number; pendingCount: number }>(feeSummaryRes);
+        const feeSummary = unwrap<{
+          totalPaid: number;
+          outstanding: number;
+          overdueCount: number;
+          pendingCount: number;
+        }>(feeSummaryRes);
         const examsPayload = unwrap<Array<any>>(examsRes);
 
         const sections = classesPayload.flatMap((cls) =>
-          (cls.sections ?? []).map((section) => ({
+          (cls.sections ?? []).map((section: any) => ({
             sectionId: section.id,
-            classId: (section as any).classId ?? cls.id,
+            classId: section.classId ?? cls.id,
           }))
         );
 
@@ -113,18 +132,26 @@ const DashboardInner = () => {
         const todayStart = new Date();
         todayStart.setHours(0, 0, 0, 0);
         const dateKey = today.toISOString().split("T")[0];
+
         const attendanceResults = await Promise.all(
           sections.map((section) =>
             api
               .get("/attendance", {
-                params: { classId: section.classId, sectionId: section.sectionId, date: dateKey },
+                params: {
+                  classId: section.classId,
+                  sectionId: section.sectionId,
+                  date: dateKey,
+                },
               })
               .then((res) => unwrap<Array<{ status: string }>>(res))
               .catch(() => [])
           )
         );
 
-        const totalAttendance = attendanceResults.reduce((sum, records) => sum + records.length, 0);
+        const totalAttendance = attendanceResults.reduce(
+          (sum, records) => sum + records.length,
+          0
+        );
         const presentAttendance = attendanceResults.reduce(
           (sum, records) => sum + records.filter((r) => r.status === "PRESENT").length,
           0
@@ -168,7 +195,7 @@ const DashboardInner = () => {
           .filter((item: any) => item.dateValue >= todayStart.getTime())
           .sort((a: any, b: any) => a.dateValue - b.dateValue)
           .slice(0, 3)
-          .map(({ id, title, date }) => ({ id, title, date }));
+          .map(({ id, title, date }: any) => ({ id, title, date }));
 
         setUpcomingExams(examItems);
       } catch (error) {
@@ -181,37 +208,144 @@ const DashboardInner = () => {
     loadDashboard();
   }, [monthKey]);
 
+  const statCards = [
+    {
+      title: "Total Students",
+      value: stats.totalStudents.toLocaleString(),
+      icon: Users,
+      tone: "text-blue-600 bg-blue-50 dark:bg-blue-500/10 dark:text-blue-400",
+      ring: "ring-blue-100 dark:ring-blue-500/20",
+    },
+    {
+      title: "Total Teachers",
+      value: stats.totalTeachers.toLocaleString(),
+      icon: UserCheck,
+      tone: "text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 dark:text-emerald-400",
+      ring: "ring-emerald-100 dark:ring-emerald-500/20",
+    },
+    {
+      title: "Active Classes",
+      value: stats.totalClasses.toLocaleString(),
+      icon: Layers,
+      tone: "text-sky-600 bg-sky-50 dark:bg-sky-500/10 dark:text-sky-400",
+      ring: "ring-sky-100 dark:ring-sky-500/20",
+    },
+    {
+      title: "Attendance Today",
+      value: `${stats.attendancePercent}%`,
+      icon: CalendarCheck,
+      tone: "text-violet-600 bg-violet-50 dark:bg-violet-500/10 dark:text-violet-400",
+      ring: "ring-violet-100 dark:ring-violet-500/20",
+    },
+    {
+      title: "Fees Collected",
+      value: formatCurrency(stats.feesCollected),
+      icon: Wallet,
+      tone: "text-amber-600 bg-amber-50 dark:bg-amber-500/10 dark:text-amber-400",
+      ring: "ring-amber-100 dark:ring-amber-500/20",
+    },
+    {
+      title: "Pending / Overdue",
+      value: `${stats.admissionsPending} · ${stats.overdueCount}`,
+      icon: AlertCircle,
+      tone: "text-rose-600 bg-rose-50 dark:bg-rose-500/10 dark:text-rose-400",
+      ring: "ring-rose-100 dark:ring-rose-500/20",
+    },
+  ];
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Welcome back, Admin</h1>
-        <p className="text-muted-foreground mt-1">Heres what happening today.</p>
-      </div>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Header */}
+        <header className="flex flex-col gap-4 border-b border-slate-200 pb-6 dark:border-slate-800 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              {todayLabel}
+            </p>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900 dark:text-white sm:text-3xl">
+              Welcome back, Admin
+            </h1>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              Heres whats happening across your school today.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span
+              className={`inline-flex h-2 w-2 rounded-full ${
+                loading ? "bg-amber-500 animate-pulse" : "bg-emerald-500"
+              }`}
+            />
+            <span className="text-sm text-slate-600 dark:text-slate-400">
+              {loading ? "Syncing data…" : "All systems up to date"}
+            </span>
+          </div>
+        </header>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-        <StatCard icon={Users} label="Total Students" numeric={stats.totalStudents} value={stats.totalStudents.toLocaleString()} trend={0} trendLabel="current" delay={0} />
-        <StatCard icon={UserCheck} label="Active Teachers" numeric={stats.totalTeachers} value={stats.totalTeachers.toLocaleString()} trend={0} trendLabel="current" delay={0.08} />
-        <StatCard icon={Layers} label="Total Classes" numeric={stats.totalClasses} value={stats.totalClasses.toLocaleString()} trend={0} trendLabel="current" delay={0.16} />
-        <StatCard icon={CalendarCheck} label="Today's Attendance" numeric={stats.attendancePercent} suffix="%" value={`${stats.attendancePercent}%`} trend={0} trendLabel="today" delay={0.24} />
-        <StatCard icon={Wallet} label="Fees Collected" numeric={stats.feesCollected} prefix="৳" value={`৳${stats.feesCollected.toLocaleString()}`} trend={0} trendLabel="this month" delay={0.32} />
-        <StatCard icon={AlertCircle} label="Pending Fees" numeric={stats.pendingFees} prefix="৳" value={`৳${stats.pendingFees.toLocaleString()}`} trend={0} trendLabel="outstanding" delay={0.4} />
-      </div>
+        {/* Stats */}
+        <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          {statCards.map(({ title, value, icon: Icon, tone, ring }) => (
+            <div
+              key={title}
+              className={`rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900 ring-1 ${ring}`}
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  {title}
+                </p>
+                <span className={`flex h-9 w-9 items-center justify-center rounded-lg ${tone}`}>
+                  <Icon className="h-4.5 w-4.5" strokeWidth={2} />
+                </span>
+              </div>
+              <p className="mt-3 text-2xl font-semibold tracking-tight text-slate-900 dark:text-white">
+                {value}
+              </p>
+            </div>
+          ))}
+        </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <div className="lg:col-span-2"><AttendanceChart /></div>
-        <FeeCollection
-          collected={stats.feesCollected}
-          outstanding={stats.pendingFees}
-          overdueCount={stats.overdueCount}
-        />
-      </div>
+        {/* Charts */}
+        <section className="mt-6 grid gap-6 lg:grid-cols-5">
+          <div className="lg:col-span-3 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="mb-5 flex items-start justify-between">
+              <div>
+                <h2 className="text-base font-semibold text-slate-900 dark:text-white">
+                  Attendance Overview
+                </h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  Weekly attendance across all sections
+                </p>
+              </div>
+            </div>
+            <AttendanceChart />
+          </div>
+          <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="mb-5">
+              <h2 className="text-base font-semibold text-slate-900 dark:text-white">
+                Revenue
+              </h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Monthly fee collection trend
+              </p>
+            </div>
+            <RevenueChart />
+          </div>
+        </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <div className="lg:col-span-2"><RevenueChart /></div>
-        <UpcomingExams items={upcomingExams} isLoading={loading} />
-      </div>
+        {/* Fees + Admissions */}
+        <section className="mt-6 grid gap-6 lg:grid-cols-2">
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <FeeCollection collected={stats.feesCollected} outstanding={stats.pendingFees} overdueCount={stats.overdueCount} />
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <RecentAdmissions items={recentAdmissions} isLoading={loading} />
+          </div>
+        </section>
 
-      <RecentAdmissions items={recentAdmissions} isLoading={loading} />
+        {/* Upcoming exams */}
+        <section className="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <UpcomingExams items={upcomingExams} isLoading={loading} />
+        </section>
+      </div>
     </div>
   );
 };
