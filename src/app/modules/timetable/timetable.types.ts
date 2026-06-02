@@ -24,7 +24,7 @@ export interface Timetable {
     id: string;
     name: string;
   };
-  day: DayOfWeek;
+  dayOfWeek: DayOfWeek;
   startTime: string;
   endTime: string;
   createdAt: string;
@@ -34,7 +34,7 @@ export interface CreateTimetablePayload {
   classId: string;
   subjectId: string;
   teacherId: string;
-  day: DayOfWeek;
+  dayOfWeek: DayOfWeek;
   startTime: string;
   endTime: string;
 }

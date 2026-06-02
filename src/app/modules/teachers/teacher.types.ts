@@ -4,14 +4,12 @@ export interface Teacher {
   email: string;
   phone: string;
   address: string;
-  gender: "MALE" | "FEMALE";
+  gender: "MALE" | "FEMALE" | string;
   dateOfBirth: string;
-  subject?: {
-    id: string;
-    name: string;
-  };
+  subject?: string;
   subjectId: string;
   createdAt: string;
+  joiningDate?: string;
 }
 
 export interface CreateTeacherPayload {

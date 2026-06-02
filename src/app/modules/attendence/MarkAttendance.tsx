@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useClasses } from "../class/useClasses";
 import { useStudents } from "../student/useStudents";
+import { useAdmissions } from "../admission/useAdmission";
 import { AttendanceStatus } from "./attendance.types";
 import { useTakeAttendance } from "./useAttendance";
 import { toast } from "sonner";
@@ -18,6 +19,7 @@ interface StudentAttendance{
 export default function MarkAttendance() {
     const {data:classes} = useClasses();
     const {data:students} = useStudents();
+    const {data:admissions} = useAdmissions();
     const {mutate:submitAttendance,isPending} = useTakeAttendance();
     const { role } = useAuth();
     const { data: teachers } = useTeachers();
@@ -37,7 +39,25 @@ export default function MarkAttendance() {
         setSectionId(nextSectionId);
 
         const studentList = Array.isArray(students) ? students : [];
-        const classStudents = studentList.filter((s) => s.classId === selectedClassId);
+        const admissionList = Array.isArray(admissions) ? admissions : [];
+        
+        // Get approved admissions for this class and extract emails
+        const approvedEmails = new Set(
+          admissionList
+            .filter((a) => a.targetClassId === selectedClassId && a.status === "APPROVED" && a.studentEmail)
+            .map((a) => a.studentEmail.toLowerCase())
+        );
+
+        // Filter students for the selected class and who have approved admissions
+        // Sort by rollNumber
+        const classStudents = studentList
+          .filter((s) => s.classId === selectedClassId && s.email && approvedEmails.has(s.email.toLowerCase()))
+          .sort((a, b) => {
+            const rollA = parseInt(a.rollNumber || "0", 10);
+            const rollB = parseInt(b.rollNumber || "0", 10);
+            return rollA - rollB;
+          });
+
         setAttendanceList(
              classStudents.map((s) => ({
                 studentId: s.id,

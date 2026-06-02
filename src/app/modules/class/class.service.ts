@@ -1,5 +1,5 @@
 import api from "@/lib/axios";
-import { Class, CreateClassPayload, CreateSectionPayload } from "./class.types";
+import { Class, CreateClassPayload, CreateSectionPayload, UpdateSectionPayload } from "./class.types";
 
 export const classService = {
   getAll: async (): Promise<Class[]> => {
@@ -31,6 +31,11 @@ export const classService = {
 
   createSection: async (data: CreateSectionPayload) => {
     const res = await api.post("/classes/sections", data);
+    return res.data?.data ?? res.data;
+  },
+
+  updateSection: async (sectionId: string, data: UpdateSectionPayload) => {
+    const res = await api.put(`/classes/sections/${sectionId}`, data);
     return res.data?.data ?? res.data;
   },
 };

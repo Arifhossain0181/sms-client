@@ -2,11 +2,14 @@
 
 import { useEffect } from "react";
 import { io } from "socket.io-client";
-
-import { useNotificationStore } from "./notificationStore";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+
+import { useNotificationStore } from "./notificationStore";
 import { useAuthStore } from "@/store/authstore";
+
+const SOCKET_URL =
+  (process.env.NEXT_PUBLIC_SOCKET_URL as string | undefined) ?? "";
 
 export default function SocketProvider({
   children,
@@ -18,10 +21,10 @@ export default function SocketProvider({
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !SOCKET_URL) return;
 
     // Backend এ connect করো
-    const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL!, {
+    const socket = io(SOCKET_URL, {
       withCredentials: true,
     });
 
@@ -31,7 +34,11 @@ export default function SocketProvider({
     });
 
     // নতুন notification আসলে
-    const handleNotification = (data: { title?: string; body?: string; message?: string }) => {
+    const handleNotification = (data: {
+      title?: string;
+      body?: string;
+      message?: string;
+    }) => {
       increment();
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       toast.info(data.title ?? "Notification", {

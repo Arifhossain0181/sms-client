@@ -30,14 +30,17 @@ const mapNotice = (item: ApiNotice): Notice => ({
   title: item.title,
   content: item.content,
   target: mapAudienceToTarget(item.audience, item.target),
-  createdBy: item.createdBy ?? item.author,
+  createdBy: (item.createdBy ?? item.author) ? {
+    id: (item.createdBy ?? item.author)?.id || '',
+    name: (item.createdBy ?? item.author)?.name || 'Unknown',
+  } : undefined,
   createdAt: item.createdAt,
 });
 
 export const noticeService = {
   getAll: async (): Promise<Notice[]> => {
     const res = await api.get("/notices");
-    const payload = res.data?.data ?? res.data;
+    const payload = res.data?.data?.data ?? res.data?.data ?? res.data;
     return Array.isArray(payload) ? payload.map(mapNotice) : [];
   },
 

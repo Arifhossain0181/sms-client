@@ -2,10 +2,12 @@ export interface Student {
   id: string;
   name: string;
   email?: string;
+  guardianEmail?: string;
   phone?: string | null;
   address: string;
-  gender: "MALE" | "FEMALE";
+  gender?: "Male" | "Female" | "Other";
   dateOfBirth: string;
+  rollNumber?: string;
   sectionId?: string;
   section?: {
     id: string;
@@ -21,10 +23,17 @@ export interface Student {
 
 export interface CreateStudentPayload {
   name: string;
-  email: string;
-  phone?: string;
-  address?: string;
-  gender?: "MALE" | "FEMALE";
-  dateOfBirth?: string;
-  classId?: string;
+  email?: string; // Optional for admin mode, required for student self-registration
+  password?: string;
+  phone: string;
+  address: string;
+  gender: "Male" | "Female" | "Other";
+  dateOfBirth: string;
+  rollNumber: string;
+  classId: string;
+  bloodGroup: "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-";
+  guardianName: string;
+  guardianEmail: string;
+  guardianPhone: string;
+  guardianRelation: string;
 }

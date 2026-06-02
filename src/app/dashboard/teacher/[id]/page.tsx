@@ -1,4 +1,4 @@
-import TeacherCard from "@/modules/teacher/TeacherCard";
+import TeacherCard from "@/app/modules/teachers/teachercard";
 
 interface Props {
   params: { id: string };

@@ -19,10 +19,10 @@ export const useClasses = () => {
   });
 };
 
-export const useClass = (id: string) => {
+export const useClass = (id: string | undefined) => {
   return useQuery<Class>({
     queryKey: ["classes", id],
-    queryFn: () => classService.getById(id),
+    queryFn: () => classService.getById(id!),
     enabled: !!id,
   });
 };
@@ -31,8 +31,10 @@ export const useCreateClass = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: CreateClassPayload) => classService.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["classes"] });
+    onSuccess: async () => {
+      // Invalidate and wait for refetch to complete
+      await queryClient.invalidateQueries({ queryKey: ["classes"] });
+      await queryClient.refetchQueries({ queryKey: ["classes"] });
       toast.success("Class add হয়েছে!");
     },
     onError: (err: unknown) => {
@@ -46,8 +48,10 @@ export const useUpdateClass = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<CreateClassPayload> }) =>
       classService.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["classes"] });
+    onSuccess: async () => {
+      // Invalidate and wait for refetch to complete
+      await queryClient.invalidateQueries({ queryKey: ["classes"] });
+      await queryClient.refetchQueries({ queryKey: ["classes"] });
       toast.success("Class update হয়েছে!");
     },
     onError: (err: unknown) => {
@@ -60,8 +64,10 @@ export const useDeleteClass = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => classService.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["classes"] });
+    onSuccess: async () => {
+      // Invalidate and wait for refetch to complete
+      await queryClient.invalidateQueries({ queryKey: ["classes"] });
+      await queryClient.refetchQueries({ queryKey: ["classes"] });
       toast.success("Class delete হয়েছে!");
     },
     onError: (err: unknown) => {

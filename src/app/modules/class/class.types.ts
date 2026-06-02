@@ -18,3 +18,8 @@ export interface CreateSectionPayload {
   classId: string;
   maxCapacity?: number;
 }
+
+export interface UpdateSectionPayload {
+  name?: string;
+  maxCapacity?: number;
+}

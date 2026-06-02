@@ -25,18 +25,23 @@ const getErrorMessage = (err: unknown, fallback: string) => {
         if (response?.data?.message) return response.data.message;
     }
     if (err instanceof Error && err.message) return err.message;
+    console.error("Full error:", err);
     return fallback;
 };
 
 export const useCreateStudent = () => {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn:(data :CreateStudentPayload) => studentService.create(data),
+        mutationFn:(data :CreateStudentPayload) => {
+            console.log("Creating student with data:", data);
+            return studentService.create(data);
+        },
         onSuccess:() => {
             queryClient.invalidateQueries({ queryKey: ["students"] });
             toast.success("Student created successfully")
         },
         onError:(err: unknown) => {
+            console.error("Student creation error:", err);
             toast.error(getErrorMessage(err, "Failed to create student"))
         }
     })

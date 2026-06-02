@@ -4,6 +4,7 @@
 import { CalendarCheck, CreditCard, Trophy } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useLenis } from "@/hooks/useLenis";
 import { useAuth } from "@/hooks/useAuth";
 import api from "@/lib/axios";
@@ -11,6 +12,7 @@ import { StatCard } from "../components/StatCard";
 
 export default function StudentDashboard() {
   useLenis();
+  const router = useRouter();
   const { role } = useAuth();
   const [attendancePercent, setAttendancePercent] = useState(0);
   const [resultPercent, setResultPercent] = useState(0);
@@ -25,11 +27,13 @@ export default function StudentDashboard() {
   const [upcomingExams, setUpcomingExams] = useState<Array<{ id: string; title: string; date: string }>>([]);
   const [notices, setNotices] = useState<Array<{ id: string; title: string; date: string }>>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
   useEffect(() => {
     if (role && role !== "STUDENT") {
-      window.location.href = "/dashboard";
+      router.replace("/dashboard");
     }
-  }, [role]);
+  }, [role, router]);
 
   const monthKey = useMemo(() => {
     const now = new Date();
@@ -47,6 +51,7 @@ export default function StudentDashboard() {
     const loadStudentDashboard = async () => {
       try {
         setLoading(true);
+        setError(null);
         let me: { id: string; classId?: string };
         try {
           const meRes = await api.get("/students/me");
@@ -54,96 +59,128 @@ export default function StudentDashboard() {
         } catch (error: unknown) {
           const status = (error as { response?: { status?: number } }).response?.status;
           if (status === 404) {
-            window.location.href = "/apply-for-admission";
+            // Student profile not found - redirect to admission form
+            // Using router.replace for SPA navigation instead of window.location.href
+            router.replace("/apply-for-admission?reason=profile_not_found");
             return;
           }
           throw error;
         }
 
-        const [attendanceRes, resultRes, feeRes, examsRes, noticeRes] = await Promise.allSettled([
-          api.get(`/attendance/student/${me.id}`),
+        // Priority 1: Load attendance first (shows immediately)
+        try {
+          const attendanceRes = await api.get(`/attendance/student/${me.id}`);
+          const attendance = unwrap<{ Parcentage?: number; percentage?: number; present?: number; absent?: number; late?: number; records?: Array<any> }>(attendanceRes);
+          
+          setAttendancePercent(attendance?.percentage ?? attendance?.Parcentage ?? 0);
+          setAttendanceSummary({
+            present: attendance?.present ?? 0,
+            absent: attendance?.absent ?? 0,
+            late: attendance?.late ?? 0,
+          });
+          const attendanceRecords = (attendance?.records ?? []).slice(0, 5).map((record: any) => ({
+            id: record.id,
+            date: formatShortDate(record.date),
+            status: record.status,
+          }));
+          setRecentAttendance(attendanceRecords);
+        } catch (err) {
+          console.error("Attendance load failed", err);
+        }
+
+        // ✅ Priority 2: Load remaining data in parallel (non-blocking)
+        Promise.allSettled([
           api.get(`/results/student/${me.id}`),
           api.get(`/fees/student/${me.id}`),
           me.classId ? api.get(`/exams?classId=${me.classId}`) : Promise.resolve({ data: { data: [] } }),
           api.get("/notices/feed"),
-        ]);
+        ]).then(([resultRes, feeRes, examsRes, noticeRes]) => {
+          const results = resultRes.status === "fulfilled"
+            ? unwrap<{ percentage?: number; marks?: Array<any> }>(resultRes.value)
+            : null;
+          const fees = feeRes.status === "fulfilled"
+            ? unwrap<{ outstanding?: number }>(feeRes.value)
+            : null;
+          const exams = examsRes.status === "fulfilled"
+            ? unwrap<Array<any>>(examsRes.value)
+            : [];
+          const noticeFeed = noticeRes.status === "fulfilled"
+            ? unwrap<Array<any>>(noticeRes.value)
+            : [];
 
-        const attendance = attendanceRes.status === "fulfilled"
-          ? unwrap<{ Parcentage?: number; percentage?: number; present?: number; absent?: number; late?: number; records?: Array<any> }>(attendanceRes.value)
-          : null;
-        const results = resultRes.status === "fulfilled"
-          ? unwrap<{ percentage?: number; marks?: Array<any> }>(resultRes.value)
-          : null;
-        const fees = feeRes.status === "fulfilled"
-          ? unwrap<{ outstanding?: number }>(feeRes.value)
-          : null;
-        const exams = examsRes.status === "fulfilled"
-          ? unwrap<Array<any>>(examsRes.value)
-          : [];
-        const noticeFeed = noticeRes.status === "fulfilled"
-          ? unwrap<Array<any>>(noticeRes.value)
-          : [];
+          setResultPercent(results?.percentage ?? 0);
+          setPendingFees(fees?.outstanding ?? 0);
 
-        setAttendancePercent(attendance?.percentage ?? attendance?.Parcentage ?? 0);
-        setResultPercent(results?.percentage ?? 0);
-        setPendingFees(fees?.outstanding ?? 0);
+          const resultItems = (results?.marks ?? []).slice(0, 5).map((mark: any) => ({
+            id: mark.id,
+            subject: mark.subject?.name ?? "Subject",
+            exam: mark.exam?.name ?? "Exam",
+            marks: `${mark.marksObtained ?? "-"}/${mark.subject?.fullMarks ?? "-"}`,
+            grade: mark.grade ?? undefined,
+          }));
+          setRecentResults(resultItems);
 
-        setAttendanceSummary({
-          present: attendance?.present ?? 0,
-          absent: attendance?.absent ?? 0,
-          late: attendance?.late ?? 0,
-        });
+          const todayStart = new Date();
+          todayStart.setHours(0, 0, 0, 0);
+          const examItems = exams
+            .flatMap((exam: any) =>
+              (exam.schedules ?? []).map((schedule: any) => ({
+                id: schedule.id,
+                title: `${exam.name} - ${schedule.subject?.name ?? "Subject"}`,
+                date: formatShortDate(schedule.examDate),
+                dateValue: new Date(schedule.examDate).getTime(),
+              }))
+            )
+            .filter((item: any) => item.dateValue >= todayStart.getTime())
+            .sort((a: any, b: any) => a.dateValue - b.dateValue)
+            .slice(0, 2)
+            .map(({ id, title, date }) => ({ id, title, date }));
 
-        const attendanceRecords = (attendance?.records ?? []).slice(0, 5).map((record: any) => ({
-          id: record.id,
-          date: formatShortDate(record.date),
-          status: record.status,
-        }));
-        setRecentAttendance(attendanceRecords);
+          setUpcomingExams(examItems);
 
-        const resultItems = (results?.marks ?? []).slice(0, 5).map((mark: any) => ({
-          id: mark.id,
-          subject: mark.subject?.name ?? "Subject",
-          exam: mark.exam?.name ?? "Exam",
-          marks: `${mark.marksObtained ?? "-"}/${mark.subject?.fullMarks ?? "-"}`,
-          grade: mark.grade ?? undefined,
-        }));
-        setRecentResults(resultItems);
-
-        const todayStart = new Date();
-        todayStart.setHours(0, 0, 0, 0);
-        const examItems = exams
-          .flatMap((exam: any) =>
-            (exam.schedules ?? []).map((schedule: any) => ({
-              id: schedule.id,
-              title: `${exam.name} - ${schedule.subject?.name ?? "Subject"}`,
-              date: formatShortDate(schedule.examDate),
-              dateValue: new Date(schedule.examDate).getTime(),
+          setNotices(
+            noticeFeed.slice(0, 2).map((notice: any) => ({
+              id: notice.id,
+              title: notice.title,
+              date: formatShortDate(notice.publishedAt ?? notice.createdAt),
             }))
-          )
-          .filter((item: any) => item.dateValue >= todayStart.getTime())
-          .sort((a: any, b: any) => a.dateValue - b.dateValue)
-          .slice(0, 2)
-          .map(({ id, title, date }) => ({ id, title, date }));
-
-        setUpcomingExams(examItems);
-
-        setNotices(
-          noticeFeed.slice(0, 2).map((notice: any) => ({
-            id: notice.id,
-            title: notice.title,
-            date: formatShortDate(notice.publishedAt ?? notice.createdAt),
-          }))
-        );
+          );
+        }).finally(() => {
+          setLoading(false);
+        });
       } catch (error) {
         console.error("Failed to load student dashboard", error);
-      } finally {
+        setError((error as Error).message || "Failed to load dashboard data");
         setLoading(false);
       }
     };
 
     loadStudentDashboard();
-  }, [monthKey]);
+  }, [monthKey, router]);
+
+  // Show loading screen while fetching data
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if any
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-destructive font-semibold mb-2">Error loading dashboard</p>
+          <p className="text-muted-foreground">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
