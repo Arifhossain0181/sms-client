@@ -10,7 +10,7 @@ import { StatCard } from "../components/StatCard";
 
 export default function TeacherDashboard() {
   useLenis();
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const [stats, setStats] = useState({
     totalStudents: 0,
     totalClasses: 0,
@@ -45,20 +45,19 @@ export default function TeacherDashboard() {
     const loadTeacherDashboard = async () => {
       try {
         setLoading(true);
-        const meRes = await api.get("/teachers/me");
-        const teacher = unwrap<{ id?: string }>(meRes);
-
-        if (!teacher?.id) {
-          console.error("Teacher profile missing id", teacher);
+        
+        if (!user?.id) {
           setSchedule([]);
           setAttendanceStatus([]);
           setStats({ totalStudents: 0, totalClasses: 0, totalSubjects: 0, upcomingExams: 0 });
           return;
         }
 
+        const teacherId = user.id;
+
         const [statsRes, scheduleRes] = await Promise.all([
-          api.get(`/teachers/${teacher.id}/dashboard`),
-          api.get(`/teachers/${teacher.id}/schedule`),
+          api.get(`/teachers/${teacherId}/dashboard`),
+          api.get(`/teachers/${teacherId}/schedule`),
         ]);
 
         const dashboardStats = unwrap<{ totalStudents: number; totalClasses: number; totalSubjects: number; upcomingExams: number }>(statsRes);
@@ -107,7 +106,7 @@ export default function TeacherDashboard() {
     };
 
     loadTeacherDashboard();
-  }, [todayKey]);
+  }, [todayKey, user]);
 
   return (
     <div className="space-y-6">
