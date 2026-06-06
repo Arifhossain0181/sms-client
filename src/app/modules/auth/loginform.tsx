@@ -44,7 +44,17 @@ export default function LoginForm() {
 
       if (user?.role === "STUDENT") {
         try {
-          await api.get("/students/me");
+          const profileRes = await api.get("/students/me");
+          const profileData = profileRes.data?.data ?? profileRes.data;
+          
+          // Check if student is pending approval
+          if (profileData?.pending) {
+            console.log(`[LOGIN] Student pending approval - Status: ${profileData.admissionStatus}`);
+            toast.info(profileData.message || "আপনার ভর্তি অনুমোদনের অপেক্ষা করছে।");
+            router.push("/pending-approval");
+            return;
+          }
+          
           router.push("/dashboard/student");
           return;
         } catch (error: unknown) {

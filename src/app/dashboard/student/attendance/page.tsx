@@ -38,9 +38,32 @@ export default function StudentAttendancePage() {
       try {
         setLoading(true);
         setError(null);
-        const meRes = await api.get("/students/me");
-        const me = unwrap<{ id: string }>(meRes);
-        const attendanceRes = await api.get(`/attendance/student/${me.id}`, {
+        
+        // Try to get student profile
+        let studentId: string | null = null;
+        try {
+          const meRes = await api.get("/students/me");
+          const me = unwrap<{ id?: string; pending?: boolean }>(meRes);
+          
+          if (me.pending) {
+            // Student profile pending approval
+            setError("Your profile is pending approval. Please contact administration.");
+            return;
+          }
+          
+          studentId = me.id;
+        } catch (profileError) {
+          console.error("Failed to fetch student profile:", profileError);
+          setError("Unable to load your profile. Please try again later.");
+          return;
+        }
+
+        if (!studentId) {
+          setError("Student profile not found.");
+          return;
+        }
+
+        const attendanceRes = await api.get(`/attendance/student/${studentId}`, {
           params: { month, year },
         });
         const attendance = unwrap<{

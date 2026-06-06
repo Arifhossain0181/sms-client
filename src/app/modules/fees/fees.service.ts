@@ -54,7 +54,7 @@ const mapFee = (item: ApiFee): Fee => {
 };
 
 export const feesService = {
-  // সব fees আনো
+  // সব fees আনো (ADMIN only)
   getAll: async (): Promise<Fee[]> => {
     const res = await api.get("/fees");
     const payload = res.data?.data ?? res.data;
@@ -63,7 +63,16 @@ export const feesService = {
     return [];
   },
 
-  // একজন student এর fees
+  // Student এর নিজের fees
+  getMyFees: async (): Promise<Fee[]> => {
+    const res = await api.get("/fees/my-fees");
+    const payload = res.data?.data ?? res.data;
+    if (Array.isArray(payload)) return payload.map(mapFee);
+    if (Array.isArray(payload?.data)) return payload.data.map(mapFee);
+    return [];
+  },
+
+  // একজন student এর fees (ADMIN এর জন্য)
   getByStudent: async (studentId: string): Promise<Fee[]> => {
     const res = await api.get(`/fees?studentId=${studentId}`);
     const payload = res.data?.data ?? res.data;

@@ -73,27 +73,49 @@ const redirectToLogin = () => {
 };
 
 api.interceptors.request.use((config) => {
-  const accessToken = getCookie("accessToken") ?? getStorageToken("accessToken");
+  const cookieToken = getCookie("accessToken");
+  const storageToken = getStorageToken("accessToken");
+  const accessToken = cookieToken ?? storageToken;
+  
+  console.log(`[AXIOS-REQUEST] ${config.method?.toUpperCase()} ${config.url}`);
+  console.log(`[AXIOS-REQUEST] Token sources:`, {
+    cookie: cookieToken ? `Yes (${cookieToken.length} chars)` : "No",
+    storage: storageToken ? `Yes (${storageToken.length} chars)` : "No",
+    used: accessToken ? `Yes (${accessToken.length} chars)` : "No"
+  });
+  
   if (accessToken) {
     config.headers = config.headers ?? {};
     config.headers.Authorization = `Bearer ${accessToken}`;
+    console.log(`[AXIOS-REQUEST] ✅ Authorization header set: Bearer ${accessToken.substring(0, 20)}...`);
+  } else {
+    console.log(`[AXIOS-REQUEST] ⚠️ No access token found in cookie or localStorage`);
   }
+  
   return config;
 });
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log(`[AXIOS-RESPONSE] ✅ ${response.status} ${response.config.url}`);
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config;
 
     // Log all errors for debugging
     if (!error.response) {
       console.error(
-        `[Network Error] ${error.message} - URL: ${error.config?.url || 'unknown'}`
+        `[AXIOS-ERROR] Network Error - ${error.message} - URL: ${error.config?.url || 'unknown'}`
       );
+    } else {
+      console.error(
+        `[AXIOS-ERROR] ${error.response?.status} ${error.config?.method?.toUpperCase()} ${error.config?.url}`
+      );
+      console.error(`[AXIOS-ERROR] Response:`, error.response?.data);
     }
 
-    // 401  retry 
+    // 401  retry
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
         //  request 

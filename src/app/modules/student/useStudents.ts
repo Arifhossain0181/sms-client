@@ -2,13 +2,19 @@ import { toast } from "sonner"
 import { CreateStudentPayload } from "./student.types"
 import { studentService } from "./student.service"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-
-
+import { useAuth } from "@/hooks/useAuth";
 
 export const useStudents = () => {
+    const { role } = useAuth();
+    
+    // Only fetch if user is ADMIN or TEACHER
+    const isAllowedRole = role === 'ADMIN' || role === 'TEACHER';
+    
     return useQuery({
         queryKey : ["students"],
-        queryFn : studentService.getAll
+        queryFn : studentService.getAll,
+        enabled: isAllowedRole, // Don't fetch if not authorized
+        retry: false // Don't retry on 403 errors
     })
 }
 

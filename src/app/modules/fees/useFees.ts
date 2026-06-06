@@ -3,11 +3,26 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { feesService } from "./fees.service";
 import { CreateFeePayload, PayFeePayload, CashPaymentPayload } from "./fees.types";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 export const useFees = () => {
+  const { role } = useAuth();
+  
+  // STUDENT এর জন্য নিজের fees fetch করুন
+  if (role === 'STUDENT') {
+    return useQuery({
+      queryKey: ["fees", "my-fees"],
+      queryFn: feesService.getMyFees,
+      retry: false
+    });
+  }
+  
+  // ADMIN/TEACHER এর জন্য সব fees fetch করুন
   return useQuery({
     queryKey: ["fees"],
     queryFn: feesService.getAll,
+    enabled: role === 'ADMIN' || role === 'TEACHER',
+    retry: false
   });
 };
 
