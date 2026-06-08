@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtDecode } from "jwt-decode";
 
+const dashboardRoutes = {
+  ADMIN: ["/dashboard", "/dashboard/admin", "/dashboard/students", "/dashboard/teachers", "/dashboard/class", "/dashboard/subject", "/dashboard/attendances", "/dashboard/exam", "/dashboard/result", "/dashboard/fees", "/dashboard/notices", "/dashboard/admission", "/dashboard/timetable", "/dashboard/nitfication"],
+  TEACHER: ["/dashboard", "/dashboard/teacher", "/dashboard/attendances", "/dashboard/exam", "/dashboard/result", "/dashboard/notices", "/dashboard/timetable", "/dashboard/nitfication"],
+  STUDENT: ["/dashboard", "/dashboard/student", "/dashboard/result", "/dashboard/fees", "/dashboard/notices", "/dashboard/timetable", "/dashboard/nitfication"],
+};
+
 const roleRoutes = {
-  ADMIN:   ["/students", "/teachers", "/classes", "/subjects", "/attendance", "/exams", "/results", "/fees", "/notices", "/admission", "/timetable", "/notifications"],
+  ADMIN: ["/students", "/teachers", "/classes", "/subjects", "/attendance", "/exams", "/results", "/fees", "/notices", "/admission", "/timetable", "/notifications"],
   TEACHER: ["/attendance", "/exams", "/results", "/notices", "/timetable", "/notifications"],
   STUDENT: ["/results", "/fees", "/notices", "/timetable", "/notifications"],
 };
@@ -71,14 +77,14 @@ export async function middleware(req: NextRequest) {
     }
 
     // Role check
-    if (pathname === "/dashboard") {
-      return NextResponse.next();
-    }
     if (pathname.startsWith("/dashboard/")) {
-      const rolePath = `/dashboard/${decoded.role.toLowerCase()}`;
-      if (!pathname.startsWith(rolePath)) {
+      const allowed = dashboardRoutes[decoded.role as keyof typeof dashboardRoutes] || [];
+      const hasAccess = allowed.some((r) => pathname === r || pathname.startsWith(`${r}/`));
+
+      if (!hasAccess) {
         return NextResponse.redirect(new URL("/dashboard", req.url));
       }
+
       return NextResponse.next();
     }
 

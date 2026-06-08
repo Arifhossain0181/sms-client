@@ -103,20 +103,10 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Log all errors for debugging
-    if (!error.response) {
-      console.error(
-        `[AXIOS-ERROR] Network Error - ${error.message} - URL: ${error.config?.url || 'unknown'}`
-      );
-    } else {
-      console.error(
-        `[AXIOS-ERROR] ${error.response?.status} ${error.config?.method?.toUpperCase()} ${error.config?.url}`
-      );
-      console.error(`[AXIOS-ERROR] Response:`, error.response?.data);
-    }
+    const isUnauthorized = error.response?.status === 401;
 
-    // 401  retry
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // 401 retry path: keep the console quiet unless the refresh flow truly fails.
+    if (isUnauthorized && !originalRequest._retry) {
       if (isRefreshing) {
         //  request 
         return new Promise((resolve, reject) => {
@@ -130,6 +120,7 @@ api.interceptors.response.use(
       try {
         const refreshToken = getCookie("refreshToken") ?? getStorageToken("refreshToken");
         if (!refreshToken) throw new Error("No refresh token");
+
         const refreshRes = await refreshClient.post("/auth/refresh-token", { refreshToken });
         const payload = refreshRes.data?.data ?? refreshRes.data;
         if (payload?.accessToken) {
@@ -141,16 +132,26 @@ api.interceptors.response.use(
           setStorageToken("refreshToken", payload.refreshToken);
         }
         processQueue(null);
-        return api(originalRequest); // request 
-      } catch {
+        return api(originalRequest);
+      } catch (refreshError) {
         processQueue(new Error("Session expired"));
         setStorageToken("accessToken");
         setStorageToken("refreshToken");
         clearAuthState();
+        console.warn("[AXIOS-RESPONSE] Session refresh failed; redirecting to login.", refreshError);
         redirectToLogin();
         return Promise.reject(new Error("Session expired"));
       } finally {
         isRefreshing = false;
+      }
+    }
+
+    if (!isUnauthorized) {
+      if (!error.response) {
+        console.error(`[AXIOS-ERROR] Network Error - ${error.message} - URL: ${error.config?.url || "unknown"}`);
+      } else {
+        console.error(`[AXIOS-ERROR] ${error.response?.status} ${error.config?.method?.toUpperCase()} ${error.config?.url}`);
+        console.error(`[AXIOS-ERROR] Response:`, error.response?.data);
       }
     }
 
