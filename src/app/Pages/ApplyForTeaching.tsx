@@ -49,22 +49,22 @@ export default function ApplyForTeaching() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto px-6 lg:px-10 py-12">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900">Apply for Teaching</h1>
-          <p className="text-slate-600 mt-2">
+          <h1 className="text-3xl font-bold text-foreground">Apply for Teaching</h1>
+          <p className="text-muted-foreground mt-2">
             Fill in your details to apply for a teaching position.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 bg-white rounded-2xl p-6 shadow">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 bg-card/80 border border-border/60 rounded-2xl p-6 shadow">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
               <label className="block text-sm font-medium mb-1">Full Name</label>
               <input
                 {...register("name")}
-                className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-transparent border border-border/60 rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                 placeholder="Your name"
               />
               {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name.message}</p>}
@@ -75,7 +75,7 @@ export default function ApplyForTeaching() {
               <input
                 {...register("email")}
                 type="email"
-                className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-transparent border border-border/60 rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                 placeholder="you@example.com"
               />
               {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
@@ -85,7 +85,7 @@ export default function ApplyForTeaching() {
               <label className="block text-sm font-medium mb-1">Phone</label>
               <input
                 {...register("phone")}
-                className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-transparent border border-border/60 rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                 placeholder="01XXXXXXXXX"
               />
               {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone.message}</p>}
@@ -95,7 +95,7 @@ export default function ApplyForTeaching() {
               <label className="block text-sm font-medium mb-1">Gender</label>
               <select
                 {...register("gender")}
-                className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                className="w-full bg-transparent border border-border/60 rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               >
                 <option value="">Select</option>
                 <option value="MALE">Male</option>
@@ -110,7 +110,7 @@ export default function ApplyForTeaching() {
               <input
                 {...register("dob")}
                 type="date"
-                className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-transparent border border-border/60 rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
               {errors.dob && <p className="text-xs text-red-500 mt-1">{errors.dob.message}</p>}
             </div>
@@ -119,7 +119,7 @@ export default function ApplyForTeaching() {
               <label className="block text-sm font-medium mb-1">Designation</label>
               <input
                 {...register("designation")}
-                className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-transparent border border-border/60 rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                 placeholder="Senior Teacher"
               />
               {errors.designation && <p className="text-xs text-red-500 mt-1">{errors.designation.message}</p>}
@@ -129,7 +129,7 @@ export default function ApplyForTeaching() {
               <label className="block text-sm font-medium mb-1">Department</label>
               <input
                 {...register("department")}
-                className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-transparent border border-border/60 rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                 placeholder="Science"
               />
             </div>
@@ -138,7 +138,7 @@ export default function ApplyForTeaching() {
               <label className="block text-sm font-medium mb-1">Qualification</label>
               <input
                 {...register("qualification")}
-                className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-transparent border border-border/60 rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                 placeholder="MSc / B.Ed"
               />
               {errors.qualification && <p className="text-xs text-red-500 mt-1">{errors.qualification.message}</p>}
@@ -150,7 +150,7 @@ export default function ApplyForTeaching() {
                 {...register("experience")}
                 type="number"
                 min={0}
-                className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-transparent border border-border/60 rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
               {errors.experience && <p className="text-xs text-red-500 mt-1">{errors.experience.message}</p>}
             </div>
@@ -159,7 +159,7 @@ export default function ApplyForTeaching() {
               <label className="block text-sm font-medium mb-1">Subject Specialization</label>
               <input
                 {...register("subjectSpecialization")}
-                className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-transparent border border-border/60 rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                 placeholder="Mathematics"
               />
             </div>
@@ -170,7 +170,7 @@ export default function ApplyForTeaching() {
                 {...register("expectedSalary")}
                 type="number"
                 min={0}
-                className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-transparent border border-border/60 rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                 placeholder="Optional"
               />
             </div>
@@ -179,7 +179,7 @@ export default function ApplyForTeaching() {
               <label className="block text-sm font-medium mb-1">Resume URL</label>
               <input
                 {...register("resumeUrl")}
-                className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-transparent border border-border/60 rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                 placeholder="https://..."
               />
               {errors.resumeUrl && <p className="text-xs text-red-500 mt-1">{errors.resumeUrl.message}</p>}
@@ -191,7 +191,7 @@ export default function ApplyForTeaching() {
             <textarea
               {...register("address")}
               rows={3}
-              className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full bg-transparent border border-border/60 rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
               placeholder="Your address"
             />
             {errors.address && <p className="text-xs text-red-500 mt-1">{errors.address.message}</p>}
@@ -202,7 +202,7 @@ export default function ApplyForTeaching() {
             <textarea
               {...register("coverLetter")}
               rows={4}
-              className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full bg-transparent border border-border/60 rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
               placeholder="Tell us about your teaching experience and motivation"
             />
           </div>
@@ -211,14 +211,14 @@ export default function ApplyForTeaching() {
             <button
               type="reset"
               onClick={() => reset()}
-              className="px-5 py-2.5 rounded-lg text-sm border border-slate-200 text-slate-700"
+              className="px-5 py-2.5 rounded-lg text-sm border border-border/60 text-muted-foreground bg-transparent"
             >
               Reset
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="px-6 py-2.5 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+              className="px-6 py-2.5 rounded-lg text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
               {submitting ? "Submitting..." : "Submit Application"}
             </button>
