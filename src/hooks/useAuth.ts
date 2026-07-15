@@ -11,7 +11,7 @@ export const useAuth = () => {
     try {
       await authService.logout();
       logout();
-      toast.success("Logout সফল!");
+      toast.success("Logout!");
       router.push("/login");
     } catch {
       toast.error("Logout failed");

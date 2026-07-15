@@ -1,26 +1,50 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtDecode } from "jwt-decode";
 
-const dashboardRoutes = {
-  ADMIN: ["/dashboard", "/dashboard/admin", "/dashboard/students", "/dashboard/teachers", "/dashboard/class", "/dashboard/subject", "/dashboard/attendances", "/dashboard/exam", "/dashboard/result", "/dashboard/fees", "/dashboard/notices", "/dashboard/admission", "/dashboard/timetable", "/dashboard/nitfication"],
+type Role =
+  | "SUPER_ADMIN"
+  | "SCHOOL_ADMIN"
+  | "ACCOUNTANT"
+  | "LIBRARIAN"
+  | "TEACHER"
+  | "STUDENT"
+  | "PARENT"
+  | "RECEPTIONIST"
+  | "EXAM_CONTROLLER"
+  | "HR";
+
+const dashboardRoutes: Record<Role, string[]> = {
+  SUPER_ADMIN: ["/dashboard", "/dashboard/super-admin"],
+  SCHOOL_ADMIN: ["/dashboard", "/dashboard/admin", "/dashboard/students", "/dashboard/teachers", "/dashboard/class", "/dashboard/subject", "/dashboard/attendances", "/dashboard/exam", "/dashboard/result", "/dashboard/fees", "/dashboard/notices", "/dashboard/admission", "/dashboard/timetable", "/dashboard/nitfication"],
+  ACCOUNTANT: ["/dashboard", "/dashboard/accountant", "/dashboard/fees", "/dashboard/notices", "/dashboard/nitfication"],
+  LIBRARIAN: ["/dashboard", "/dashboard/librarian", "/dashboard/notices", "/dashboard/nitfication"],
   TEACHER: ["/dashboard", "/dashboard/teacher", "/dashboard/attendances", "/dashboard/exam", "/dashboard/result", "/dashboard/notices", "/dashboard/timetable", "/dashboard/nitfication"],
   STUDENT: ["/dashboard", "/dashboard/student", "/dashboard/result", "/dashboard/fees", "/dashboard/notices", "/dashboard/timetable", "/dashboard/nitfication"],
+  PARENT: ["/dashboard", "/dashboard/parent", "/dashboard/student", "/dashboard/result", "/dashboard/fees", "/dashboard/notices", "/dashboard/timetable", "/dashboard/nitfication"],
+  RECEPTIONIST: ["/dashboard", "/dashboard/receptionist", "/dashboard/notices", "/dashboard/nitfication"],
+  EXAM_CONTROLLER: ["/dashboard", "/dashboard/exam-controller", "/dashboard/exam", "/dashboard/result", "/dashboard/notices", "/dashboard/nitfication"],
+  HR: ["/dashboard", "/dashboard/hr", "/dashboard/teachers", "/dashboard/attendances", "/dashboard/notices", "/dashboard/nitfication"],
 };
 
-const roleRoutes = {
-  ADMIN: ["/students", "/teachers", "/classes", "/subjects", "/attendance", "/exams", "/results", "/fees", "/notices", "/admission", "/timetable", "/notifications"],
+const roleRoutes: Record<Role, string[]> = {
+  SUPER_ADMIN: ["/dashboard"],
+  SCHOOL_ADMIN: ["/students", "/teachers", "/classes", "/subjects", "/attendance", "/exams", "/results", "/fees", "/notices", "/admission", "/timetable", "/notifications"],
+  ACCOUNTANT: ["/fees", "/notifications"],
+  LIBRARIAN: ["/notifications"],
   TEACHER: ["/attendance", "/exams", "/results", "/notices", "/timetable", "/notifications"],
   STUDENT: ["/results", "/fees", "/notices", "/timetable", "/notifications"],
+  PARENT: ["/results", "/fees", "/notices", "/timetable", "/notifications"],
+  RECEPTIONIST: ["/notices", "/notifications"],
+  EXAM_CONTROLLER: ["/exams", "/results", "/notices", "/notifications"],
+  HR: ["/teachers", "/attendance", "/notices", "/notifications"],
 };
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Access Token cookie 
   const accessToken = req.cookies.get("accessToken")?.value;
   const refreshToken = req.cookies.get("refreshToken")?.value;
 
-  // Login/Register page
   if (pathname.startsWith("/login") || pathname.startsWith("/register")) {
     if (accessToken) {
       return NextResponse.redirect(new URL("/dashboard", req.url));
@@ -28,19 +52,16 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Access Token 
   if (!accessToken) {
-    // Refresh Token 
     if (refreshToken) {
-      // Backend এ refresh 
       try {
         const refreshRes = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh-token`,
+          "${process.env.NEXT_PUBLIC_API_URL}/auth/refresh-token",
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Cookie: `refreshToken=${refreshToken}`,
+              Cookie: "refreshToken=${refreshToken}",
             },
             credentials: "include",
             body: JSON.stringify({ refreshToken }),
@@ -48,7 +69,6 @@ export async function middleware(req: NextRequest) {
         );
 
         if (refreshRes.ok) {
-          //  cookie 
           const response = NextResponse.next();
           const setCookie = refreshRes.headers.get("set-cookie");
           if (setCookie) response.headers.set("set-cookie", setCookie);
@@ -59,26 +79,24 @@ export async function middleware(req: NextRequest) {
       }
     }
 
-    // → login
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  // Access Token decode 
   try {
     const decoded = jwtDecode<{ role: string; exp: number }>(accessToken);
 
-    // Expire 
     if (decoded.exp * 1000 < Date.now()) {
       const loginUrl = new URL("/login", req.url);
       loginUrl.searchParams.set("redirect", pathname);
       return NextResponse.redirect(loginUrl);
     }
 
-    // Role check
+    const role = decoded.role as Role;
+
     if (pathname.startsWith("/dashboard/")) {
-      const allowed = dashboardRoutes[decoded.role as keyof typeof dashboardRoutes] || [];
+      const allowed = dashboardRoutes[role] || [];
       const hasAccess = allowed.some((r) => pathname === r || pathname.startsWith(`${r}/`));
 
       if (!hasAccess) {
@@ -88,7 +106,7 @@ export async function middleware(req: NextRequest) {
       return NextResponse.next();
     }
 
-    const allowed = roleRoutes[decoded.role as keyof typeof roleRoutes] || [];
+    const allowed = roleRoutes[role] || [];
     const hasAccess = allowed.some((r) => pathname.startsWith(r));
 
     if (!hasAccess) {

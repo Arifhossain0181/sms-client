@@ -1,11 +1,12 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { Role } from "@/tyPes/auth.tyPes";
 
 interface User {
   id: string;
   name: string;
   email: string;
-  role: "ADMIN" | "TEACHER" | "STUDENT";
+  role: Role;
 }
 
 interface AuthState {

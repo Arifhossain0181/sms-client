@@ -7,6 +7,7 @@ import { Topbar } from "./components/Topbar";
 import { useAuth } from "@/hooks/useAuth";
 import api from "@/lib/axios";
 import { usePathname, useRouter } from "next/navigation";
+import type { Role } from "@/tyPes/auth.tyPes";
 
 export default function DashboardLayout({
   children,
@@ -19,7 +20,6 @@ export default function DashboardLayout({
   const router = useRouter();
   const [bannerMessage] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
-
     const msg = window.localStorage.getItem("redirectMessage");
     if (msg) {
       window.localStorage.removeItem("redirectMessage");
@@ -30,56 +30,81 @@ export default function DashboardLayout({
   useEffect(() => {
     if (!role) return;
 
-    const isAdmin = role === "ADMIN";
-    const isTeacher = role === "TEACHER";
-    const isStudent = role === "STUDENT";
+    const isSuperAdmin = role === "SUPER_ADMIN";
 
-    if (isAdmin) return;
+    // Super admin can access everything
+    if (isSuperAdmin) return;
 
-    if (pathname?.startsWith("/dashboard/teacher") && !isTeacher) {
-      window.localStorage.setItem("redirectMessage", "You do not have permission to view the teacher pages.");
-      router.replace("/dashboard");
-      return;
+    const routeRoleMap: { prefix: string; allowedRole: Role; label: string }[] = [
+      { prefix: "/dashboard/school-admin", allowedRole: "SCHOOL_ADMIN", label: "School Admin" },
+      { prefix: "/dashboard/accountant", allowedRole: "ACCOUNTANT", label: "Accountant" },
+      { prefix: "/dashboard/teacher", allowedRole: "TEACHER", label: "Teacher" },
+      { prefix: "/dashboard/parent", allowedRole: "PARENT", label: "Parent" },
+      { prefix: "/dashboard/exam-controller", allowedRole: "EXAM_CONTROLLER", label: "Exam Controller" },
+      { prefix: "/dashboard/hr", allowedRole: "HR", label: "HR" },
+      { prefix: "/dashboard/super-admin", allowedRole: "SUPER_ADMIN", label: "Super Admin" },
+    ];
+
+    for (const { prefix, allowedRole, label } of routeRoleMap) {
+      if (pathname?.startsWith(prefix) && role !== allowedRole) {
+        window.localStorage.setItem(
+          "redirectMessage",
+          `You do not have permission to view the ${label} pages.`
+        );
+        router.replace("/dashboard");
+        return;
+      }
     }
 
-    if (pathname?.startsWith("/dashboard/admin") && !isAdmin) {
-      window.localStorage.setItem("redirectMessage", "You do not have permission to view the admin pages.");
-      router.replace("/dashboard");
-      return;
-    }
-
+    // Student approval check
     if (pathname?.startsWith("/dashboard/student")) {
-      if (!isStudent) {
-        window.localStorage.setItem("redirectMessage", "You do not have permission to view that student page.");
+      if (role !== "STUDENT" && role !== "PARENT") {
+        window.localStorage.setItem("redirectMessage", "You do not have permission to view student pages.");
         router.replace("/dashboard");
         return;
       }
 
-      const checkStudentApproval = async () => {
-        try {
-          const response = await api.get("/students/me");
-          const profile = response.data?.data ?? response.data;
+      if (role === "STUDENT") {
+        const checkStudentApproval = async () => {
+          try {
+            const response = await api.get("/students/me");
+            const profile = response.data?.data ?? response.data;
 
-          if (profile?.pending || (profile?.admissionStatus !== undefined && profile.admissionStatus !== "APPROVED")) {
-            router.replace("/pending-approval");
-            return;
+            if (
+              profile?.pending ||
+              (profile?.admissionStatus !== undefined &&
+                profile.admissionStatus !== "APPROVED")
+            ) {
+              router.replace("/pending-approval");
+              return;
+            }
+          } catch (error: unknown) {
+            const status = (error as { response?: { status?: number } }).response?.status;
+            if (status === 404) {
+              window.localStorage.setItem(
+                "redirectMessage",
+                "Complete your admission application first to access the dashboard."
+              );
+              router.replace("/apply-for-admission");
+              return;
+            }
+
+            window.localStorage.setItem(
+              "redirectMessage",
+              "We could not verify your student access right now. Please try again."
+            );
+            router.replace("/");
           }
-        } catch (error: unknown) {
-          const status = (error as { response?: { status?: number } }).response?.status;
-          if (status === 404) {
-            window.localStorage.setItem("redirectMessage", "Complete your admission application first to access the dashboard.");
-            router.replace("/apply-for-admission");
-            return;
-          }
+        };
 
-          window.localStorage.setItem("redirectMessage", "We could not verify your student access right now. Please try again.");
-          router.replace("/");
-        }
-      };
-
-      void checkStudentApproval();
+        void checkStudentApproval();
+      }
     }
   }, [role, pathname, router]);
+
+  if (!role) {
+    return null;
+  }
 
   return (
     <ThemeProvider>

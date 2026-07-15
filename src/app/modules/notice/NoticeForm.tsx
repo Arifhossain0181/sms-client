@@ -1,19 +1,31 @@
 "use client";
 
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Megaphone, Loader2, Sparkles, Users, GraduationCap, User } from "lucide-react";
+import { X, Megaphone, Loader2, Sparkles } from "lucide-react";
 
 import { useCreateNotice, useUpdateNotice } from "./useNotices";
 import { Notice } from "./notice.types";
+import RoleTargetSelect from "@/components/notices/role-target-select";
 
 const schema = z.object({
-  title: z.string().min(1, "Title দাও"),
-  content: z.string().min(10, "কমপক্ষে ১০ অক্ষর লেখো"),
-  target: z.enum(["ALL", "TEACHER", "STUDENT"]),
+  title: z.string().min(1, "Title is required"),
+  content: z.string().min(10, "At least 10 characters are required"),
+  target: z.enum([
+    "ALL",
+    "SUPER_ADMIN",
+    "SCHOOL_ADMIN",
+    "ACCOUNTANT",
+    "TEACHER",
+    "STUDENT",
+    "PARENT",
+    "EXAM_CONTROLLER",
+    "HR",
+  ]),
+  pinned: z.boolean().optional(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -29,10 +41,11 @@ export default function NoticeForm({ notice, onClose }: Props) {
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<FormData>({ resolver: zodResolver(schema) });
+  } = useForm<FormData>({ resolver: zodResolver(schema), defaultValues: { pinned: false } });
 
   useEffect(() => {
     if (notice) {
@@ -40,6 +53,7 @@ export default function NoticeForm({ notice, onClose }: Props) {
         title: notice.title,
         content: notice.content,
         target: notice.target,
+        pinned: notice.pinned,
       });
     }
   }, [notice, reset]);
@@ -100,11 +114,13 @@ export default function NoticeForm({ notice, onClose }: Props) {
                 </motion.div>
                 <div>
                   <h2 className="flex items-center gap-2 text-lg font-semibold text-white">
-                    {notice ? "Notice Edit" : "নতুন Notice"}
+                    {notice ? "Edit Notice" : "New Notice"}
                     <Sparkles className="h-4 w-4 text-white/80" />
                   </h2>
                   <p className="text-xs text-white/80">
-                    {notice ? "তথ্য update করো" : "সবার জন্য announcement তৈরি করো"}
+                    {notice
+                      ? "Update the notice details below."
+                      : "Publish a new notice for your school."}
                   </p>
                 </div>
               </div>
@@ -127,34 +143,25 @@ export default function NoticeForm({ notice, onClose }: Props) {
               </label>
               <input
                 {...register("title")}
-                placeholder="Notice এর title লেখো..."
+                placeholder="Notice title..."
                 className="w-full rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-slate-800/60 px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none transition focus:border-sky-500 dark:focus:border-sky-400/60 focus:ring-2 focus:ring-sky-200 dark:focus:ring-sky-400/30"
               />
-              {errors.title && (
-                <p className="text-xs text-rose-400">{errors.title.message}</p>
-              )}
+              {errors.title && <p className="text-xs text-rose-400">{errors.title.message}</p>}
             </div>
 
             {/* Target */}
             <div className="space-y-1.5">
               <label className="text-xs font-medium uppercase tracking-wider text-indigo-600 dark:text-indigo-300/90">
-                কার জন্য?
+                Target audience
               </label>
-              <div className="relative">
-                <Users className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-indigo-600 dark:text-indigo-300/70" />
-                <select
-                  {...register("target")}
-                  className="w-full appearance-none rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-slate-800/60 py-2.5 pl-10 pr-4 text-sm text-slate-900 dark:text-white outline-none transition focus:border-indigo-500 dark:focus:border-indigo-400/60 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-400/30"
-                >
-                  <option value="">Select</option>
-                  <option value="ALL">সবার জন্য</option>
-                  <option value="TEACHER">শুধু Teacher</option>
-                  <option value="STUDENT">শুধু Student</option>
-                </select>
-              </div>
-              {errors.target && (
-                <p className="text-xs text-rose-400">{errors.target.message}</p>
-              )}
+              <Controller
+                control={control}
+                name="target"
+                render={({ field }) => (
+                  <RoleTargetSelect value={field.value ?? ""} onChange={field.onChange} />
+                )}
+              />
+              {errors.target && <p className="text-xs text-rose-400">{errors.target.message}</p>}
             </div>
 
             {/* Content */}
@@ -165,13 +172,23 @@ export default function NoticeForm({ notice, onClose }: Props) {
               <textarea
                 {...register("content")}
                 rows={5}
-                placeholder="বিস্তারিত লেখো..."
+                placeholder="Write the details..."
                 className="w-full resize-none rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-slate-800/60 px-4 py-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none transition focus:border-violet-500 dark:focus:border-violet-400/60 focus:ring-2 focus:ring-violet-200 dark:focus:ring-violet-400/30"
               />
               {errors.content && (
                 <p className="text-xs text-rose-400">{errors.content.message}</p>
               )}
             </div>
+
+            {/* Pin — req 3.2 */}
+            <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+              <input
+                type="checkbox"
+                {...register("pinned")}
+                className="h-4 w-4 rounded border-slate-300 text-amber-500 focus:ring-amber-400"
+              />
+              Pin this notice to the top of the list
+            </label>
 
             {/* Actions */}
             <div className="flex gap-3 pt-2">

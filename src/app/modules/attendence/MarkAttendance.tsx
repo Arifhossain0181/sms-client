@@ -80,7 +80,7 @@ export default function MarkAttendance() {
       //submit korar function
       const handleSubmit = () =>{
         if(!classId || !sectionId || !date) return toast.error("Please select class, section and date");
-        if(role === "ADMIN" && !teacherId) return toast.error("Please select a teacher");
+        if(role === "SCHOOL_ADMIN" && !teacherId) return toast.error("Please select a teacher");
         const payload = {
             classId,
             sectionId,
@@ -89,7 +89,7 @@ export default function MarkAttendance() {
               studentId: item.studentId,
               status: item.status,
             })),
-            ...(role === "ADMIN" && teacherId ? { teacherId } : {}),
+            ...(role === "SCHOOL_ADMIN" && teacherId ? { teacherId } : {}),
         };
         submitAttendance(payload,{
             onSuccess:()=>{
@@ -147,7 +147,7 @@ export default function MarkAttendance() {
           </select>
         </div>
 
-        {role === "ADMIN" && (
+        {role === "SCHOOL_ADMIN" && (
           <div className="flex-1 min-w-[200px]">
             <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">Teacher</label>
             <select

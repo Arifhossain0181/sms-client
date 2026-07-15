@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { noticeService } from "./notice.service";
 import { CreateNoticePayload } from "./notice.types";
@@ -6,46 +5,26 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useHydration } from "@/hooks/useHydration";
 
+function errorMessage(err: unknown, fallback: string): string {
+  const message = (err as { response?: { data?: { message?: string } } })?.response?.data
+    ?.message;
+  return message || fallback;
+}
+
 export const useNotices = () => {
   const { role } = useAuth();
   const isHydrated = useHydration();
-  
-  const isAdmin = role === "ADMIN";
+
+  const isAdmin = role === "SCHOOL_ADMIN";
   const queryFn = isAdmin ? noticeService.getAll : noticeService.getFeed;
-  
-  console.log(`[NOTICE-HOOK] User role: ${role}, Hydrated: ${isHydrated}, Using: ${isAdmin ? 'getAll()' : 'getFeed()'}`);
-  
+
   return useQuery({
     queryKey: ["notices"],
-    queryFn: async () => {
-      console.log(`[NOTICE-HOOK] Fetching notices...`);
-      
-      // Debug token state
-      if (typeof window !== "undefined") {
-        const getCookie = (name: string) => {
-          const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
-          return match ? match[2] : null;
-        };
-        const tokenCookie = getCookie("accessToken");
-        const tokenStorage = localStorage.getItem("accessToken");
-        console.log(`[NOTICE-HOOK] Token state:`, {
-          cookie: tokenCookie ? `✅ (${tokenCookie.length} chars)` : "❌",
-          storage: tokenStorage ? `✅ (${tokenStorage.length} chars)` : "❌"
-        });
-      }
-      
-      try {
-        const data = await queryFn();
-        console.log(`[NOTICE-HOOK] ✅ Fetched ${data.length} notices`);
-        return data;
-      } catch (error: unknown) {
-        const status = (error as { response?: { status?: number } }).response?.status;
-        console.error(`[NOTICE-HOOK] ❌ Error (${status}):`, error);
-        throw error;
-      }
-    },
+    queryFn,
     retry: false,
-    enabled: isHydrated && !!role,  // Only run query after hydration and when role is available
+    // wait for hydration + role, so an unauthenticated client never fires
+    // a request that's guaranteed to 401
+    enabled: isHydrated && !!role,
   });
 };
 
@@ -63,10 +42,10 @@ export const useCreateNotice = () => {
     mutationFn: (data: CreateNoticePayload) => noticeService.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notices"] });
-      toast.success("Notice publish হয়েছে!");
+      toast.success("Notice published!");
     },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message || "Failed!");
+    onError: (err: unknown) => {
+      toast.error(errorMessage(err, "Failed to publish notice"));
     },
   });
 };
@@ -78,10 +57,26 @@ export const useUpdateNotice = () => {
       noticeService.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notices"] });
-      toast.success("Notice update হয়েছে!");
+      toast.success("Notice updated!");
     },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message || "Failed!");
+    onError: (err: unknown) => {
+      toast.error(errorMessage(err, "Failed to update notice"));
+    },
+  });
+};
+
+// req 3.2: pin / unpin — optimistic update so the toggle feels instant
+export const usePinNotice = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, pinned }: { id: string; pinned: boolean }) =>
+      noticeService.togglePin(id, pinned),
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: ["notices"] });
+      toast.success(updated.pinned ? "Notice pinned!" : "Notice unpinned!");
+    },
+    onError: (err: unknown) => {
+      toast.error(errorMessage(err, "Failed to update pin status"));
     },
   });
 };
@@ -92,10 +87,10 @@ export const useDeleteNotice = () => {
     mutationFn: (id: string) => noticeService.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notices"] });
-      toast.success("Notice delete হয়েছে!");
+      toast.success("Notice deleted!");
     },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message || "Failed!");
+    onError: (err: unknown) => {
+      toast.error(errorMessage(err, "Failed to delete notice"));
     },
   });
 };

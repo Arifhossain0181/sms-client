@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Megaphone,
@@ -15,30 +15,22 @@ import {
   ChevronDown,
   ChevronUp,
   Filter,
+  Pin,
+  PinOff,
 } from "lucide-react";
 
-import { useNotices, useDeleteNotice } from "./useNotices";
+import { useNotices, useDeleteNotice, usePinNotice } from "./useNotices";
 import NoticeForm from "./NoticeForm";
 import { Notice } from "./notice.types";
+import { NOTICE_TARGETS, targetStyles, targetLabel } from "./notice.target.meta";
 import { formatDate } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { hasPermission } from "@/config/roles";
 
-const targetStyles: Record<string, string> = {
-  ALL: "from-sky-500/20 to-sky-500/5 text-sky-300 ring-sky-400/30",
-  TEACHER: "from-violet-500/20 to-violet-500/5 text-violet-300 ring-violet-400/30",
-  STUDENT: "from-indigo-500/20 to-indigo-500/5 text-indigo-300 ring-indigo-400/30",
-};
-
-const targetLabel: Record<string, string> = {
-  ALL: "সবার জন্য",
-  TEACHER: "শুধু Teacher",
-  STUDENT: "শুধু Student",
-};
-
 export default function NoticeCard() {
   const { data: notices, isLoading } = useNotices();
   const { mutate: deleteNotice } = useDeleteNotice();
+  const { mutate: pinNotice } = usePinNotice();
   const { role } = useAuth();
 
   const [showForm, setShowForm] = useState(false);
@@ -46,10 +38,17 @@ export default function NoticeCard() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [filterTarget, setFilterTarget] = useState<string>("");
 
+  const canManage = !!role && hasPermission(role, "post_notice");
+
   const safeNotices = Array.isArray(notices) ? notices : [];
-  const filtered = safeNotices.filter((n) =>
-    filterTarget ? n.target === filterTarget : true
+
+  // pinned notices first (req 3.2), otherwise keep the server's ordering
+  const sorted = useMemo(
+    () => [...safeNotices].sort((a, b) => Number(b.pinned) - Number(a.pinned)),
+    [safeNotices]
   );
+
+  const filtered = sorted.filter((n) => (filterTarget ? n.target === filterTarget : true));
 
   const handleEdit = (notice: Notice) => {
     setSelected(notice);
@@ -57,7 +56,11 @@ export default function NoticeCard() {
   };
 
   const handleDelete = (id: string) => {
-    if (confirm("Delete করবেন?")) deleteNotice(id);
+    if (confirm("Delete this notice?")) deleteNotice(id);
+  };
+
+  const handleTogglePin = (notice: Notice) => {
+    pinNotice({ id: notice.id, pinned: !notice.pinned });
   };
 
   const handleClose = () => {
@@ -117,16 +120,16 @@ export default function NoticeCard() {
                   <Sparkles className="h-4 w-4 text-violet-500 dark:text-violet-300" />
                 </h1>
                 <p className="text-xs text-slate-600 dark:text-slate-400">
-                  মোট{" "}
+                  Total{" "}
                   <span className="font-semibold text-sky-600 dark:text-sky-300">
                     {safeNotices.length}
                   </span>{" "}
-                  টি notice
+                  notices
                 </p>
               </div>
             </div>
 
-            {role && hasPermission(role, "post_notice") && (
+            {canManage && (
               <motion.button
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
@@ -148,13 +151,13 @@ export default function NoticeCard() {
           className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 p-3 backdrop-blur-xl"
         >
           <Filter className="ml-1 h-4 w-4 text-indigo-600 dark:text-indigo-300/80" />
-          {["", "ALL", "TEACHER", "STUDENT"].map((t) => {
-            const active = filterTarget === t;
+          {[{ value: "", label: "All" }, ...NOTICE_TARGETS].map((t) => {
+            const active = filterTarget === t.value;
             return (
               <motion.button
-                key={t || "all"}
+                key={t.value || "all"}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => setFilterTarget(t)}
+                onClick={() => setFilterTarget(t.value)}
                 className={`relative rounded-lg px-4 py-1.5 text-xs font-medium transition ${
                   active
                     ? "text-white"
@@ -168,9 +171,7 @@ export default function NoticeCard() {
                     transition={{ type: "spring", stiffness: 380, damping: 30 }}
                   />
                 )}
-                <span className="relative">
-                  {t === "" ? "সব" : targetLabel[t]}
-                </span>
+                <span className="relative">{t.label}</span>
               </motion.button>
             );
           })}
@@ -190,7 +191,11 @@ export default function NoticeCard() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, x: -30 }}
                   transition={{ delay: i * 0.04 }}
-                  className="group relative overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/60 p-5 backdrop-blur-xl transition hover:border-indigo-300 dark:hover:border-indigo-400/30 hover:shadow-lg hover:shadow-indigo-200/20 dark:hover:shadow-indigo-500/10"
+                  className={`group relative overflow-hidden rounded-2xl border p-5 backdrop-blur-xl transition hover:shadow-lg ${
+                    notice.pinned
+                      ? "border-amber-300 dark:border-amber-400/40 bg-amber-50/60 dark:bg-amber-500/5 hover:shadow-amber-200/30 dark:hover:shadow-amber-500/10"
+                      : "border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/60 hover:border-indigo-300 dark:hover:border-indigo-400/30 hover:shadow-indigo-200/20 dark:hover:shadow-indigo-500/10"
+                  }`}
                 >
                   {/* Left accent bar */}
                   <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-sky-500 via-indigo-500 to-violet-500" />
@@ -198,7 +203,10 @@ export default function NoticeCard() {
                   {/* Top */}
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="flex-1 min-w-0 space-y-2">
-                      <h3 className="text-base font-semibold text-slate-900 dark:text-white">
+                      <h3 className="flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-white">
+                        {notice.pinned && (
+                          <Pin className="h-3.5 w-3.5 shrink-0 fill-amber-400 text-amber-500" />
+                        )}
                         {notice.title}
                       </h3>
                       <span
@@ -206,15 +214,28 @@ export default function NoticeCard() {
                           targetStyles[notice.target] ?? targetStyles.ALL
                         }`}
                       >
-                        {targetLabel[notice.target]}
+                        {targetLabel(notice.target)}
                       </span>
                     </div>
 
-                    {role && hasPermission(role, "post_notice") && (
+                    {canManage && (
                       <div className="flex items-center gap-1.5">
                         <motion.button
                           whileTap={{ scale: 0.9 }}
+                          onClick={() => handleTogglePin(notice)}
+                          title={notice.pinned ? "Unpin" : "Pin to top"}
+                          className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 transition hover:bg-amber-200 dark:hover:bg-amber-500/20"
+                        >
+                          {notice.pinned ? (
+                            <PinOff className="h-3.5 w-3.5" />
+                          ) : (
+                            <Pin className="h-3.5 w-3.5" />
+                          )}
+                        </motion.button>
+                        <motion.button
+                          whileTap={{ scale: 0.9 }}
                           onClick={() => handleEdit(notice)}
+                          title="Edit"
                           className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-100 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300 transition hover:bg-sky-200 dark:hover:bg-sky-500/20"
                         >
                           <Pencil className="h-3.5 w-3.5" />
@@ -222,6 +243,7 @@ export default function NoticeCard() {
                         <motion.button
                           whileTap={{ scale: 0.9 }}
                           onClick={() => handleDelete(notice.id)}
+                          title="Delete"
                           className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-100 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 transition hover:bg-rose-200 dark:hover:bg-rose-500/20"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -243,18 +265,16 @@ export default function NoticeCard() {
                   {/* Read more */}
                   {longContent && (
                     <button
-                      onClick={() =>
-                        setExpanded(isExpanded ? null : notice.id)
-                      }
+                      onClick={() => setExpanded(isExpanded ? null : notice.id)}
                       className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-300 hover:text-indigo-700 dark:hover:text-indigo-200"
                     >
                       {isExpanded ? (
                         <>
-                          কম দেখাও <ChevronUp className="h-3 w-3" />
+                          Less <ChevronUp className="h-3 w-3" />
                         </>
                       ) : (
                         <>
-                          আরো দেখাও <ChevronDown className="h-3 w-3" />
+                          Show more <ChevronDown className="h-3 w-3" />
                         </>
                       )}
                     </button>
@@ -289,7 +309,7 @@ export default function NoticeCard() {
               >
                 <Inbox className="h-7 w-7 text-indigo-600 dark:text-indigo-300" />
               </motion.div>
-              <p className="text-sm text-slate-600 dark:text-slate-400">কোনো notice নেই</p>
+              <p className="text-sm text-slate-600 dark:text-slate-400">No notices yet</p>
             </motion.div>
           )}
         </div>

@@ -87,9 +87,9 @@ api.interceptors.request.use((config) => {
   if (accessToken) {
     config.headers = config.headers ?? {};
     config.headers.Authorization = `Bearer ${accessToken}`;
-    console.log(`[AXIOS-REQUEST] ✅ Authorization header set: Bearer ${accessToken.substring(0, 20)}...`);
+    console.log(`[AXIOS-REQUEST]  Authorization header set: Bearer ${accessToken.substring(0, 20)}...`);
   } else {
-    console.log(`[AXIOS-REQUEST] ⚠️ No access token found in cookie or localStorage`);
+    console.log(`[AXIOS-REQUEST] No access token found in cookie or localStorage`);
   }
   
   return config;
@@ -97,7 +97,7 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (response) => {
-    console.log(`[AXIOS-RESPONSE] ✅ ${response.status} ${response.config.url}`);
+    console.log(`[AXIOS-RESPONSE]  ${response.status} ${response.config.url}`);
     return response;
   },
   async (error) => {

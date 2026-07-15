@@ -69,7 +69,7 @@ export default function StudentDashboard() {
 
         // Priority 1: Load attendance first (shows immediately)
         try {
-          const attendanceRes = await api.get(`/attendance/student/${me.id}`);
+          const attendanceRes = await api.get(`/attendance/my-attendance`);
           const attendance = unwrap<{ Parcentage?: number; percentage?: number; present?: number; absent?: number; late?: number; records?: Array<any> }>(attendanceRes);
           
           setAttendancePercent(attendance?.percentage ?? attendance?.Parcentage ?? 0);

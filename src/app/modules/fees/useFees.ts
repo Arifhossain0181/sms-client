@@ -21,7 +21,7 @@ export const useFees = () => {
   return useQuery({
     queryKey: ["fees"],
     queryFn: feesService.getAll,
-    enabled: role === 'ADMIN' || role === 'TEACHER',
+    enabled: role === 'SCHOOL_ADMIN' || role === 'ACCOUNTANT' || role === 'TEACHER',
     retry: false
   });
 };

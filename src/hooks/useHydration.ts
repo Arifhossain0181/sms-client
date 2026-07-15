@@ -9,7 +9,7 @@ export const useHydration = () => {
 
   useEffect(() => {
     setIsHydrated(true);
-    console.log(`[HYDRATION] ✅ Client hydrated`);
+    console.log(`[HYDRATION]  Client hydrated`);
   }, []);
 
   return isHydrated;

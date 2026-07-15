@@ -14,9 +14,7 @@ import {
   GraduationCap,
   HelpCircle,
   Home,
-  Briefcase,
   LayoutDashboard,
-  Layers,
   Megaphone,
   Settings,
   UserCheck,
@@ -24,6 +22,39 @@ import {
   Wallet,
   GraduationCap as Logo,
   X,
+  Shield,
+  UserRound,
+  ClipboardCheck,
+  UserCog,
+  UsersRound,
+  School,
+  Building2,
+  BookMarked,
+  CreditCard,
+  TrendingUp,
+  ClipboardEdit,
+  Star,
+  Baby,
+  HeartHandshake,
+  Layers,
+  DollarSign,
+  Receipt,
+  PieChart,
+  Award,
+  Printer,
+  UserPlus,
+  BriefcaseMedical,
+  Handshake,
+  FolderOpen,
+  ListChecks,
+  TimerReset,
+  CheckSquare,
+  FileBadge,
+  CalendarRange,
+  MessageSquare,
+   
+  ShieldCheck,
+  FileSpreadsheet,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import type { Role } from "@/tyPes/auth.tyPes";
@@ -34,57 +65,333 @@ type NavItem = {
   href: string;
 };
 
-const getDashboardHref = (role: Role) => {
-  if (role === "ADMIN") return "/dashboard/admin";
-  if (role === "TEACHER") return "/dashboard/teacher";
-  return "/dashboard/student";
+type NavGroup = {
+  groupLabel?: string;
+  items: NavItem[];
 };
 
-const getNavItems = (role: Role | null): NavItem[] => {
+const getDashboardHref = (role: Role): string => {
+  switch (role) {
+    case "SUPER_ADMIN":      return "/dashboard/super-admin";
+    case "SCHOOL_ADMIN":     return "/dashboard/school-admin";
+    case "ACCOUNTANT":       return "/dashboard/accountant";
+    case "TEACHER":          return "/dashboard/teacher";
+    case "STUDENT":          return "/dashboard/student";
+    case "PARENT":           return "/dashboard/parent";
+    case "EXAM_CONTROLLER":  return "/dashboard/exam-controller";
+    case "HR":               return "/dashboard/hr";
+    default:                 return "/dashboard";
+  }
+};
+
+const getNavGroups = (role: Role | null): NavGroup[] => {
   if (!role) return [];
 
-  if (role === "ADMIN") {
-    return [
-      { icon: Home, label: "Home", href: "/" },
-      { icon: LayoutDashboard, label: "Dashboard", href: getDashboardHref(role) },
-      { icon: Users, label: "Students", href: "/dashboard/students" },
-      { icon: UserCheck, label: "Teachers", href: "/dashboard/teachers" },
-      { icon: Layers, label: "Classes", href: "/dashboard/class" },
-      { icon: BookOpen, label: "Subjects", href: "/dashboard/subject" },
-      { icon: CalendarCheck, label: "Attendance", href: "/dashboard/attendances" },
-      { icon: ClipboardList, label: "Exams", href: "/dashboard/exam" },
-      { icon: BarChart3, label: "Results", href: "/dashboard/result" },
-      { icon: Wallet, label: "Fees", href: "/dashboard/fees" },
-      { icon: Megaphone, label: "Notices", href: "/dashboard/notices" },
-      { icon: CalendarDays, label: "Timetable", href: "/dashboard/timetable" },
-      { icon: FileText, label: "Admission", href: "/dashboard/admission" },
-      { icon: Briefcase, label: "Teaching Apps", href: "/dashboard/teaching-applications" },
-      { icon: Bell, label: "Notifications", href: "/dashboard/nitfication" },
-    ];
-  }
+  const dashboardHref = getDashboardHref(role);
 
-  if (role === "TEACHER") {
-    return [
-      { icon: Home, label: "Home", href: "/" },
-      { icon: LayoutDashboard, label: "Dashboard", href: getDashboardHref(role) },
-      { icon: CalendarCheck, label: "Attendance", href: "/dashboard/attendances" },
-      { icon: ClipboardList, label: "Exams", href: "/dashboard/exam" },
-      { icon: BarChart3, label: "Results", href: "/dashboard/result" },
-      { icon: Megaphone, label: "Notices", href: "/dashboard/notices" },
-      { icon: CalendarDays, label: "Timetable", href: "/dashboard/timetable" },
-      { icon: Bell, label: "Notifications", href: "/dashboard/nitfication" },
-    ];
-  }
-
-  return [
-    { icon: Home, label: "Home", href: "/" },
-    { icon: LayoutDashboard, label: "Dashboard", href: getDashboardHref(role) },
-    { icon: BarChart3, label: "Results", href: "/dashboard/result" },
-    { icon: Wallet, label: "Fees", href: "/dashboard/fees" },
-    { icon: Megaphone, label: "Notices", href: "/dashboard/notices" },
-    { icon: CalendarDays, label: "Timetable", href: "/dashboard/timetable" },
-    { icon: Bell, label: "Notifications", href: "/dashboard/nitfication" },
+  const commonTop: NavItem[] = [
+    { icon: Home,            label: "Home",          href: "/" },
+    { icon: LayoutDashboard, label: "Dashboard",     href: dashboardHref },
+    { icon: Bell,            label: "Notifications", href: "/dashboard/nitfication" },
   ];
+
+  switch (role) {
+    // ─────────────────────────────────────────────────────────────────────
+    case "SUPER_ADMIN":
+      return [
+        {
+          items: commonTop,
+        },
+        {
+          groupLabel: "Management",
+          items: [
+            { icon: School,       label: "Schools",       href: "/dashboard/super-admin/schools" },
+            { icon: Users,        label: "All Users",     href: "/dashboard/super-admin/users" },
+            { icon: Shield,       label: "RBAC",          href: "/dashboard/super-admin/rbac" },
+          ],
+        },
+        {
+          groupLabel: "Analytics",
+          items: [
+            { icon: BarChart3,    label: "Platform Analytics", href: "/dashboard/super-admin/analytics" },
+            { icon: TrendingUp,   label: "Revenue Report",     href: "/dashboard/super-admin/revenue" },
+          ],
+        },
+        {
+          groupLabel: "System",
+          items: [
+            { icon: Settings,     label: "System Settings", href: "/dashboard/super-admin/settings" },
+          ],
+        },
+      ];
+
+    // 
+    // add these icon imports:
+// UserCog, ShieldCheck, ClipboardCheck, FileSpreadsheet
+
+case "SCHOOL_ADMIN":
+  return [
+    { items: commonTop },
+    {
+      groupLabel: "Academic",
+      items: [
+        { icon: GraduationCap, label: "Students",   href: "/dashboard/students" },
+        { icon: UserCheck,     label: "Teachers",   href: "/dashboard/teachers" },
+        { icon: Layers,        label: "Classes",    href: "/dashboard/class" },
+        { icon: BookOpen,      label: "Subjects",   href: "/dashboard/subject" },
+        { icon: CalendarDays,  label: "Timetable",  href: "/dashboard/timetable" },
+      ],
+    },
+    {
+      groupLabel: "Admissions",
+      items: [
+        { icon: UserPlus,  label: "Admissions",     href: "/dashboard/admission" },
+        // add this item for teaching applications
+        { icon: FileBadge, label: "Teaching Apply", href: "/dashboard/teaching-applications" },
+      ],
+    },
+    
+    {
+      
+      groupLabel: "Approvals",
+      items: [
+        { icon: ShieldCheck, label: "Pending Approvals", href: "/dashboard/approvals" },
+      ],
+    },
+    {
+      groupLabel: "Communication",
+      items: [
+        { icon: Megaphone, label: "Notices", href: "/dashboard/notices" },
+      ],
+    },
+    {
+      // req 3.4: export attendance/result/fee/student-list reports
+      groupLabel: "Reports",
+      items: [
+        { icon: FileSpreadsheet, label: "Reports", href: "/dashboard/reports" },
+      ],
+    },
+  ];
+      return [
+        { items: commonTop },
+        {
+          groupLabel: "Academic",
+          items: [
+            { icon: GraduationCap, label: "Students",          href: "/dashboard/students" },
+            { icon: UserCheck,     label: "Teachers",          href: "/dashboard/teachers" },
+            { icon: Layers,        label: "Classes",           href: "/dashboard/class" },
+            { icon: BookOpen,      label: "Subjects",          href: "/dashboard/subject" },
+            { icon: CalendarDays,  label: "Timetable",         href: "/dashboard/timetable" },
+          ],
+        },
+        {
+          groupLabel: "Admissions",
+          items: [
+            { icon: UserPlus,      label: "Admissions",        href: "/dashboard/admission" },
+            { icon: FileBadge,     label: "Teaching Apply",    href: "/dashboard/teaching-applications" },
+          ],
+        },
+        {
+          groupLabel: "Operations",
+          items: [
+            { icon: CalendarCheck, label: "Attendance",        href: "/dashboard/attendances" },
+            { icon: ClipboardList, label: "Exams",             href: "/dashboard/exam" },
+            { icon: BarChart3,     label: "Results",           href: "/dashboard/result" },
+            { icon: Wallet,        label: "Fees",              href: "/dashboard/fees" },
+          ],
+        },
+        {
+          groupLabel: "Communication",
+          items: [
+            { icon: Megaphone,     label: "Notices",           href: "/dashboard/notices" },
+          ],
+        },
+      ];
+
+    // 
+    case "ACCOUNTANT":
+      return [
+        { items: commonTop },
+        {
+          groupLabel: "Fee Management",
+          items: [
+            { icon: CreditCard,   label: "Fee Collection",    href: "/dashboard/fees" },
+            { icon: DollarSign,   label: "Fee Structure",     href: "/dashboard/accountant/fee-structure" },
+            { icon: Receipt,      label: "Transactions",      href: "/dashboard/accountant/transactions" },
+            { icon: TimerReset,   label: "Overdue Fees",      href: "/dashboard/accountant/overdue" },
+          ],
+        },
+        {
+          groupLabel: "Reports",
+          items: [
+            { icon: BarChart3,    label: "Financial Report",  href: "/dashboard/accountant/reports" },
+            { icon: PieChart,     label: "Fee Analytics",     href: "/dashboard/accountant/analytics" },
+            { icon: Printer,      label: "Generate Invoice",  href: "/dashboard/accountant/invoice" },
+          ],
+        },
+        {
+          groupLabel: "Communication",
+          items: [
+            { icon: Megaphone,    label: "Notices",           href: "/dashboard/notices" },
+          ],
+        },
+      ];
+
+    // ─────────────────────────────────────────────────────────────────────
+    case "TEACHER":
+      return [
+        { items: commonTop },
+        {
+          groupLabel: "My Classes",
+          items: [
+            { icon: GraduationCap, label: "My Students",      href: "/dashboard/teacher/students" },
+            { icon: CalendarDays,  label: "Timetable",        href: "/dashboard/timetable" },
+            { icon: CalendarCheck, label: "Attendance",       href: "/dashboard/attendances" },
+          ],
+        },
+        {
+          groupLabel: "Academics",
+          items: [
+            { icon: ClipboardList, label: "Exams",            href: "/dashboard/exam" },
+            { icon: ClipboardEdit, label: "Mark Results",     href: "/dashboard/result" },
+            { icon: BookOpen,      label: "Subjects",         href: "/dashboard/subject" },
+          ],
+        },
+        {
+          groupLabel: "Communication",
+          items: [
+            { icon: Megaphone,     label: "Notices",          href: "/dashboard/notices" },
+            { icon: MessageSquare, label: "My Profile",       href: "/dashboard/teacher/profile" },
+          ],
+        },
+      ];
+
+    // ─────────────────────────────────────────────────────────────────────
+    case "STUDENT":
+      return [
+        { items: commonTop },
+        {
+          groupLabel: "Academics",
+          items: [
+            { icon: CalendarDays,  label: "Timetable",        href: "/dashboard/timetable" },
+            { icon: CalendarCheck, label: "Attendance",       href: "/dashboard/student/attendance" },
+            { icon: ClipboardList, label: "Exams",            href: "/dashboard/student/exams" },
+            { icon: Award,         label: "Results",          href: "/dashboard/result" },
+          ],
+        },
+        {
+          groupLabel: "Finance",
+          items: [
+            { icon: Wallet,        label: "My Fees",          href: "/dashboard/fees" },
+            { icon: Receipt,       label: "Payment History",  href: "/dashboard/student/payments" },
+          ],
+        },
+        {
+          groupLabel: "Information",
+          items: [
+            { icon: Megaphone,     label: "Notices",          href: "/dashboard/notices" },
+            { icon: UserRound,     label: "My Profile",       href: "/dashboard/student/profile" },
+          ],
+        },
+      ];
+
+    // ─────────────────────────────────────────────────────────────────────
+    case "PARENT":
+      return [
+        { items: commonTop },
+        {
+          groupLabel: "My Children",
+          items: [
+            { icon: Baby,          label: "Children",         href: "/dashboard/parent/children" },
+            { icon: CalendarCheck, label: "Attendance",       href: "/dashboard/parent/attendance" },
+            { icon: Award,         label: "Results",          href: "/dashboard/parent/results" },
+            { icon: CalendarDays,  label: "Timetable",        href: "/dashboard/parent/timetable" },
+          ],
+        },
+        {
+          groupLabel: "Finance",
+          items: [
+            { icon: Wallet,        label: "Fees",             href: "/dashboard/fees" },
+            { icon: Receipt,       label: "Payment History",  href: "/dashboard/parent/payments" },
+          ],
+        },
+        {
+          groupLabel: "Information",
+          items: [
+            { icon: Megaphone,     label: "Notices",          href: "/dashboard/notices" },
+            { icon: HeartHandshake,label: "Contact School",   href: "/dashboard/parent/contact" },
+          ],
+        },
+      ];
+
+    // ─────────────────────────────────────────────────────────────────────
+    case "EXAM_CONTROLLER":
+      return [
+        { items: commonTop },
+        {
+          groupLabel: "Exam Management",
+          items: [
+            { icon: ClipboardList, label: "All Exams",        href: "/dashboard/exam" },
+            { icon: CalendarRange, label: "Exam Schedule",    href: "/dashboard/exam-controller/schedule" },
+            { icon: ListChecks,    label: "Assign Exams",     href: "/dashboard/exam-controller/assign" },
+            { icon: Layers,        label: "Question Papers",  href: "/dashboard/exam-controller/papers" },
+          ],
+        },
+        {
+          groupLabel: "Results",
+          items: [
+            { icon: ClipboardEdit, label: "Enter Results",    href: "/dashboard/result" },
+            { icon: CheckSquare,   label: "Approve Results",  href: "/dashboard/exam-controller/approve" },
+            { icon: Printer,       label: "Result Cards",     href: "/dashboard/exam-controller/result-cards" },
+          ],
+        },
+        {
+          groupLabel: "Communication",
+          items: [
+            { icon: Megaphone,     label: "Notices",          href: "/dashboard/notices" },
+          ],
+        },
+      ];
+
+    // ─────────────────────────────────────────────────────────────────────
+    case "HR":
+      return [
+        { items: commonTop },
+        {
+          groupLabel: "Staff Management",
+          items: [
+            { icon: UserCog,       label: "All Staff",        href: "/dashboard/teachers" },
+            { icon: UserPlus,      label: "Recruitment",      href: "/dashboard/hr/recruitment" },
+            { icon: FileBadge,     label: "Teaching Apply",   href: "/dashboard/teaching-applications" },
+            { icon: FolderOpen,    label: "Staff Profiles",   href: "/dashboard/hr/profiles" },
+          ],
+        },
+        {
+          groupLabel: "Attendance & Leave",
+          items: [
+            { icon: CalendarCheck, label: "Attendance",       href: "/dashboard/attendances" },
+            { icon: TimerReset,    label: "Leave Requests",   href: "/dashboard/hr/leave" },
+            { icon: CalendarRange, label: "Leave Calendar",   href: "/dashboard/hr/leave-calendar" },
+          ],
+        },
+        {
+          groupLabel: "Payroll & Reports",
+          items: [
+            { icon: DollarSign,    label: "Payroll",          href: "/dashboard/hr/payroll" },
+            { icon: BarChart3,     label: "HR Reports",       href: "/dashboard/hr/reports" },
+          ],
+        },
+        {
+          groupLabel: "Communication",
+          items: [
+            { icon: Megaphone,     label: "HR Notices",       href: "/dashboard/notices" },
+          ],
+        },
+      ];
+
+    default:
+      return [{ items: commonTop }];
+  }
 };
 
 interface SidebarProps {
@@ -92,28 +399,48 @@ interface SidebarProps {
   onClose: () => void;
 }
 
+const RoleBadge = ({ role }: { role: Role }) => {
+  const labels: Record<Role, string> = {
+    SUPER_ADMIN:     "Super Admin",
+    SCHOOL_ADMIN:    "School Admin",
+    ACCOUNTANT:      "Accountant",
+    TEACHER:         "Teacher",
+    STUDENT:         "Student",
+    PARENT:          "Parent",
+    EXAM_CONTROLLER: "Exam Controller",
+    HR:              "HR Manager",
+  };
+  return (
+    <span className="text-xs text-sidebar-muted font-medium tracking-wide">
+      {labels[role] ?? role}
+    </span>
+  );
+};
+
 const SidebarContent = ({ showClose, onClose }: { showClose: boolean; onClose: () => void }) => {
   const { role } = useAuth();
   const pathname = usePathname();
-  const navItems = getNavItems(role);
+  const navGroups = getNavGroups(role);
+
   return (
-    <div className="h-full w-full flex flex-col bg-sidebar-bg text-sidebar-fg p-6">
+    <div className="h-full w-full flex flex-col bg-sidebar-bg text-sidebar-fg">
+      {/* Logo */}
       <motion.div
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
-        className="flex items-center gap-3 mb-10"
+        className="flex items-center gap-3 px-5 py-5 border-b border-white/10"
       >
-        <div className="w-11 h-11 rounded-xl gradient-primary flex items-center justify-center shadow-elegant">
-          <Logo className="w-6 h-6 text-white" />
+        <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center shadow-elegant shrink-0">
+          <Logo className="w-5 h-5 text-white" />
         </div>
-        <div>
-          <h1 className="font-bold text-lg leading-tight">Greenwood</h1>
-          <p className="text-xs text-sidebar-muted">K-10 Admin Suite</p>
+        <div className="flex-1 min-w-0">
+          <h1 className="font-bold text-base leading-tight truncate">Greenwood</h1>
+          {role && <RoleBadge role={role} />}
         </div>
         {showClose && (
           <button
             onClick={onClose}
-            className="ml-auto inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-sidebar-fg hover:bg-white/20"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-sidebar-fg hover:bg-white/20 shrink-0"
             aria-label="Close sidebar"
           >
             <X className="h-4 w-4" />
@@ -121,44 +448,63 @@ const SidebarContent = ({ showClose, onClose }: { showClose: boolean; onClose: (
         )}
       </motion.div>
 
-      <nav className="flex flex-col gap-1 flex-1">
-        {navItems.map((item, i) => {
-          const Icon = item.icon;
-          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-          return (
-            <motion.div
-              key={item.label}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.05 * i }}
-              className="relative flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors hover:bg-white/5 group"
-            >
-              {isActive && (
+      {/* Nav */}
+      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1 scrollbar-thin">
+        {navGroups.map((group, gi) => (
+          <div key={gi} className={gi > 0 ? "pt-2" : ""}>
+            {group.groupLabel && (
+              <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-sidebar-muted/60 select-none">
+                {group.groupLabel}
+              </p>
+            )}
+            {group.items.map((item, i) => {
+              const Icon = item.icon;
+              const isActive =
+                pathname === item.href ||
+                (item.href !== "/" && pathname.startsWith(`${item.href}/`));
+              return (
                 <motion.div
-                  layoutId="sidebar-active"
-                  className="absolute inset-0 rounded-lg gradient-primary shadow-elegant"
-                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                />
-              )}
-              <Link
-                href={item.href}
-                onClick={() => showClose && onClose()}
-                className="relative z-10 flex w-full items-center gap-3"
-              >
-                <Icon className={`w-5 h-5 transition-transform group-hover:scale-110 ${isActive ? "text-white" : "text-sidebar-muted"}`} />
-                <span className={`${isActive ? "text-white" : "text-sidebar-fg"}`}>{item.label}</span>
-              </Link>
-            </motion.div>
-          );
-        })}
+                  key={item.label}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.03 * (gi * 5 + i) }}
+                  className="relative"
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="sidebar-active"
+                      className="absolute inset-0 rounded-lg gradient-primary shadow-elegant"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  <Link
+                    href={item.href}
+                    onClick={() => showClose && onClose()}
+                    className={`relative z-10 flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-white/5 group`}
+                  >
+                    <Icon
+                      className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-110 ${
+                        isActive ? "text-white" : "text-sidebar-muted"
+                      }`}
+                    />
+                    <span className={isActive ? "text-white" : "text-sidebar-fg"}>
+                      {item.label}
+                    </span>
+                  </Link>
+                </motion.div>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
-      <div className="flex flex-col gap-1 pt-6 border-t border-white/10">
-        <button className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-sidebar-muted hover:bg-white/5 hover:text-sidebar-fg transition-colors">
-          <HelpCircle className="w-5 h-5" /> Support
+      {/* Bottom */}
+      <div className="px-3 py-4 border-t border-white/10 space-y-1">
+        <button className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-muted hover:bg-white/5 hover:text-sidebar-fg transition-colors">
+          <HelpCircle className="w-4 h-4" /> Support
         </button>
-        <button className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-sidebar-muted hover:bg-white/5 hover:text-sidebar-fg transition-colors">
-          <Settings className="w-5 h-5" /> Settings
+        <button className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-muted hover:bg-white/5 hover:text-sidebar-fg transition-colors">
+          <Settings className="w-4 h-4" /> Settings
         </button>
       </div>
     </div>
@@ -168,10 +514,12 @@ const SidebarContent = ({ showClose, onClose }: { showClose: boolean; onClose: (
 export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   return (
     <>
+      {/* Desktop */}
       <div className="hidden lg:flex sticky top-0 h-screen w-64 shrink-0">
         <SidebarContent showClose={false} onClose={onClose} />
       </div>
 
+      {/* Mobile overlay */}
       <div className="lg:hidden">
         {isOpen && (
           <div
@@ -184,7 +532,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
           initial={false}
           animate={{ x: isOpen ? 0 : -320 }}
           transition={{ type: "spring", stiffness: 320, damping: 32 }}
-          className="fixed left-0 top-0 z-50 h-screen w-72 shadow-elegant"
+          className="fixed left-0 top-0 z-50 h-screen w-64 shadow-elegant"
         >
           <SidebarContent showClose={true} onClose={onClose} />
         </motion.aside>

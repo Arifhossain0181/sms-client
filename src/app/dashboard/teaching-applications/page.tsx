@@ -10,12 +10,12 @@ export default function TeachingApplicationsPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (role && role !== "ADMIN") {
+    if (role && role !== "SCHOOL_ADMIN") {
       router.replace("/dashboard");
     }
   }, [role, router]);
 
-  if (role !== "ADMIN") return null;
+  if (role !== "SCHOOL_ADMIN") return null;
 
   return <TeachingApplicationList />;
 }
