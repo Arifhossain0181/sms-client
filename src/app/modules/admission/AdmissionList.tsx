@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   GraduationCap,
@@ -21,14 +21,23 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
-import { useAdmissions, useUpdateAdmissionStatus, useDeleteAdmission } from "./useAdmission";
+import {
+  useAdmissions,
+  useAdmissionStats,
+  useUpdateAdmissionStatus,
+  useDeleteAdmission,
+} from "./useAdmission";
 import AdminAdmissionForm from "./AdminAdmissionForm";
 import AdmissionDetail from "./AdmissionDetail";
 import { hasPermission } from "@/config/roles";
 import { useAuth } from "@/hooks/useAuth";
-import type { Admission } from "./admission.types";
+import type { Admission, AdmissionStatus } from "./admission.types";
 import { formatDate } from "@/lib/utils";
+
+const PAGE_SIZE = 12;
 
 const statusStyle: Record<string, string> = {
   PENDING:
@@ -46,48 +55,76 @@ const statusIcon: Record<string, React.ReactNode> = {
 };
 
 export default function AdmissionList() {
-  const { data: admissions, isLoading } = useAdmissions();
-  const { mutate: updateStatus } = useUpdateAdmissionStatus();
-  const { mutate: deleteAdmission } = useDeleteAdmission();
   const { role } = useAuth();
+  const canManage = !!role && hasPermission(role, "manage_admission");
 
   const [showForm, setShowForm] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
   const [selected, setSelected] = useState<Admission | null>(null);
-  const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState("");
 
-  const admissionList = Array.isArray(admissions) ? admissions : [];
-  const filtered = admissionList.filter((a) => {
-    const matchSearch = a.applicantName
-      .toLowerCase()
-      .includes(search.toLowerCase());
-    const matchStatus = filterStatus ? a.status === filterStatus : true;
-    return matchSearch && matchStatus;
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState<AdmissionStatus | "">("");
+  const [page, setPage] = useState(1);
+
+  // debounce search so we don't refetch on every keystroke
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  // go back to page 1 whenever the filters change
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, filterStatus]);
+
+  const { data, isLoading, isFetching } = useAdmissions({
+    page,
+    limit: PAGE_SIZE,
+    search: debouncedSearch || undefined,
+    status: filterStatus || undefined,
   });
+  const { data: stats } = useAdmissionStats();
+
+  const { mutate: updateStatus } = useUpdateAdmissionStatus();
+  const { mutate: deleteAdmission } = useDeleteAdmission();
+
+  const admissions = data?.data ?? [];
+  const meta = data?.meta ?? { page: 1, limit: PAGE_SIZE, total: 0, pages: 0 };
 
   const handleApprove = (id: string) => {
-    if (confirm("Approve করবেন?")) updateStatus({ id, status: "APPROVED" });
+    if (confirm("Approve this admission?")) {
+      updateStatus({ id, status: "APPROVED" });
+    }
   };
+
   const handleReject = (id: string) => {
-    if (confirm("Reject করবেন?")) updateStatus({ id, status: "REJECTED" });
+    const reason = window.prompt("Reason for rejection (shown to the applicant):");
+    if (reason === null) return; // cancelled
+    updateStatus({ id, status: "REJECTED", rejectionReason: reason || undefined });
   };
+
   const handleDelete = (id: string) => {
-    if (confirm("Delete করবেন?")) deleteAdmission(id);
+    if (confirm("Delete this admission record?")) deleteAdmission(id);
   };
+
   const handleDetail = (admission: Admission) => {
     setSelected(admission);
     setShowDetail(true);
   };
+
   const handleClose = () => {
     setShowForm(false);
     setShowDetail(false);
     setSelected(null);
   };
 
-  const pending = admissionList.filter((a) => a.status === "PENDING").length;
-  const approved = admissionList.filter((a) => a.status === "APPROVED").length;
-  const rejected = admissionList.filter((a) => a.status === "REJECTED").length;
+  const statusFilters: { value: AdmissionStatus | ""; label: string }[] = [
+    { value: "", label: "All" },
+    { value: "PENDING", label: "Pending" },
+    { value: "APPROVED", label: "Approved" },
+    { value: "REJECTED", label: "Rejected" },
+  ];
 
   if (isLoading) {
     return (
@@ -96,13 +133,6 @@ export default function AdmissionList() {
       </div>
     );
   }
-
-  const statusFilters = [
-    { value: "", label: "সব" },
-    { value: "PENDING", label: "Pending" },
-    { value: "APPROVED", label: "Approved" },
-    { value: "REJECTED", label: "Rejected" },
-  ];
 
   return (
     <div className="relative min-h-screen p-4 sm:p-6 space-y-6 overflow-hidden">
@@ -149,12 +179,12 @@ export default function AdmissionList() {
               </span>
             </div>
             <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-0.5">
-              মোট {admissionList.length} টি application
+              {meta.total} total applications
             </p>
           </div>
         </div>
 
-        {role && hasPermission(role, "manage_admission") && (
+        {canManage && (
           <motion.button
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
@@ -167,14 +197,13 @@ export default function AdmissionList() {
         )}
       </motion.div>
 
-      {/* Stats */}
+      {/* Stats — from the real backend totals, not the current page */}
       <div className="grid grid-cols-3 gap-3 sm:gap-4">
         {[
           {
             label: "Pending",
-            value: pending,
-            color:
-              "from-amber-100 to-orange-100 dark:from-amber-500/20 dark:to-orange-500/20",
+            value: stats?.pending ?? 0,
+            color: "from-amber-100 to-orange-100 dark:from-amber-500/20 dark:to-orange-500/20",
             border: "border-amber-300 dark:border-amber-400/30",
             text: "text-amber-700 dark:text-amber-300",
             num: "text-amber-900 dark:text-white",
@@ -182,9 +211,8 @@ export default function AdmissionList() {
           },
           {
             label: "Approved",
-            value: approved,
-            color:
-              "from-emerald-100 to-teal-100 dark:from-emerald-500/20 dark:to-teal-500/20",
+            value: stats?.approved ?? 0,
+            color: "from-emerald-100 to-teal-100 dark:from-emerald-500/20 dark:to-teal-500/20",
             border: "border-emerald-300 dark:border-emerald-400/30",
             text: "text-emerald-700 dark:text-emerald-300",
             num: "text-emerald-900 dark:text-white",
@@ -192,9 +220,8 @@ export default function AdmissionList() {
           },
           {
             label: "Rejected",
-            value: rejected,
-            color:
-              "from-rose-100 to-pink-100 dark:from-rose-500/20 dark:to-pink-500/20",
+            value: stats?.rejected ?? 0,
+            color: "from-rose-100 to-pink-100 dark:from-rose-500/20 dark:to-pink-500/20",
             border: "border-rose-300 dark:border-rose-400/30",
             text: "text-rose-700 dark:text-rose-300",
             num: "text-rose-900 dark:text-white",
@@ -212,9 +239,7 @@ export default function AdmissionList() {
               {s.icon}
               <span className="font-medium">{s.label}</span>
             </div>
-            <p className={`mt-2 text-2xl sm:text-3xl font-bold ${s.num}`}>
-              {s.value}
-            </p>
+            <p className={`mt-2 text-2xl sm:text-3xl font-bold ${s.num}`}>{s.value}</p>
           </motion.div>
         ))}
       </div>
@@ -225,7 +250,7 @@ export default function AdmissionList() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
             type="text"
-            placeholder="নাম দিয়ে খুঁজুন..."
+            placeholder="Search by name..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-400/50 focus:bg-white dark:focus:bg-white/10 transition-all"
@@ -256,13 +281,14 @@ export default function AdmissionList() {
               <span className="relative">{f.label}</span>
             </motion.button>
           ))}
+          {isFetching && <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-400 ml-1" />}
         </div>
       </div>
 
       {/* List */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         <AnimatePresence mode="popLayout">
-          {filtered.map((admission, idx) => (
+          {admissions.map((admission, idx) => (
             <motion.div
               key={admission.id}
               layout
@@ -310,7 +336,7 @@ export default function AdmissionList() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="h-3 w-3 text-violet-500 dark:text-violet-400" />
-                  {formatDate(admission.createdAt as unknown as string)}
+                  {formatDate(admission.createdAt)}
                 </div>
               </div>
 
@@ -325,13 +351,13 @@ export default function AdmissionList() {
                   View
                 </motion.button>
 
-                {role && hasPermission(role, "manage_admission") && (
+                {canManage && (
                   <>
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => handleApprove(admission.id)}
-                      disabled={admission.status === "APPROVED"}
+                      disabled={admission.status !== "PENDING"}
                       className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-400/20 text-emerald-700 dark:text-emerald-300 text-xs hover:bg-emerald-200 dark:hover:bg-emerald-500/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <Check className="h-3 w-3" />
@@ -341,7 +367,7 @@ export default function AdmissionList() {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => handleReject(admission.id)}
-                      disabled={admission.status === "APPROVED"}
+                      disabled={admission.status !== "PENDING"}
                       className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-rose-100 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-400/20 text-rose-700 dark:text-rose-300 text-xs hover:bg-rose-200 dark:hover:bg-rose-500/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <X className="h-3 w-3" />
@@ -364,7 +390,7 @@ export default function AdmissionList() {
       </div>
 
       {/* Empty state */}
-      {filtered.length === 0 && (
+      {admissions.length === 0 && (
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -377,17 +403,38 @@ export default function AdmissionList() {
           >
             <Inbox className="h-7 w-7 text-indigo-500 dark:text-indigo-300" />
           </motion.div>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            No admissions found.
-          </p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">No admissions found.</p>
         </motion.div>
+      )}
+
+      {/* Pagination */}
+      {meta.pages > 1 && (
+        <div className="flex items-center justify-center gap-3 pt-2">
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page <= 1}
+            className="flex items-center gap-1 rounded-lg border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-white/10 transition"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+            Prev
+          </button>
+          <span className="text-xs text-slate-500 dark:text-slate-400">
+            Page {meta.page} of {meta.pages}
+          </span>
+          <button
+            onClick={() => setPage((p) => Math.min(meta.pages, p + 1))}
+            disabled={page >= meta.pages}
+            className="flex items-center gap-1 rounded-lg border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-white/10 transition"
+          >
+            Next
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
       )}
 
       {/* Modals */}
       {showForm && <AdminAdmissionForm onClose={handleClose} />}
-      {showDetail && selected && (
-        <AdmissionDetail admission={selected} onClose={handleClose} />
-      )}
+      {showDetail && selected && <AdmissionDetail admission={selected} onClose={handleClose} />}
     </div>
   );
 }

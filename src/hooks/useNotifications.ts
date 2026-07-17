@@ -11,7 +11,7 @@ const NOTIFICATIONS_KEY = ["notifications"];
 const UNREAD_COUNT_KEY = ["notifications", "unread"];
 
 export const useNotifications = (params?: NotificationQueryParams) => {
-  return useQuery({
+  return useQuery<Notification[]>({
     queryKey: [...NOTIFICATIONS_KEY, params],
     queryFn: () => notificationService.getNotifications(params),
     staleTime: 1000 * 30, // 30 seconds

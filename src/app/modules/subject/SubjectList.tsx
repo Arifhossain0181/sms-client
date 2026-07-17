@@ -15,6 +15,9 @@ import {
   Sparkles,
   Loader2,
   Inbox,
+  Target,
+  CheckCircle2,
+  CircleOff,
 } from "lucide-react";
 import { useSubjects, useDeleteSubject } from "./useSubjects";
 import SubjectForm from "./SubjectForm";
@@ -177,6 +180,21 @@ export default function SubjectList() {
                       <Calendar className="w-4 h-4" /> তৈরির তারিখ
                     </div>
                   </th>
+                  <th className="text-left px-6 py-4 font-semibold text-slate-600 dark:text-slate-300">
+                    <div className="flex items-center gap-2">
+                      <Target className="w-4 h-4" /> Full Marks
+                    </div>
+                  </th>
+                  <th className="text-left px-6 py-4 font-semibold text-slate-600 dark:text-slate-300">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4" /> Pass Marks
+                    </div>
+                  </th>
+                  <th className="text-left px-6 py-4 font-semibold text-slate-600 dark:text-slate-300">
+                    <div className="flex items-center gap-2">
+                      <CircleOff className="w-4 h-4" /> Type
+                    </div>
+                  </th>
                   {canManage && (
                     <th className="text-right px-6 py-4 font-semibold text-slate-600 dark:text-slate-300">
                       Action
@@ -215,11 +233,30 @@ export default function SubjectList() {
                       <td className="px-6 py-4 text-slate-600 dark:text-slate-400">
                         {subject.teacher?.name ?? "—"}
                       </td>
-                      <td className="px-6 py-4 text-slate-500 dark:text-slate-400 text-xs">
-                        {formatDate(subject.createdAt)}
-                      </td>
-                      {canManage && (
-                        <td className="px-6 py-4">
+                       <td className="px-6 py-4 text-slate-500 dark:text-slate-400 text-xs">
+                         {formatDate(subject.createdAt)}
+                       </td>
+                       <td className="px-6 py-4 text-slate-600 dark:text-slate-400">
+                         {subject.fullMarks}
+                       </td>
+                       <td className="px-6 py-4 text-slate-600 dark:text-slate-400">
+                         {subject.passMarks}
+                       </td>
+                       <td className="px-6 py-4">
+                         {subject.isCompulsory ? (
+                           <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
+                             <CheckCircle2 className="w-3 h-3" />
+                             Compulsory
+                           </span>
+                         ) : (
+                           <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
+                             <CircleOff className="w-3 h-3" />
+                             Optional
+                           </span>
+                         )}
+                       </td>
+                       {canManage && (
+                         <td className="px-6 py-4">
                           <div className="flex items-center justify-end gap-2 opacity-70 group-hover:opacity-100 transition-opacity">
                             <button
                               onClick={() => handleEdit(subject)}
@@ -244,7 +281,7 @@ export default function SubjectList() {
 
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={canManage ? 6 : 5} className="px-6 py-16 text-center">
+                    <td colSpan={canManage ? 8 : 7} className="px-6 py-16 text-center">
                       <div className="flex flex-col items-center gap-3 text-slate-400">
                         <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
                           <Inbox className="w-7 h-7" />

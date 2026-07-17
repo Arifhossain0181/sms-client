@@ -37,6 +37,10 @@ export interface NotificationResponse {
   };
 }
 
+function unwrap<T>(res: { data: any }): T {
+  return res.data?.data ?? res.data;
+}
+
 export const notificationService = {
   // Get all notifications for the current user
   getNotifications: async (
@@ -50,39 +54,39 @@ export const notificationService = {
     if (params?.type) queryParams.append("type", params.type);
 
     const response = await api.get(
-      `/notification?${queryParams.toString()}`
+      `/notifications?${queryParams.toString()}`
     );
-    return response.data.data;
+    return unwrap<Notification[]>(response);
   },
 
   // Get unread count
   getUnreadCount: async (): Promise<{ count: number }> => {
-    const response = await api.get("/notification/unread-count");
-    return response.data.data;
+    const response = await api.get("/notifications/unread-count");
+    return unwrap<{ count: number }>(response);
   },
 
   // Mark a notification as read
   markAsRead: async (notificationId: string): Promise<Notification> => {
     const response = await api.patch(
-      `/notification/${notificationId}/read`
+      `/notifications/${notificationId}/read`
     );
-    return response.data.data;
+    return unwrap<Notification>(response);
   },
 
   // Mark all notifications as read
   markAllAsRead: async (): Promise<{ updated: number }> => {
-    const response = await api.patch("/notification/mark-all-read");
-    return response.data.data;
+    const response = await api.patch("/notifications/mark-all-read");
+    return unwrap<{ updated: number }>(response);
   },
 
   // Delete a notification
   deleteNotification: async (notificationId: string): Promise<void> => {
-    await api.delete(`/notification/${notificationId}`);
+    await api.delete(`/notifications/${notificationId}`);
   },
 
   // Delete all notifications
   deleteAllNotifications: async (): Promise<{ deleted: number }> => {
-    const response = await api.delete("/notification/clear-all");
-    return response.data.data;
+    const response = await api.delete("/notifications/clear-all");
+    return unwrap<{ deleted: number }>(response);
   },
 };

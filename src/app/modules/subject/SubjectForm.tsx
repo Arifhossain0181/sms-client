@@ -22,14 +22,19 @@ import { useCreateSubject, useUpdateSubject } from "./useSubjects";
 import { useClasses } from "../class/useClasses";
 import { Subject } from "./subject.types";
 
-const schema = z.object({
-  name: z.string().min(1, "Subject নাম দাও"),
-  code: z.string().min(1, "Code দাও"),
-  classId: z.string().min(1, "Class select করো"),
-  fullMarks: z.number().min(1, "Full marks দাও"),
-  passMarks: z.number().min(0, "Pass marks দাও"),
-  isOptional: z.boolean().optional(),
-});
+const schema = z
+  .object({
+    name: z.string().min(1, "Subject name is required"),
+    code: z.string().min(1, "Subject code is required"),
+    classId: z.string().min(1, "Select a class"),
+    fullMarks: z.number().min(1, "Enter full marks"),
+    passMarks: z.number().min(0, "Enter pass marks"),
+    isCompulsory: z.boolean().optional(),
+  })
+  .refine((data) => data.passMarks <= data.fullMarks, {
+    message: "Pass marks cannot exceed full marks",
+    path: ["passMarks"],
+  });
 
 type FormData = z.infer<typeof schema>;
 
@@ -91,7 +96,7 @@ export default function SubjectForm({ subject, onClose }: Props) {
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { fullMarks: 100, passMarks: 33, isOptional: false },
+    defaultValues: { fullMarks: 100, passMarks: 33, isCompulsory: true },
   });
 
   useEffect(() => {
@@ -102,7 +107,7 @@ export default function SubjectForm({ subject, onClose }: Props) {
         classId: subject.classId,
         fullMarks: subject.fullMarks ?? 100,
         passMarks: subject.passMarks ?? 33,
-        isOptional: subject.isCompulsory === false,
+        isCompulsory: subject.isCompulsory,
       });
     }
   }, [subject, reset]);
@@ -153,10 +158,10 @@ export default function SubjectForm({ subject, onClose }: Props) {
               </div>
               <div>
                 <h2 className="text-lg font-bold bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
-                  {subject ? "Subject Edit" : "নতুন Subject"}
+                  {subject ? "Edit Subject" : "New Subject"}
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  {subject ? "তথ্য আপডেট করো" : "নতুন subject যোগ করো"}
+                  {subject ? "Update the subject details" : "Add a new subject"}
                 </p>
               </div>
             </div>
@@ -176,10 +181,10 @@ export default function SubjectForm({ subject, onClose }: Props) {
                 <BookOpen className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   {...register("name")}
-                  placeholder="Subject নাম"
+                  placeholder="Subject name"
                   className={`${fieldBase} pr-11`}
                 />
-                <label className={floatLabelBase}>Subject নাম</label>
+                <label className={floatLabelBase}>Subject Name</label>
               </div>
               <ErrorMsg message={errors.name?.message} />
             </motion.div>
@@ -256,7 +261,7 @@ export default function SubjectForm({ subject, onClose }: Props) {
               </div>
             </motion.div>
 
-            {/* Optional */}
+            {/* Compulsory / optional — req 2.3 */}
             <motion.label
               variants={itemVariants}
               custom={4}
@@ -266,10 +271,15 @@ export default function SubjectForm({ subject, onClose }: Props) {
             >
               <input
                 type="checkbox"
-                {...register("isOptional")}
+                {...register("isCompulsory")}
                 className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/40"
               />
-              <span className="text-sm text-slate-700 dark:text-slate-200">Optional subject</span>
+              <span className="text-sm text-slate-700 dark:text-slate-200">
+                Compulsory subject{" "}
+                <span className="text-slate-400 font-normal">
+                  (uncheck to mark as optional)
+                </span>
+              </span>
             </motion.label>
 
             {/* Actions */}

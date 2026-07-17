@@ -26,7 +26,9 @@ export default function NotificationPanel() {
   const { mutate: markAllAsRead, isPending } = useMarkAllAsRead();
   const { mutate: deleteNotification } = useDeleteNotification();
 
-  const unread = notifications?.filter((n: Notification) => !n.isRead).length ?? 0;
+  const unread = Array.isArray(notifications)
+    ? notifications.filter((n: Notification) => !n.isRead).length
+    : 0;
 
   if (isLoading) {
     return (
@@ -153,7 +155,7 @@ export default function NotificationPanel() {
           {/* List */}
           <div className="p-4 sm:p-6 space-y-3 max-h-[70vh] overflow-y-auto">
             <AnimatePresence mode="popLayout">
-              {notifications?.map((notification: Notification, i: number) => (
+              {(Array.isArray(notifications) ? notifications : []).map((notification: Notification, i: number) => (
                 <motion.div
                   key={notification.id}
                   layout
@@ -243,7 +245,7 @@ export default function NotificationPanel() {
               ))}
             </AnimatePresence>
 
-            {notifications?.length === 0 && (
+            {(Array.isArray(notifications) ? notifications : []).length === 0 && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}

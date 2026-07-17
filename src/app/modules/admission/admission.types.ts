@@ -1,4 +1,16 @@
 export type AdmissionStatus = "PENDING" | "APPROVED" | "REJECTED";
+export type PaymentStatus = "PENDING" | "PAID" | "FAILED" | "REFUNDED";
+export type PaymentMethod = "CASH" | "STRIPE";
+export type Gender = "MALE" | "FEMALE" | "OTHER";
+export type BloodGroup =
+  | "A_POS"
+  | "A_NEG"
+  | "B_POS"
+  | "B_NEG"
+  | "O_POS"
+  | "O_NEG"
+  | "AB_POS"
+  | "AB_NEG";
 
 export interface Admission {
   id: string;
@@ -8,9 +20,9 @@ export interface Admission {
   guardianEmail: string;
   guardianPhone: string;
   religion?: string;
-  bloodGroup?: "A_POS" | "A_NEG" | "B_POS" | "B_NEG" | "O_POS" | "O_NEG" | "AB_POS" | "AB_NEG";
+  bloodGroup?: BloodGroup;
   address: string;
-  gender: "MALE" | "FEMALE" | "OTHER";
+  gender: Gender;
   dob: string;
   targetClassId: string;
   targetClass?: {
@@ -20,12 +32,15 @@ export interface Admission {
   };
   photoUrl?: string;
   birthCertUrl?: string;
-  paymentStatus?: "PENDING" | "PAID" | "FAILED" | "REFUNDED";
-  paymentMethod?: "CASH" | "STRIPE";
+  paymentStatus?: PaymentStatus;
+  paymentMethod?: PaymentMethod;
   paymentAmount?: number;
   transactionId?: string;
   paymentDate?: string;
   status: AdmissionStatus;
+  rejectionReason?: string; // present on backend model, was missing here
+  reviewedAt?: string; // lets the UI show when a decision was made
+  studentId?: string; // set once APPROVED and converted — used to gate re-approval
   createdAt: string;
 }
 
@@ -36,13 +51,46 @@ export interface CreateAdmissionPayload {
   guardianEmail: string;
   guardianPhone: string;
   address: string;
-  gender: "MALE" | "FEMALE" | "OTHER";
+  gender: Gender;
   dob: string;
   targetClassId: string;
-  bloodGroup?: "A_POS" | "A_NEG" | "B_POS" | "B_NEG" | "O_POS" | "O_NEG" | "AB_POS" | "AB_NEG";
+  bloodGroup?: BloodGroup;
   religion?: string;
   photoUrl?: string;
   birthCertUrl?: string;
+  paymentMethod?: PaymentMethod;
+  paymentAmount?: number;
+  transactionId?: string;
+}
+
+export interface UpdateAdmissionStatusPayload {
+  status: AdmissionStatus;
+  rejectionReason?: string; // required in practice when status is REJECTED
+}
+
+export interface AdmissionQuery {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: AdmissionStatus;
+  classId?: string;
+}
+
+export interface AdmissionListResponse {
+  data: Admission[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+}
+
+export interface AdmissionStats {
+  total: number;
+  pending: number;
+  approved: number;
+  rejected: number;
 }
 
 export interface AdmissionClassOption {

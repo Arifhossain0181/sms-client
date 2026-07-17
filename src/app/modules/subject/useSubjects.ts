@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { subjectService } from "./subject.service";
-import { CreateSubjectPayload, Subject } from "./subject.types";
+import { CreateSubjectPayload, Subject, SubjectQuery } from "./subject.types";
 import { toast } from "sonner";
 
 const getErrorMessage = (err: unknown, fallback: string) => {
@@ -12,10 +12,10 @@ const getErrorMessage = (err: unknown, fallback: string) => {
   return fallback;
 };
 
-export const useSubjects = () => {
+export const useSubjects = (query: SubjectQuery = {}) => {
   return useQuery<Subject[]>({
-    queryKey: ["subjects"],
-    queryFn: subjectService.getAll,
+    queryKey: ["subjects", query],
+    queryFn: () => subjectService.getAll(query),
   });
 };
 
@@ -32,11 +32,11 @@ export const useCreateSubject = () => {
   return useMutation({
     mutationFn: (data: CreateSubjectPayload) => subjectService.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["subjects"] });
-      toast.success("Subject add হয়েছে!");
+      queryClient.invalidateQueries({ queryKey: ["subjects"], exact: false });
+      toast.success("Subject created!");
     },
     onError: (err: unknown) => {
-      toast.error(getErrorMessage(err, "Failed!"));
+      toast.error(getErrorMessage(err, "Failed to create subject"));
     },
   });
 };
@@ -47,11 +47,11 @@ export const useUpdateSubject = () => {
     mutationFn: ({ id, data }: { id: string; data: Partial<CreateSubjectPayload> }) =>
       subjectService.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["subjects"] });
-      toast.success("Subject update হয়েছে!");
+      queryClient.invalidateQueries({ queryKey: ["subjects"], exact: false });
+      toast.success("Subject updated!");
     },
     onError: (err: unknown) => {
-      toast.error(getErrorMessage(err, "Failed!"));
+      toast.error(getErrorMessage(err, "Failed to update subject"));
     },
   });
 };
@@ -61,11 +61,11 @@ export const useDeleteSubject = () => {
   return useMutation({
     mutationFn: (id: string) => subjectService.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["subjects"] });
-      toast.success("Subject delete হয়েছে!");
+      queryClient.invalidateQueries({ queryKey: ["subjects"], exact: false });
+      toast.success("Subject deleted!");
     },
     onError: (err: unknown) => {
-      toast.error(getErrorMessage(err, "Failed!"));
+      toast.error(getErrorMessage(err, "Failed to delete subject"));
     },
   });
 };

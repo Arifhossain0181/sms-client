@@ -3,9 +3,9 @@ export interface Subject {
   name: string;
   code: string;
   classId: string;
-  fullMarks?: number;
-  passMarks?: number;
-  isCompulsory?: boolean;
+  fullMarks: number;
+  passMarks: number;
+  isCompulsory: boolean;
   class?: {
     id: string;
     name: string;
@@ -23,5 +23,9 @@ export interface CreateSubjectPayload {
   classId: string;
   fullMarks: number;
   passMarks: number;
-  isOptional?: boolean;
+  isCompulsory?: boolean; // same field as Subject.isCompulsory — no more isOptional/isCompulsory mismatch
+}
+
+export interface SubjectQuery {
+  classId?: string;
 }
