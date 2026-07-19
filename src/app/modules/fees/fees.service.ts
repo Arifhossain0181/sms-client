@@ -1,5 +1,21 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import api from "@/lib/axios";
-import { Fee, CreateFeePayload, PayFeePayload, CashPaymentPayload, FeeStatus, CashPaymentResponse } from "./fees.types";
+import {
+  Fee,
+  CreateFeePayload,
+  PayFeePayload,
+  CashPaymentPayload,
+  FeeStatus,
+  CashPaymentResponse,
+  FeeSummaryResponse,
+  CollectionReportResponse,
+  OverdueReportResponse,
+  TransactionsResponse,
+  MonthlyAnalyticsResponse,
+  BulkCreatePayload,
+} from "./fees.types";
+
+
 
 type ApiFee = {
   id: string;
@@ -53,35 +69,37 @@ const mapFee = (item: ApiFee): Fee => {
   };
 };
 
+function unwrapList(res: { data: any }): ApiFee[] {
+  const payload = res.data?.data ?? res.data;
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  return [];
+}
+
 export const feesService = {
-  // সব fees আনো (ADMIN only)
   getAll: async (): Promise<Fee[]> => {
     const res = await api.get("/fees");
-    const payload = res.data?.data ?? res.data;
-    if (Array.isArray(payload)) return payload.map(mapFee);
-    if (Array.isArray(payload?.data)) return payload.data.map(mapFee);
-    return [];
+    return unwrapList(res).map(mapFee);
   },
 
-  // Student এর নিজের fees
+  getAllPaginated: async (params?: Record<string, string | number>): Promise<{ fees: Fee[]; meta?: any }> => {
+    const res = await api.get("/fees", { params });
+    const payload = res.data?.data ?? res.data;
+    const fees = Array.isArray(payload) ? payload.map(mapFee) : [];
+    const meta = payload?.meta;
+    return { fees, meta };
+  },
+
   getMyFees: async (): Promise<Fee[]> => {
     const res = await api.get("/fees/my-fees");
-    const payload = res.data?.data ?? res.data;
-    if (Array.isArray(payload)) return payload.map(mapFee);
-    if (Array.isArray(payload?.data)) return payload.data.map(mapFee);
-    return [];
+    return unwrapList(res).map(mapFee);
   },
 
-  // একজন student এর fees (ADMIN এর জন্য)
   getByStudent: async (studentId: string): Promise<Fee[]> => {
-    const res = await api.get(`/fees?studentId=${studentId}`);
-    const payload = res.data?.data ?? res.data;
-    if (Array.isArray(payload)) return payload.map(mapFee);
-    if (Array.isArray(payload?.data)) return payload.data.map(mapFee);
-    return [];
+    const res = await api.get("/fees", { params: { studentId } });
+    return unwrapList(res).map(mapFee);
   },
 
-  // নতুন fee তৈরি
   create: async (data: CreateFeePayload): Promise<Fee> => {
     const dueDay = new Date(data.dueDate).getDate();
     const res = await api.post("/fees", { ...data, dueDay });
@@ -89,21 +107,55 @@ export const feesService = {
     return mapFee(payload);
   },
 
-  // Fee payment করো
-  pay: async (id: string, data: PayFeePayload): Promise<Fee> => {
-    const res = await api.put(`/fees/${id}/pay`, data);
-    return res.data;
+  bulkCreate: async (data: BulkCreatePayload): Promise<any> => {
+    const res = await api.post("/fees/bulk", data);
+    return res.data?.data ?? res.data;
   },
 
-  // Cash payment entry (no fee create needed)
+  pay: async (id: string, data: PayFeePayload): Promise<Fee> => {
+    const res = await api.patch(`/fees/${id}/pay`, data);
+    const payload = res.data?.data ?? res.data;
+    return mapFee(payload);
+  },
+
   payCash: async (data: CashPaymentPayload): Promise<CashPaymentResponse> => {
     const res = await api.post("/fees/cash", data);
-    const payload = res.data?.data ?? res.data;
-    return payload;
+    return res.data?.data ?? res.data;
   },
 
-  // Delete
   delete: async (id: string): Promise<void> => {
     await api.delete(`/fees/${id}`);
+  },
+
+  getSummary: async (params?: { month?: string }): Promise<FeeSummaryResponse> => {
+    const res = await api.get("/fees/summary", { params });
+    return res.data?.data ?? res.data;
+  },
+
+  getCollectionReport: async (params?: { month?: string; type?: string }): Promise<CollectionReportResponse> => {
+    const res = await api.get("/fees/report/collection", { params });
+    return res.data?.data ?? res.data;
+  },
+
+  getOverdue: async (params?: { classId?: string; page?: number; limit?: number }): Promise<OverdueReportResponse> => {
+    const res = await api.get("/fees/report/overdue", { params });
+    return res.data?.data ?? res.data;
+  },
+
+  getTransactions: async (params?: { page?: number; limit?: number; method?: string; status?: string; month?: string }): Promise<TransactionsResponse> => {
+    const cleanParams = {
+      ...(params?.page ? { page: Number(params.page) } : {}),
+      ...(params?.limit ? { limit: Number(params.limit) } : {}),
+      ...(params?.method && ['STRIPE', 'CASH'].includes(params.method) ? { method: params.method } : {}),
+      ...(params?.status && ['PENDING', 'PAID', 'FAILED', 'REFUNDED'].includes(params.status) ? { status: params.status } : {}),
+      ...(params?.month && /^\d{4}-\d{2}$/.test(params.month) ? { month: params.month } : {}),
+    };
+    const res = await api.get("/fees/transactions", { params: cleanParams });
+    return res.data?.data ?? res.data;
+  },
+
+  getMonthlyAnalytics: async (params?: { year: number }): Promise<MonthlyAnalyticsResponse> => {
+    const res = await api.get("/fees/analytics/monthly", { params });
+    return res.data?.data ?? res.data;
   },
 };

@@ -20,7 +20,7 @@ export interface Fee {
 }
 
 export interface CreateFeePayload {
-  studentId: string;
+  studentId?: string;
   classId: string;
   title: string;
   type: "TUITION" | "ADMISSION" | "EXAM";
@@ -29,7 +29,10 @@ export interface CreateFeePayload {
 }
 
 export interface PayFeePayload {
-  paidAmount: number;
+  amountPaid: number;
+  method: "STRIPE" | "CASH";
+  transactionId?: string;
+  note?: string;
 }
 
 export interface CashPaymentPayload {
@@ -64,4 +67,71 @@ export interface CashPaymentResponse {
   fee: Fee;
   invoice: Invoice;
   payment: Payment;
+}
+
+export interface FeeSummaryResponse {
+  totalAmount: number;
+  totalPaid: number;
+  outstanding: number;
+  pendingCount: number;
+  overdueCount: number;
+  overDue: number;
+}
+
+export interface CollectionReportResponse {
+  month: string;
+  totalCollected: number;
+  totalTransactions: number;
+  byType: Record<string, number>;
+  byMethod: Record<string, number>;
+}
+
+export interface OverdueFeeResponse {
+  id: string;
+  feeType: string;
+  amount: number;
+  Paidamount: number;
+  dueDate: string;
+  student: {
+    user: { name: string };
+    rollNumber: string;
+  };
+}
+
+export interface OverdueReportResponse {
+  data: OverdueFeeResponse[];
+  meta: { page: number; limit: number; total: number; totalPages: number };
+}
+
+export interface TransactionResponse {
+  id: string;
+  amount: number;
+  method: string;
+  status: string;
+  transactionId?: string;
+  note?: string;
+  paidAt: string;
+  createdAt: string;
+  student: { user: { name: string; email: string } };
+  feeStructure: { feeType: string; title: string; amount: number };
+}
+
+export interface TransactionsResponse {
+  data: TransactionResponse[];
+  meta: { page: number; limit: number; total: number; totalPages: number };
+}
+
+export interface MonthlyAnalyticsResponse {
+  year: number;
+  byMonth: { month: number; total: number; count: number }[];
+  byMethod: Record<string, number>;
+  byType: Record<string, { amount: number; paid: number }>;
+}
+
+export interface BulkCreatePayload {
+  classId: string;
+  type: "TUITION" | "ADMISSION" | "EXAM";
+  title: string;
+  amount: number;
+  dueDate: string;
 }

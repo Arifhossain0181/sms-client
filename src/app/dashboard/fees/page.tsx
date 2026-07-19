@@ -1,4 +1,6 @@
-import FeeList from "../../modules/fees/FeeList";
+"use client";
+
+import FeeList from "@/app/modules/fees/FeeList";
 
 export default function FeesPage() {
   return <FeeList />;

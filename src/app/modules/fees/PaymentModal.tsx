@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -20,6 +21,8 @@ import {
 import { usePayFee } from "./useFees";
 import { Fee } from "./fees.types";
 import { formatTaka } from "@/lib/utils";
+
+type PaymentMethod = "STRIPE" | "CASH";
 
 interface Props {
   fee: Fee;
@@ -61,10 +64,11 @@ export default function PaymentModal({ fee, onClose }: Props) {
   const { mutate: pay, isPending } = usePayFee();
 
   const schema = z.object({
-    paidAmount: z
+    amountPaid: z
       .number()
-      .min(1, "Amount দাও")
-      .max(fee.dueAmount, `সর্বোচ্চ ${fee.dueAmount} টাকা দেওয়া যাবে`),
+      .min(1, "Enter an amount")
+      .max(fee.dueAmount, `Cannot pay more than ${fee.dueAmount}`),
+    method: z.enum(["STRIPE", "CASH"]),
   });
 
   type FormData = z.infer<typeof schema>;
@@ -75,13 +79,15 @@ export default function PaymentModal({ fee, onClose }: Props) {
     watch,
     setValue,
     formState: { errors },
-  } = useForm<FormData>({ resolver: zodResolver(schema) });
+  } = useForm<FormData>({ resolver: zodResolver(schema), defaultValues: { method: "CASH" } });
+
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>("CASH");
 
   const onSubmit: SubmitHandler<FormData> = (data) => {
-    pay({ id: fee.id, data }, { onSuccess: onClose });
+    pay({ id: fee.id, data: { amountPaid: data.amountPaid, method: data.method } }, { onSuccess: onClose });
   };
 
-  const currentAmount = Number(watch("paidAmount")) || 0;
+  const currentAmount = Number(watch("amountPaid")) || 0;
   const remainingAfter = Math.max(fee.dueAmount - currentAmount, 0);
   const progressPercent = fee.amount
     ? Math.min(((fee.paidAmount + currentAmount) / fee.amount) * 100, 100)
@@ -92,6 +98,11 @@ export default function PaymentModal({ fee, onClose }: Props) {
     { label: "50%", value: Math.round(fee.dueAmount * 0.5) },
     { label: "75%", value: Math.round(fee.dueAmount * 0.75) },
     { label: "Full", value: fee.dueAmount },
+  ];
+
+  const methodOptions: { value: PaymentMethod; label: string; icon: typeof Wallet }[] = [
+    { value: "CASH", label: "Cash", icon: Wallet },
+    { value: "STRIPE", label: "Online", icon: CreditCard },
   ];
 
   const infoRows = [
@@ -150,9 +161,7 @@ export default function PaymentModal({ fee, onClose }: Props) {
                   <Wallet className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white tracking-tight">
-                    Payment করুন
-                  </h2>
+                  <h2 className="text-xl font-bold text-white tracking-tight">Make Payment</h2>
                   <p className="text-xs text-white/80 mt-0.5 flex items-center gap-1">
                     <Sparkles className="h-3 w-3" />
                     Secure & Instant
@@ -205,9 +214,7 @@ export default function PaymentModal({ fee, onClose }: Props) {
                       <Icon className="h-3.5 w-3.5" />
                       {row.label}
                     </div>
-                    <span className={`text-sm font-semibold ${row.tone}`}>
-                      {row.value}
-                    </span>
+                    <span className={`text-sm font-semibold ${row.tone}`}>{row.value}</span>
                   </motion.div>
                 );
               })}
@@ -246,59 +253,92 @@ export default function PaymentModal({ fee, onClose }: Props) {
                     type="number"
                     step="any"
                     placeholder="0"
-                    {...register("paidAmount", { valueAsNumber: true })}
+                    {...register("amountPaid", { valueAsNumber: true })}
                     className={`w-full rounded-xl border-2 bg-white dark:bg-slate-800 pl-9 pr-4 py-3 text-lg font-bold text-slate-900 dark:text-white outline-none transition focus:ring-4 ${
-                      errors.paidAmount
+                      errors.amountPaid
                         ? "border-rose-400 focus:border-rose-500 focus:ring-rose-100 dark:focus:ring-rose-900/30"
                         : "border-slate-200 dark:border-slate-700 focus:border-emerald-500 focus:ring-emerald-100 dark:focus:ring-emerald-900/30"
                     }`}
                   />
                 </div>
 
-                {/* Quick amounts */}
-                <div className="mt-2 grid grid-cols-4 gap-1.5">
-                  {quickAmounts.map((q) => (
-                    <button
-                      key={q.label}
-                      type="button"
-                      onClick={() =>
-                        setValue("paidAmount", q.value, {
-                          shouldValidate: true,
-                        })
-                      }
-                      className="rounded-lg bg-slate-100 dark:bg-slate-800 px-2 py-1.5 text-[11px] font-semibold text-slate-600 dark:text-slate-300 transition hover:bg-emerald-100 hover:text-emerald-700 dark:hover:bg-emerald-900/40 dark:hover:text-emerald-300"
+                  {/* Quick amounts */}
+                  <div className="mt-2 grid grid-cols-4 gap-1.5">
+                    {quickAmounts.map((q) => (
+                      <button
+                        key={q.label}
+                        type="button"
+                        onClick={() =>
+                          setValue("amountPaid", q.value, {
+                            shouldValidate: true,
+                          })
+                        }
+                        className="rounded-lg bg-slate-100 dark:bg-slate-800 px-2 py-1.5 text-[11px] font-semibold text-slate-600 dark:text-slate-300 transition hover:bg-emerald-100 hover:text-emerald-700 dark:hover:bg-emerald-900/40 dark:hover:text-emerald-300"
+                      >
+                        {q.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Remaining preview */}
+                  {currentAmount > 0 && !errors.amountPaid && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mt-2 flex items-center justify-between rounded-lg bg-emerald-50 dark:bg-emerald-950/30 px-3 py-2 text-xs"
                     >
-                      {q.label}
-                    </button>
-                  ))}
+                      <span className="text-emerald-700 dark:text-emerald-300 font-medium">
+                        Remaining after payment
+                      </span>
+                      <span className="font-bold text-emerald-700 dark:text-emerald-300">
+                        {formatTaka(remainingAfter)}
+                      </span>
+                    </motion.div>
+                  )}
+
+                  {errors.amountPaid && (
+                    <motion.p
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mt-1.5 flex items-center gap-1 text-xs font-medium text-rose-600 dark:text-rose-400"
+                    >
+                      <AlertCircle className="h-3.5 w-3.5" />
+                      {errors.amountPaid.message}
+                    </motion.p>
+                  )}
+              </div>
+
+              {/* Method selector */}
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  <CreditCard className="h-3.5 w-3.5 text-emerald-500" />
+                  Payment Method
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {methodOptions.map((opt) => {
+                    const Icon = opt.icon;
+                    const active = selectedMethod === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => {
+                          setSelectedMethod(opt.value);
+                          setValue("method", opt.value, { shouldValidate: true });
+                        }}
+                        className={`flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-2.5 text-sm font-semibold transition ${
+                          active
+                            ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
+                            : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                        }`}
+                      >
+                        <Icon className="h-4 w-4" />
+                        {opt.label}
+                      </button>
+                    );
+                  })}
                 </div>
-
-                {/* Remaining preview */}
-                {currentAmount > 0 && !errors.paidAmount && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-2 flex items-center justify-between rounded-lg bg-emerald-50 dark:bg-emerald-950/30 px-3 py-2 text-xs"
-                  >
-                    <span className="text-emerald-700 dark:text-emerald-300 font-medium">
-                      Remaining after payment
-                    </span>
-                    <span className="font-bold text-emerald-700 dark:text-emerald-300">
-                      {formatTaka(remainingAfter)}
-                    </span>
-                  </motion.div>
-                )}
-
-                {errors.paidAmount && (
-                  <motion.p
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-1.5 flex items-center gap-1 text-xs font-medium text-rose-600 dark:text-rose-400"
-                  >
-                    <AlertCircle className="h-3.5 w-3.5" />
-                    {errors.paidAmount.message}
-                  </motion.p>
-                )}
+                <input type="hidden" value={selectedMethod} {...register("method")} />
               </div>
 
               {/* Actions */}
@@ -323,7 +363,7 @@ export default function PaymentModal({ fee, onClose }: Props) {
                   ) : (
                     <>
                       <Wallet className="h-4 w-4" />
-                      Payment করুন
+                      Confirm Payment
                     </>
                   )}
                 </button>

@@ -12,7 +12,7 @@ export function formatDate(value?: string | number | Date) {
   return date.toLocaleDateString();
 }
 
-export function formatTaka(amount?: number | null) {
-  if (amount === null || amount === undefined || Number.isNaN(amount)) return "—";
-  return `৳${amount.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
+export function formatTaka(value?: number | null) {
+  if (value === null || value === undefined || Number.isNaN(value)) return "—";
+  return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(value);
 }

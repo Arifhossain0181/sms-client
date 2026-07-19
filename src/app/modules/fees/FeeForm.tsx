@@ -23,12 +23,20 @@ import { useCreateFee } from "./useFees";
 import { useStudents } from "../student/useStudents";
 import { toast } from "sonner";
 
+/**
+ * ⚠️ This creates ONE fee for ONE student. It does not fulfil req 1.1
+ * ("define fee amount and due date per class") — that needs a separate
+ * fee-structure flow that auto-applies to every student in a class.
+ * Keep this form for one-off/manual cases (e.g. a single late fee), but
+ * it isn't a substitute for per-class fee structure setup.
+ */
+
 const schema = z.object({
-  studentId: z.string().min(1, "Student select করো"),
-  title: z.string().min(1, "Title দাও"),
+  studentId: z.string().min(1, "Select a student"),
+  title: z.string().min(1, "Title is required"),
   type: z.enum(["TUITION", "ADMISSION", "EXAM"]),
-  amount: z.number().min(1, "Amount দাও"),
-  dueDate: z.string().min(1, "Due date দাও"),
+  amount: z.number().min(1, "Enter an amount"),
+  dueDate: z.string().min(1, "Due date is required"),
 });
 
 type FormInput = z.input<typeof schema>;
@@ -83,7 +91,7 @@ export default function FeeForm({ onClose }: Props) {
     const studentList = Array.isArray(students) ? students : [];
     const selectedStudent = studentList.find((s) => s.id === data.studentId);
     if (!selectedStudent?.classId) {
-      toast.error("Student class missing");
+      toast.error("This student has no class assigned");
       return;
     }
     create({ ...data, classId: selectedStudent.classId }, { onSuccess: onClose });
@@ -120,11 +128,9 @@ export default function FeeForm({ onClose }: Props) {
                   <Wallet className="w-6 h-6" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold tracking-tight">
-                    নতুন Fee Add
-                  </h2>
+                  <h2 className="text-xl font-bold tracking-tight">Add Fee</h2>
                   <p className="text-xs text-white/80 mt-0.5">
-                    Student-এর জন্য নতুন fee তৈরি করুন
+                    Create a fee for a single student
                   </p>
                 </div>
               </div>
@@ -155,7 +161,7 @@ export default function FeeForm({ onClose }: Props) {
                   {...register("studentId")}
                   className={`${inputBase} appearance-none cursor-pointer pr-8`}
                 >
-                  <option value="">Student select করো</option>
+                  <option value="">Select a student</option>
                   {Array.isArray(students) &&
                     students.map((s) => (
                       <option key={s.id} value={s.id}>
@@ -181,7 +187,7 @@ export default function FeeForm({ onClose }: Props) {
                 <FileText className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                 <input
                   type="text"
-                  placeholder="যেমন: January Tuition Fee"
+                  placeholder="e.g. January Tuition Fee"
                   {...register("title")}
                   className={inputBase}
                 />
@@ -250,11 +256,7 @@ export default function FeeForm({ onClose }: Props) {
                 </label>
                 <div className="relative">
                   <CalendarDays className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                  <input
-                    type="date"
-                    {...register("dueDate")}
-                    className={inputBase}
-                  />
+                  <input type="date" {...register("dueDate")} className={inputBase} />
                 </div>
                 {errors.dueDate && (
                   <p className="mt-1.5 text-xs text-rose-600 dark:text-rose-400 flex items-center gap-1">

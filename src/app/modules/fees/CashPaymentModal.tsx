@@ -46,9 +46,9 @@ const modalVariants = {
 };
 
 const schema = z.object({
-  studentId: z.string().min(1, "Student select করো"),
+  studentId: z.string().min(1, "Select a student"),
   type: z.enum(["TUITION", "ADMISSION", "EXAM"]),
-  amountPaid: z.number().min(1, "Amount দাও"),
+  amountPaid: z.number().min(1, "Enter an amount"),
   dueDate: z.string().optional(),
   note: z.string().optional(),
 });
@@ -83,9 +83,7 @@ export default function CashPaymentModal({ onClose }: CashPaymentModalProps) {
 
   const uniqueStudents = fees
     ? Array.from(
-        new Map(
-          (fees as Fee[] | undefined)?.map((f) => [f.studentId, f.student]) || []
-        ).values()
+        new Map((fees as Fee[] | undefined)?.map((f) => [f.studentId, f.student]) || []).values()
       )
     : [];
 
@@ -118,12 +116,10 @@ export default function CashPaymentModal({ onClose }: CashPaymentModalProps) {
                   <Wallet className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white tracking-tight">
-                    Cash Payment
-                  </h2>
+                  <h2 className="text-xl font-bold text-white tracking-tight">Cash Payment</h2>
                   <p className="text-xs text-white/80 mt-0.5 flex items-center gap-1">
                     <Sparkles className="h-3 w-3" />
-                    নগদ পেমেন্ট
+                    Record an offline payment
                   </p>
                 </div>
               </div>
@@ -151,7 +147,7 @@ export default function CashPaymentModal({ onClose }: CashPaymentModalProps) {
                   {...register("studentId")}
                   className="w-full px-4 py-2.5 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/30 transition"
                 >
-                  <option value="">Student select করো</option>
+                  <option value="">Select a student</option>
                   {uniqueStudents.map((student) => (
                     <option key={student?.id} value={student?.id}>
                       {student?.name}
@@ -278,7 +274,7 @@ export default function CashPaymentModal({ onClose }: CashPaymentModalProps) {
                 ) : (
                   <>
                     <CheckCircle2 className="w-4 h-4" />
-                    Payment Submit করো
+                    Submit Payment
                   </>
                 )}
               </motion.button>
