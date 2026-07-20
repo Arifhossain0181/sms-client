@@ -23,6 +23,7 @@ import { formatTaka, cn } from "@/lib/utils";
 import { useClasses } from "@/app/modules/class/useClasses";
 import { feesService } from "@/app/modules/fees/fees.service";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type FeeType = "TUITION" | "ADMISSION" | "EXAM";
 const FEE_TYPES: FeeType[] = ["TUITION", "ADMISSION", "EXAM"];
@@ -172,9 +173,14 @@ export default function FeeStructurePage() {
   if (isLoading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
-          <p className="text-sm text-slate-500 dark:text-slate-400">Loading fee structure...</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-4xl">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="bg-white dark:bg-slate-900 rounded-2xl p-5 ring-1 ring-slate-200 dark:ring-slate-800 shadow-xl space-y-3">
+              <Skeleton className="h-3 w-24 rounded-md" />
+              <Skeleton className="h-8 w-20 rounded-md" />
+              <Skeleton className="w-10 h-10 rounded-xl ml-auto" />
+            </div>
+          ))}
         </div>
       </div>
     );

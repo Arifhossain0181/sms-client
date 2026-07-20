@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useLenis } from "@/hooks/useLenis";
-import api from "@/lib/axios";
 import {
   CreditCard,
   DollarSign,
@@ -16,6 +15,10 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { Skeleton } from "@/components/ui/skeleton";
+import { feesService } from "@/app/modules/fees/fees.service";
+import { formatTaka } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
 
 const cardVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -30,16 +33,65 @@ export default function AccountantDashboard() {
   useLenis();
   const router = useRouter();
   const { role } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    totalCollected: 0,
-    pending: 0,
-    overdue: 0,
-    todayCollection: 0,
+  const isAccountant =
+    !!role && (role === "ACCOUNTANT" || role === "SUPER_ADMIN");
+
+  const { data: summary, isLoading: summaryLoading } = useQuery({
+    queryKey: ["fees", "dashboard", "summary"],
+    queryFn: () => feesService.getSummary(),
+    enabled: isAccountant,
   });
-  const [recentPayments, setRecentPayments] = useState<
-    { id: number; studentName: string; amount: number; status: string; date: string }[]
-  >([]);
+
+  const { data: transactionsData, isLoading: txLoading } = useQuery({
+    queryKey: ["fees", "dashboard", "recent"],
+    queryFn: () => feesService.getTransactions({ page: 1, limit: 5 }),
+    enabled: isAccountant,
+  });
+
+  const recentPayments = Array.isArray(transactionsData?.data) ? transactionsData.data : [];
+  const totalCollected = Number(summary?.totalPaid ?? summary?.totalAmount ?? 0);
+  const pendingCount = Number(summary?.pendingCount ?? 0);
+  const overdueCount = Number(summary?.overdueCount ?? summary?.overDue ?? 0);
+  const todayCollection = 0;
+
+  const safeNumber = (value: unknown) => {
+    const n = typeof value === "number" ? value : Number(value ?? 0);
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(value);
+
+  const statCards = [
+    {
+      label: "Total Collected",
+      value: formatCurrency(safeNumber(totalCollected)),
+      icon: DollarSign,
+      color: "text-emerald-600 dark:text-emerald-400",
+      bg: "bg-emerald-50 dark:bg-emerald-500/10",
+    },
+    {
+      label: "Today's Collection",
+      value: formatCurrency(safeNumber(todayCollection)),
+      icon: CreditCard,
+      color: "text-blue-600 dark:text-blue-400",
+      bg: "bg-blue-50 dark:bg-blue-500/10",
+    },
+    {
+      label: "Pending Fees",
+      value: String(safeNumber(pendingCount)),
+      icon: Receipt,
+      color: "text-amber-600 dark:text-amber-400",
+      bg: "bg-amber-50 dark:bg-amber-500/10",
+    },
+    {
+      label: "Overdue Fees",
+      value: String(safeNumber(overdueCount)),
+      icon: TimerReset,
+      color: "text-rose-600 dark:text-rose-400",
+      bg: "bg-rose-50 dark:bg-rose-500/10",
+    },
+  ];
 
   useEffect(() => {
     if (role && role !== "ACCOUNTANT" && role !== "SUPER_ADMIN") {
@@ -47,100 +99,73 @@ export default function AccountantDashboard() {
     }
   }, [role, router]);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        setLoading(true);
-        const res = await api.get("/fees");
-        const data = res.data?.data ?? res.data ?? [];
-        const arr = Array.isArray(data) ? data : [];
-        const paid = arr.filter((f: { status: string }) => f.status === "PAID");
-        const overdue = arr.filter((f: { status: string }) => f.status === "OVERDUE");
-        const pending = arr.filter((f: { status: string }) => f.status === "PENDING");
-        setStats({
-          totalCollected: paid.reduce((s: number, f: { amount: number }) => s + (f.amount ?? 0), 0),
-          pending: pending.length,
-          overdue: overdue.length,
-          todayCollection: 0,
-        });
-        setRecentPayments(arr.slice(0, 5));
-      } catch {
-        // fallback
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, []);
-
-  const statCards = [
-    {
-      label: "Total Collected",
-      value: loading ? "—" : `৳${stats.totalCollected.toLocaleString()}`,
-      icon: DollarSign,
-      color: "text-emerald-600",
-      bg: "bg-emerald-50 dark:bg-emerald-950/30",
-    },
-    {
-      label: "Today's Collection",
-      value: loading ? "—" : `৳${stats.todayCollection.toLocaleString()}`,
-      icon: CreditCard,
-      color: "text-blue-600",
-      bg: "bg-blue-50 dark:bg-blue-950/30",
-    },
-    {
-      label: "Pending Fees",
-      value: loading ? "—" : stats.pending,
-      icon: Receipt,
-      color: "text-yellow-600",
-      bg: "bg-yellow-50 dark:bg-yellow-950/30",
-    },
-    {
-      label: "Overdue Fees",
-      value: loading ? "—" : stats.overdue,
-      icon: TimerReset,
-      color: "text-red-600",
-      bg: "bg-red-50 dark:bg-red-950/30",
-    },
-  ];
+  if (!isAccountant) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          You do not have permission to view this page.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
       {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
           Accountant Dashboard
         </h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="text-slate-500 dark:text-slate-400 mt-1">
           Track fee collections, transactions, and financial reports.
         </p>
       </motion.div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-        {statCards.map((card, i) => {
-          const Icon = card.icon;
-          return (
-            <motion.div
-              key={card.label}
-              custom={i}
-              initial="hidden"
-              animate="visible"
-              variants={cardVariants}
-              className="rounded-2xl border border-border/60 bg-card/80 p-6 shadow-soft flex items-center gap-4 hover:shadow-elegant transition-shadow"
-            >
-              <div className={`w-13 h-13 w-14 h-14 rounded-2xl ${card.bg} flex items-center justify-center shrink-0`}>
-                <Icon className={`w-7 h-7 ${card.color}`} />
+        {summaryLoading || txLoading
+          ? Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl flex items-center gap-4"
+              >
+                <Skeleton className="w-14 h-14 rounded-2xl shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-3 w-24 rounded-md" />
+                  <Skeleton className="h-6 w-16 rounded-md" />
+                </div>
               </div>
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  {card.label}
-                </p>
-                <p className="mt-1 text-2xl font-bold">{card.value}</p>
-              </div>
-            </motion.div>
-          );
-        })}
+            ))
+          : statCards.map((card, i) => {
+              const Icon = card.icon;
+              return (
+                <motion.div
+                  key={card.label}
+                  custom={i}
+                  initial="hidden"
+                  animate="visible"
+                  variants={cardVariants}
+                  className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl flex items-center gap-4 hover:shadow-2xl transition-shadow"
+                >
+                  <div
+                    className={`w-14 h-14 rounded-2xl ${card.bg} flex items-center justify-center shrink-0`}
+                  >
+                    <Icon className={`w-7 h-7 ${card.color}`} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                      {card.label}
+                    </p>
+                    <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">
+                      {card.value}
+                    </p>
+                  </div>
+                </motion.div>
+              );
+            })}
       </div>
 
       {/* Quick links */}
@@ -148,25 +173,49 @@ export default function AccountantDashboard() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="rounded-2xl border border-border/60 bg-card/80 p-6 shadow-soft"
+        className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl"
       >
-        <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+          Quick Actions
+        </h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {[
-            { label: "Collect Fee",       href: "/dashboard/fees",                  icon: CreditCard },
-            { label: "View Transactions", href: "/dashboard/accountant/transactions", icon: Receipt },
-            { label: "Generate Invoice",  href: "/dashboard/accountant/invoice",     icon: BarChart3 },
-            { label: "Overdue List",      href: "/dashboard/accountant/overdue",     icon: TimerReset },
-            { label: "Fee Analytics",     href: "/dashboard/accountant/analytics",   icon: TrendingUp },
-            { label: "Financial Report",  href: "/dashboard/accountant/reports",     icon: DollarSign },
+            { label: "Collect Fee", href: "/dashboard/fees", icon: CreditCard },
+            {
+              label: "View Transactions",
+              href: "/dashboard/accountant/transactions",
+              icon: Receipt,
+            },
+            {
+              label: "Generate Invoice",
+              href: "/dashboard/accountant/invoice",
+              icon: BarChart3,
+            },
+            {
+              label: "Overdue List",
+              href: "/dashboard/accountant/overdue",
+              icon: TimerReset,
+            },
+            {
+              label: "Fee Analytics",
+              href: "/dashboard/accountant/analytics",
+              icon: TrendingUp,
+            },
+            {
+              label: "Financial Report",
+              href: "/dashboard/accountant/reports",
+              icon: DollarSign,
+            },
           ].map(({ label, href, icon: Icon }) => (
             <a
               key={label}
               href={href}
-              className="flex flex-col items-center gap-2 p-4 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors text-center group"
+              className="flex flex-col items-center gap-2 p-4 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-center group"
             >
-              <Icon className="w-6 h-6 text-primary group-hover:scale-110 transition-transform" />
-              <span className="text-xs font-medium">{label}</span>
+              <Icon className="w-6 h-6 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform" />
+              <span className="text-xs font-medium text-slate-700 dark:text-slate-200">
+                {label}
+              </span>
             </a>
           ))}
         </div>
@@ -177,33 +226,66 @@ export default function AccountantDashboard() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
-        className="rounded-2xl border border-border/60 bg-card/80 p-6 shadow-soft"
+        className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl"
       >
-        <h3 className="text-lg font-semibold mb-4">Recent Payments</h3>
-        {loading ? (
-          <p className="text-sm text-muted-foreground">Loading...</p>
-        ) : recentPayments.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No payment records yet.</p>
-        ) : (
-          <div className="divide-y divide-border/60">
-            {recentPayments.map((p) => (
-              <div key={p.id} className="flex items-center justify-between py-3">
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+          Recent Payments
+        </h3>
+        {summaryLoading || txLoading ? (
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center justify-between py-3">
                 <div className="flex items-center gap-3">
-                  {p.status === "PAID" ? (
-                    <CheckCircle className="w-4 h-4 text-emerald-500" />
-                  ) : (
-                    <AlertCircle className="w-4 h-4 text-yellow-500" />
-                  )}
-                  <span className="text-sm font-medium">
-                    {(p as { studentName?: string }).studentName ?? `Fee #${p.id}`}
-                  </span>
+                  <Skeleton className="w-4 h-4 rounded-full" />
+                  <Skeleton className="h-4 w-32 rounded-md" />
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-semibold">৳{p.amount}</p>
-                  <p className="text-xs text-muted-foreground">{p.status}</p>
+                <div className="text-right space-y-1">
+                  <Skeleton className="h-4 w-16 rounded-md ml-auto" />
+                  <Skeleton className="h-3 w-12 rounded-md ml-auto" />
                 </div>
               </div>
             ))}
+          </div>
+        ) : recentPayments.length === 0 ? (
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            No payment records yet.
+          </p>
+        ) : (
+          <div className="divide-y divide-slate-200 dark:divide-slate-800">
+            {recentPayments.map((p) => {
+              const studentName =
+                p.student?.user?.name ?? `Fee #${p.id.slice(0, 8)}`;
+              const amount = p.amount;
+              const status = p.status;
+              const date = p.paidAt
+                ? new Date(p.paidAt).toLocaleDateString()
+                : new Date(p.createdAt).toLocaleDateString();
+              return (
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between py-3"
+                >
+                  <div className="flex items-center gap-3">
+                    {status === "PAID" ? (
+                      <CheckCircle className="w-4 h-4 text-emerald-500" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-amber-500" />
+                    )}
+                    <span className="text-sm font-medium text-slate-900 dark:text-white">
+                      {studentName}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                      {formatTaka(amount)}
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {date}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </motion.div>

@@ -23,13 +23,17 @@ type ApiFee = {
   student?: {
     id: string;
     user?: { name?: string };
+    rollNumber?: string;
     class?: { id: string; name: string };
   };
+  feeType?: string;
+  title?: string;
   amount?: number;
   paidAmount?: number;
   Paidamount?: number;
   dueDate?: string;
   status?: string;
+  payments?: { id: string; amount: number; method: string; status?: string; paidAt?: string; transactionId?: string; createdAt?: string }[];
   createdAt: string;
 };
 
@@ -57,14 +61,27 @@ const mapFee = (item: ApiFee): Fee => {
       ? {
           id: item.student.id,
           name: item.student.user?.name ?? "",
+          rollNumber: item.student.rollNumber,
           class: item.student.class,
         }
       : undefined,
+    feeType: item.feeType ?? "",
+    title: item.title ?? "",
     amount,
     paidAmount,
     dueAmount,
+    dueDate: item.dueDate ?? "",
     month: toMonth(item.dueDate),
     status: mapStatus(item.status),
+    payments: item.payments?.map((p) => ({
+      id: p.id,
+      amount: p.amount,
+      method: p.method,
+      status: p.status ?? "PENDING",
+      paidAt: p.paidAt ?? "",
+      transactionId: p.transactionId,
+      createdAt: p.createdAt ?? "",
+    })),
     createdAt: item.createdAt,
   };
 };

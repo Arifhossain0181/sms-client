@@ -6,16 +6,21 @@ export interface Fee {
   student?: {
     id: string;
     name: string;
+    rollNumber?: string;
     class?: {
       id: string;
       name: string;
     };
   };
+  feeType: string;
+  title: string;
   amount: number;
   paidAmount: number;
   dueAmount: number;
+  dueDate: string;
   month: string;
   status: FeeStatus;
+  payments?: { id: string; amount: number; method: string; status: string; paidAt?: string; transactionId?: string; createdAt: string }[];
   createdAt: string;
 }
 
