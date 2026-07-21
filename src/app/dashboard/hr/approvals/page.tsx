@@ -2,10 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
 import api from "@/lib/axios";
 import { useLenis } from "@/hooks/useLenis";
 import type { Role } from "@/tyPes/auth.tyPes";
-import { ShieldCheck, AlertTriangle, UserCheck, XCircle, Clock } from "lucide-react";
+import { ShieldCheck, AlertTriangle, UserCheck, XCircle } from "lucide-react";
+import { motion } from "framer-motion";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type CriticalAction = {
   id: string;
@@ -91,72 +94,145 @@ export default function ApprovalsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Pending Approvals</h1>
-        <p className="text-muted-foreground mt-1">
-          Critical HR actions requiring your approval
-        </p>
-      </div>
+    <div className="relative min-h-screen flex items-start justify-center p-4 sm:p-6 overflow-hidden bg-slate-50/50 dark:bg-slate-950">
+      <motion.div
+        animate={{ x: [0, 40, 0], y: [0, -30, 0] }}
+        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-10 -left-32 w-[500px] h-[500px] bg-sky-300/20 dark:bg-sky-500/10 rounded-full blur-3xl pointer-events-none"
+      />
+      <motion.div
+        animate={{ x: [0, -30, 0], y: [0, 40, 0] }}
+        transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute bottom-10 -right-32 w-[600px] h-[600px] bg-violet-300/20 dark:bg-violet-500/10 rounded-full blur-3xl pointer-events-none"
+      />
 
-      <div className="rounded-2xl border border-border/60 bg-card/80 p-6 shadow-soft">
-        {loading ? (
-          <p className="text-xs text-muted-foreground">Loading...</p>
-        ) : actions.length === 0 ? (
-          <div className="text-center py-8">
-            <ShieldCheck className="h-12 w-12 text-emerald-500 mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">No pending approvals</p>
+      <div className="relative w-full max-w-5xl my-8 space-y-6">
+        <div className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl shadow-slate-200/40 dark:shadow-none overflow-hidden">
+          <div className="relative px-6 sm:px-8 py-6 bg-gradient-to-r from-sky-50 via-indigo-50 to-violet-50 dark:from-sky-500/10 dark:via-indigo-500/10 dark:to-violet-500/10 border-b border-white/40 dark:border-white/5 overflow-hidden">
+            <motion.div
+              animate={{ x: [0, 100, 0] }}
+              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent pointer-events-none"
+            />
+            <div className="relative">
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                Pending Approvals
+                <motion.span
+                  animate={{ rotate: [0, 10, -10, 0] }}
+                  transition={{ duration: 3, repeat: Infinity }}
+                  className="text-indigo-400"
+                >
+                  <ShieldCheck className="w-5 h-5" />
+                </motion.span>
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+                Critical HR actions requiring your approval
+              </p>
+            </div>
           </div>
-        ) : (
-          <div className="space-y-4">
-            {actions.map((action) => (
-              <div
-                key={action.id}
-                className="rounded-xl border border-border/60 bg-background p-4"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3">
-                    <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5" />
-                    <div>
-                      <p className="font-medium capitalize">{action.actionType.replace(/_/g, " ")}</p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Staff: <span className="font-medium text-foreground">{action.staffName}</span>
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">{action.reason}</p>
-                      {action.details && (
-                        <pre className="mt-2 text-xs bg-white/50 p-2 rounded-lg overflow-auto max-w-md">
-                          {JSON.stringify(action.details, null, 2)}
-                        </pre>
-                      )}
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Requested: {new Date(action.createdAt).toLocaleString()}
-                      </p>
+
+          <div className="p-4 sm:p-6">
+            {loading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex items-start justify-between py-4">
+                    <div className="flex items-start gap-3 flex-1">
+                      <Skeleton className="w-10 h-10 rounded-xl shrink-0" />
+                      <div className="space-y-2 flex-1">
+                        <Skeleton className="h-4 w-40 rounded-md" />
+                        <Skeleton className="h-3 w-32 rounded-md" />
+                        <Skeleton className="h-3 w-48 rounded-md" />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-6 w-16 rounded-full" />
+                      <Skeleton className="h-8 w-20 rounded-lg" />
+                      <Skeleton className="h-8 w-20 rounded-lg" />
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {getStatusBadge(action.status)}
-                    {action.status === "PENDING" && (
-                      <>
-                        <button
-                          onClick={() => handleApprove(action.id)}
-                          className="flex items-center gap-1 rounded-lg bg-emerald-100 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-200"
-                        >
-                          <UserCheck className="h-3 w-3" /> Approve
-                        </button>
-                        <button
-                          onClick={() => handleReject(action.id)}
-                          className="flex items-center gap-1 rounded-lg bg-red-100 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-200"
-                        >
-                          <XCircle className="h-3 w-3" /> Reject
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
+                ))}
               </div>
-            ))}
+            ) : actions.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex flex-col items-center justify-center py-16 text-center"
+              >
+                <motion.div
+                  animate={{ y: [0, -8, 0] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                  className="w-20 h-20 rounded-full bg-gradient-to-br from-sky-100 via-indigo-100 to-violet-100 dark:from-sky-500/10 dark:via-indigo-500/10 dark:to-violet-500/10 flex items-center justify-center mb-4 ring-1 ring-indigo-200/60 dark:ring-indigo-400/20"
+                >
+                  <ShieldCheck className="w-10 h-10 text-emerald-500" />
+                </motion.div>
+                <h3 className="text-base font-semibold text-slate-700 dark:text-slate-200">
+                  No pending approvals
+                </h3>
+                <p className="mt-1 text-sm text-slate-400 dark:text-slate-500">
+                  All caught up! No actions require approval right now.
+                </p>
+              </motion.div>
+            ) : (
+              <div className="space-y-4">
+                {actions.map((action, idx) => (
+                  <motion.div
+                    key={action.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white shadow-md shadow-orange-500/30 shrink-0">
+                          <AlertTriangle className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-slate-900 dark:text-white capitalize">{action.actionType.replace(/_/g, " ")}</p>
+                          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                            Staff: <span className="font-medium text-slate-900 dark:text-white">{action.staffName}</span>
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{action.reason}</p>
+                          {action.details && (
+                            <pre className="mt-2 text-xs bg-white/50 dark:bg-white/5 p-2 rounded-lg overflow-auto max-w-md text-slate-600 dark:text-slate-300">
+                              {JSON.stringify(action.details, null, 2)}
+                            </pre>
+                          )}
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                            Requested: {new Date(action.createdAt).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {getStatusBadge(action.status)}
+                        {action.status === "PENDING" && (
+                          <>
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => handleApprove(action.id)}
+                              className="flex items-center gap-1 rounded-lg bg-emerald-100 dark:bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-500/20"
+                            >
+                              <UserCheck className="h-3 w-3" /> Approve
+                            </motion.button>
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => handleReject(action.id)}
+                              className="flex items-center gap-1 rounded-lg bg-red-100 dark:bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-500/20"
+                            >
+                              <XCircle className="h-3 w-3" /> Reject
+                            </motion.button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

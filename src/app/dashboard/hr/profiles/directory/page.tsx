@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
 import api from "@/lib/axios";
 import { useLenis } from "@/hooks/useLenis";
 import type { Role } from "@/tyPes/auth.tyPes";
-import { Search, Plus } from "lucide-react";
+import { Search } from "lucide-react";
 
 type StaffSummary = {
   id: string;

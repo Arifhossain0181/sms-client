@@ -46,13 +46,20 @@ export default function DashboardLayout({
     ];
 
     for (const { prefix, allowedRole, label } of routeRoleMap) {
-      if (pathname?.startsWith(prefix) && role !== allowedRole) {
-        window.localStorage.setItem(
-          "redirectMessage",
-          `You do not have permission to view the ${label} pages.`
-        );
-        router.replace("/dashboard");
-        return;
+      if (pathname?.startsWith(prefix)) {
+        // Special case: SCHOOL_ADMIN can access HR routes
+        if (prefix === "/dashboard/hr" && (role === "HR" || role === "SCHOOL_ADMIN")) {
+          continue;
+        }
+        
+        if (role !== allowedRole) {
+          window.localStorage.setItem(
+            "redirectMessage",
+            `You do not have permission to view the ${label} pages.`
+          );
+          router.replace("/dashboard");
+          return;
+        }
       }
     }
 

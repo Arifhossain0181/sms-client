@@ -15,6 +15,8 @@ import {
   Users,
   Clock,
 } from "lucide-react";
+import { motion } from "framer-motion";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type DashboardStats = {
   totalStaff: number;
@@ -44,6 +46,15 @@ const months = [
   "July", "August", "September", "October", "November", "December",
 ];
 
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.08, duration: 0.4, ease: "easeOut" },
+  }),
+};
+
 export default function HrDashboard() {
   useLenis();
   const router = useRouter();
@@ -63,12 +74,10 @@ export default function HrDashboard() {
       try {
         setLoading(true);
 
-        // Load dashboard stats
         const statsRes = await api.get("/hr/dashboard");
         const statsData = statsRes.data?.data ?? statsRes.data;
         setStats(statsData);
 
-        // Load staff directory for the list
         const staffRes = await api.get("/hr/staff/directory");
         const staffData = staffRes.data?.data ?? staffRes.data;
         setStaffList(Array.isArray(staffData) ? staffData : []);
@@ -81,145 +90,250 @@ export default function HrDashboard() {
     load();
   }, []);
 
+  const statCards = [
+    {
+      label: "Total Staff",
+      value: stats ? stats.totalStaff.toString() : "—",
+      icon: <Users className="h-5 w-5 text-sky-600 dark:text-sky-400" />,
+    },
+    {
+      label: "Active Staff",
+      value: stats ? stats.activeStaff.toString() : "—",
+      sub: `${stats?.inactiveStaff ?? 0} inactive`,
+      icon: <UserCog className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />,
+    },
+    {
+      label: "Avg Attendance",
+      value: stats ? `${stats.avgAttendance}%` : "—",
+      sub: stats
+        ? `${months[stats.currentMonth - 1]} ${stats.currentYear}`
+        : undefined,
+      icon: <TrendingUp className="h-5 w-5 text-teal-600 dark:text-teal-400" />,
+      link: "/dashboard/hr/attendance",
+      linkText: "Take Attendance →",
+    },
+    {
+      label: "Pending Actions",
+      value: stats
+        ? String(
+            (stats.pendingLeaves ?? 0) +
+              (stats.pendingPayrolls ?? 0) +
+              (stats.pendingCriticalActions ?? 0)
+          )
+        : "—",
+      sub: `${stats?.pendingLeaves ?? 0} leaves · ${stats?.pendingPayrolls ?? 0} payrolls`,
+      icon: <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />,
+    },
+  ];
+
+  const secondaryCards = [
+    {
+      label: "Pending Leave Requests",
+      value: stats ? String(stats.pendingLeaves) : "—",
+      icon: <FileText className="h-5 w-5 text-amber-600 dark:text-amber-400" />,
+    },
+    {
+      label: "Pending Payroll Disbursements",
+      value: stats ? String(stats.pendingPayrolls) : "—",
+      icon: <Wallet className="h-5 w-5 text-violet-600 dark:text-violet-400" />,
+    },
+    {
+      label: "Pending Critical Actions",
+      value: stats ? String(stats.pendingCriticalActions) : "—",
+      sub: "Awaiting School Admin approval",
+      icon: <CalendarCheck className="h-5 w-5 text-rose-600 dark:text-rose-400" />,
+    },
+  ];
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">
-          {roleLabels.HR ?? "HR"} Dashboard
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Staff management, attendance, leave, payroll, and performance appraisals.
-        </p>
-      </div>
+    <div className="relative min-h-screen flex items-start justify-center p-4 sm:p-6 overflow-hidden bg-slate-50/50 dark:bg-slate-950">
+      <motion.div
+        animate={{ x: [0, 40, 0], y: [0, -30, 0] }}
+        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-10 -left-32 w-[500px] h-[500px] bg-sky-300/20 dark:bg-sky-500/10 rounded-full blur-3xl pointer-events-none"
+      />
+      <motion.div
+        animate={{ x: [0, -30, 0], y: [0, 40, 0] }}
+        transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute bottom-10 -right-32 w-[600px] h-[600px] bg-violet-300/20 dark:bg-violet-500/10 rounded-full blur-3xl pointer-events-none"
+      />
+      <motion.div
+        animate={{ scale: [1, 1.2, 1] }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-indigo-300/10 dark:bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"
+      />
 
-      {/* Summary stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-        <StatCard
-          label="Total Staff"
-          value={stats ? stats.totalStaff.toString() : "—"}
-          icon={<Users className="h-4 w-4 text-sky-500" />}
-        />
-        <StatCard
-          label="Active Staff"
-          value={stats ? stats.activeStaff.toString() : "—"}
-          sub={`${stats?.inactiveStaff ?? 0} inactive`}
-          icon={<UserCog className="h-4 w-4 text-emerald-500" />}
-        />
-        <StatCard
-          label="Avg Attendance"
-          value={stats ? `${stats.avgAttendance}%` : "—"}
-          sub={
-            stats
-              ? `${months[stats.currentMonth - 1]} ${stats.currentYear}`
-              : undefined
-          }
-          icon={<TrendingUp className="h-4 w-4 text-teal-500" />}
-        />
-        <StatCard
-          label="Pending Actions"
-          value={
-            stats
-              ? String(
-                  (stats.pendingLeaves ?? 0) +
-                    (stats.pendingPayrolls ?? 0) +
-                    (stats.pendingCriticalActions ?? 0)
-                )
-              : "—"
-          }
-          sub={`${stats?.pendingLeaves ?? 0} leaves · ${stats?.pendingPayrolls ?? 0} payrolls`}
-          icon={<Clock className="h-4 w-4 text-amber-500" />}
-        />
-      </div>
-
-      {/* Secondary stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-        <StatCard
-          label="Pending Leave Requests"
-          value={stats ? String(stats.pendingLeaves) : "—"}
-          icon={<FileText className="h-4 w-4 text-amber-500" />}
-        />
-        <StatCard
-          label="Pending Payroll Disbursements"
-          value={stats ? String(stats.pendingPayrolls) : "—"}
-          icon={<Wallet className="h-4 w-4 text-violet-500" />}
-        />
-        <StatCard
-          label="Pending Critical Actions"
-          value={stats ? String(stats.pendingCriticalActions) : "—"}
-          sub="Awaiting School Admin approval"
-          icon={<CalendarCheck className="h-4 w-4 text-rose-500" />}
-        />
-      </div>
-
-      {/* Staff directory */}
-      <div className="rounded-2xl border border-border/60 bg-card/80 p-6 shadow-soft">
-        <h3 className="text-lg font-semibold">Staff Directory</h3>
-        <div className="mt-4">
-          {loading && (
-            <p className="text-xs text-muted-foreground">Loading staff...</p>
-          )}
-          {!loading && staffList.length === 0 && (
-            <p className="text-xs text-muted-foreground">No staff records found.</p>
-          )}
-          <div className="divide-y divide-border/60">
-            {staffList.slice(0, 20).map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between py-3"
-              >
-                <div>
-                  <p className="text-sm font-medium">{item.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {item.employeeId ?? ""} · {item.designation ?? "—"} ·{" "}
-                    {item.department?.name ?? item.staffType ?? "—"}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs text-muted-foreground">{item.email}</p>
-                  {item.phone && (
-                    <p className="text-xs text-muted-foreground">{item.phone}</p>
-                  )}
-                </div>
-              </div>
-            ))}
+      <div className="relative w-full max-w-5xl my-8 space-y-6">
+        <div className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl shadow-slate-200/40 dark:shadow-none overflow-hidden">
+          <div className="relative px-6 sm:px-8 py-6 bg-gradient-to-r from-sky-50 via-indigo-50 to-violet-50 dark:from-sky-500/10 dark:via-indigo-500/10 dark:to-violet-500/10 border-b border-white/40 dark:border-white/5 overflow-hidden">
+            <motion.div
+              animate={{ x: [0, 100, 0] }}
+              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent pointer-events-none"
+            />
+            <div className="relative">
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                {roleLabels.HR ?? "HR"} Dashboard
+                <motion.span
+                  animate={{ rotate: [0, 10, -10, 0] }}
+                  transition={{ duration: 3, repeat: Infinity }}
+                  className="text-indigo-400"
+                >
+                  <Users className="w-5 h-5" />
+                </motion.span>
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+                Staff management, attendance, leave, payroll, and performance appraisals.
+              </p>
+            </div>
           </div>
-          {staffList.length > 20 && (
-            <p className="mt-3 text-xs text-muted-foreground">
-              Showing 20 of {staffList.length} staff members.{" "}
-              <a href="/dashboard/hr/profiles" className="underline">
-                View all
-              </a>
-            </p>
-          )}
+
+          <div className="p-4 sm:p-6 space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+              {loading
+                ? Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl">
+                      <Skeleton className="w-14 h-14 rounded-2xl shrink-0 mb-4" />
+                      <Skeleton className="h-3 w-24 rounded-md mb-2" />
+                      <Skeleton className="h-6 w-16 rounded-md" />
+                    </div>
+                  ))
+                : statCards.map((card, i) => (
+                    <motion.div
+                      key={card.label}
+                      custom={i}
+                      initial="hidden"
+                      animate="visible"
+                      variants={cardVariants}
+                      className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl flex items-center gap-5 hover:shadow-2xl transition-shadow"
+                    >
+                      <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                        {card.icon}
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                          {card.label}
+                        </p>
+                        <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">
+                          {card.value}
+                        </p>
+                        <div className="mt-1 flex items-center justify-between">
+                          {card.sub ? (
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              {card.sub}
+                            </p>
+                          ) : (
+                            <div />
+                          )}
+                          {(card as any).linkText && (card as any).link && (
+                            <a href={(card as any).link} className="text-xs text-indigo-500 hover:underline">
+                              {(card as any).linkText}
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+              {loading
+                ? Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl">
+                      <Skeleton className="w-14 h-14 rounded-2xl shrink-0 mb-4" />
+                      <Skeleton className="h-3 w-32 rounded-md mb-2" />
+                      <Skeleton className="h-6 w-12 rounded-md" />
+                    </div>
+                  ))
+                : secondaryCards.map((card, i) => (
+                    <motion.div
+                      key={card.label}
+                      custom={i + 4}
+                      initial="hidden"
+                      animate="visible"
+                      variants={cardVariants}
+                      className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl flex items-center gap-5 hover:shadow-2xl transition-shadow"
+                    >
+                      <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                        {card.icon}
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                          {card.label}
+                        </p>
+                        <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">
+                          {card.value}
+                        </p>
+                        {card.sub && (
+                          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                            {card.sub}
+                          </p>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))}
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl"
+            >
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Staff Directory</h3>
+              {loading ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="flex items-center justify-between py-3">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="w-10 h-10 rounded-full shrink-0" />
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-32 rounded-md" />
+                          <Skeleton className="h-3 w-48 rounded-md" />
+                        </div>
+                      </div>
+                      <Skeleton className="h-3 w-24 rounded-md" />
+                    </div>
+                  ))}
+                </div>
+              ) : staffList.length === 0 ? (
+                <p className="text-xs text-slate-500 dark:text-slate-400">No staff records found.</p>
+              ) : (
+                <div className="divide-y divide-slate-200 dark:divide-slate-800">
+                  {staffList.slice(0, 20).map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between py-3"
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-slate-900 dark:text-white">{item.name}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          {item.employeeId ?? ""} · {item.designation ?? "—"} ·{" "}
+                          {item.department?.name ?? item.staffType ?? "—"}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-slate-500 dark:text-slate-400">{item.email}</p>
+                        {item.phone && (
+                          <p className="text-xs text-slate-500 dark:text-slate-400">{item.phone}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {!loading && staffList.length > 20 && (
+                <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+                  Showing 20 of {staffList.length} staff members.{" "}
+                  <a href="/dashboard/hr/profiles" className="underline">
+                    View all
+                  </a>
+                </p>
+              )}
+            </motion.div>
+          </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  sub,
-  icon,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  icon: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-2xl border border-border/60 bg-card/80 p-6 shadow-soft">
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          {label}
-        </p>
-        {icon}
-      </div>
-      <p className="mt-2 text-2xl font-semibold">{value}</p>
-      {sub && (
-        <p className="mt-1 text-xs text-muted-foreground">{sub}</p>
-      )}
     </div>
   );
 }

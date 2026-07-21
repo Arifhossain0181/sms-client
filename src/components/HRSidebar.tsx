@@ -19,16 +19,16 @@ import {
 
 // HR-এর জন্য মেনু লিস্ট
 const hrMenuOptions = [
-  { title: "Dashboard", path: "/hr/dashboard", icon: LayoutDashboard },
-  { title: "Recruitment", path: "/hr/recruitment", icon: Briefcase },
-  { title: "Staff Management", path: "/hr/staff", icon: Users },
-  { title: "Attendance", path: "/hr/attendance", icon: CalendarCheck },
-  { title: "Leave Management", path: "/hr/leave", icon: CalendarOff },
-  { title: "Payroll", path: "/hr/payroll", icon: Banknote },
-  { title: "Performance", path: "/hr/performance", icon: TrendingUp },
-  { title: "Documents", path: "/hr/documents", icon: FolderOpen },
-  { title: "Notices & Circulars", path: "/hr/notices", icon: BellRing },
-  { title: "Reports", path: "/hr/reports", icon: FileBarChart },
+  { title: "Dashboard", path: "/dashboard/hr", icon: LayoutDashboard },
+  { title: "Recruitment", path: "/dashboard/hr/recruitment", icon: Briefcase },
+  { title: "Staff Management", path: "/dashboard/hr/profiles", icon: Users },
+  { title: "Attendance", path: "/dashboard/hr/attendance", icon: CalendarCheck },
+  { title: "Leave Management", path: "/dashboard/hr/leave", icon: CalendarOff },
+  { title: "Payroll", path: "/dashboard/hr/payroll", icon: Banknote },
+  { title: "Performance", path: "/dashboard/hr/performance", icon: TrendingUp },
+  { title: "Documents", path: "/dashboard/hr/documents", icon: FolderOpen },
+  { title: "Notices & Circulars", path: "/dashboard/hr/notices", icon: BellRing },
+  { title: "Reports", path: "/dashboard/hr/reports", icon: FileBarChart },
 ];
 
 const HRSidebar = () => {
