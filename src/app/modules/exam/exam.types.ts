@@ -1,6 +1,7 @@
 export interface Exam {
   id: string;
   name: string;
+  type?: string;
   subject?: {
     id: string;
     name: string;
@@ -8,6 +9,8 @@ export interface Exam {
   schedules?: {
     id: string;
     examDate: string;
+    startTime: string;
+    endTime: string;
     subject?: {
       id: string;
       name: string;

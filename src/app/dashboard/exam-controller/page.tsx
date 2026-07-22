@@ -16,6 +16,14 @@ type ExamSummary = {
   pendingMarks: number;
 };
 
+type BackendExam = {
+  id: string;
+  name: string;
+  type?: string;
+  status?: string;
+  schedules?: Array<{ class?: { name?: string }; subject?: { name?: string }; examDate?: string }>;
+};
+
 const roleLabels: Record<Role, string> = {
   SUPER_ADMIN:     "Super Admin",
   SCHOOL_ADMIN:    "School Admin",
@@ -44,9 +52,20 @@ export default function ExamControllerDashboard() {
     const load = async () => {
       try {
         setLoading(true);
-        const res = await api.get("/exams/controller-summary");
+        const res = await api.get("/exams");
         const payload = res.data?.data ?? res.data;
-        setExams(Array.isArray(payload) ? payload : []);
+        const examsRaw = Array.isArray(payload) ? payload : [];
+        const summaries: ExamSummary[] = examsRaw.map((exam: BackendExam) => {
+          const schedule = exam.schedules?.[0];
+          return {
+            id: exam.id,
+            name: exam.name,
+            class: schedule?.class?.name ?? "—",
+            status: exam.status ?? "DRAFT",
+            pendingMarks: 0,
+          };
+        });
+        setExams(summaries);
       } catch {
         setExams([]);
       } finally {
