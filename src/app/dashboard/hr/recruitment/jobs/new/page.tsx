@@ -9,22 +9,10 @@ import type { Role } from "@/tyPes/auth.tyPes";
 import { ArrowLeft, Briefcase } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Skeleton } from "@/components/ui/skeleton";
 
 type Department = {
   id: string;
   name: string;
-};
-
-const roleLabels: Record<Role, string> = {
-  SUPER_ADMIN: "Super Admin",
-  SCHOOL_ADMIN: "School Admin",
-  ACCOUNTANT: "Accountant",
-  TEACHER: "Teacher",
-  STUDENT: "Student",
-  PARENT: "Parent",
-  EXAM_CONTROLLER: "Exam Controller",
-  HR: "HR",
 };
 
 export default function NewJobPage() {
@@ -32,14 +20,13 @@ export default function NewJobPage() {
   const router = useRouter();
   const { role } = useAuth();
   const [departments, setDepartments] = useState<Department[]>([]);
-  const [loadingDepts, setLoadingDepts] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     title: "",
     designation: "",
     vacancies: "",
     deadline: "",
-    department: "",
+    departmentId: "",
     status: "OPEN",
   });
 
@@ -51,15 +38,11 @@ export default function NewJobPage() {
 
   useEffect(() => {
     let cancelled = false;
-    setLoadingDepts(true);
     api.get("/hr/departments").then((res) => {
       if (cancelled) return;
       const payload = res.data?.data ?? res.data;
       setDepartments(Array.isArray(payload) ? payload : []);
-      setLoadingDepts(false);
-    }).catch(() => {
-      if (!cancelled) setLoadingDepts(false);
-    });
+    }).catch(() => {});
     return () => { cancelled = true; };
   }, []);
 
@@ -80,15 +63,8 @@ export default function NewJobPage() {
         description: "",
         requirements: "",
       };
-      const deptName = form.department?.trim();
-      if (deptName) {
-        const matchedDept = departments.find((d) => d.name.toLowerCase() === deptName.toLowerCase());
-        if (matchedDept) {
-          payload.departmentId = matchedDept.id;
-        } else {
-          payload.description = deptName;
-          payload.requirements = "";
-        }
+      if (form.departmentId) {
+        payload.departmentId = form.departmentId;
       }
       await api.post("/recruitment/jobs", payload);
       router.push("/dashboard/hr/recruitment/jobs");
@@ -205,16 +181,16 @@ export default function NewJobPage() {
                   </div>
                    <div>
                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1">Department</label>
-                     {loadingDepts ? (
-                       <Skeleton className="w-full h-10 rounded-lg" />
-                     ) : (
-                       <input
-                         value={form.department}
-                         onChange={(e) => updateForm("department", e.target.value)}
-                         placeholder="e.g. Mathematics, Science"
-                         className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-white/5 px-3 py-2 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
-                       />
-                     )}
+                     <select
+                       value={form.departmentId}
+                       onChange={(e) => updateForm("departmentId", e.target.value)}
+                       className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-white/5 px-3 py-2 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
+                     >
+                       <option value="">Select department</option>
+                       {departments.map((d) => (
+                         <option key={d.id} value={d.id}>{d.name}</option>
+                       ))}
+                     </select>
                    </div>
                   <div>
                     <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1">Status</label>

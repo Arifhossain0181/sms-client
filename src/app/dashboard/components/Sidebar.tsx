@@ -96,7 +96,7 @@ const getNavGroups = (role: Role | null): NavGroup[] => {
   ];
 
   switch (role) {
-    // ─────────────────────────────────────────────────────────────────────
+    // 
     case "SUPER_ADMIN":
       return [
         {
@@ -237,7 +237,7 @@ case "SCHOOL_ADMIN":
         },
       ];
 
-    // ─────────────────────────────────────────────────────────────────────
+    // 
     case "TEACHER":
       return [
         { items: commonTop },
@@ -266,7 +266,7 @@ case "SCHOOL_ADMIN":
         },
       ];
 
-    // ─────────────────────────────────────────────────────────────────────
+    // 
     case "STUDENT":
       return [
         { items: commonTop },
@@ -295,7 +295,7 @@ case "SCHOOL_ADMIN":
         },
       ];
 
-    // ─────────────────────────────────────────────────────────────────────
+    // -------------
     case "PARENT":
       return [
         { items: commonTop },
@@ -324,25 +324,42 @@ case "SCHOOL_ADMIN":
         },
       ];
 
-    // ─────────────────────────────────────────────────────────────────────
+    // 
     case "EXAM_CONTROLLER":
       return [
         { items: commonTop },
         {
           groupLabel: "Exam Management",
           items: [
-            { icon: ClipboardList, label: "All Exams",        href: "/dashboard/exam" },
-            { icon: CalendarRange, label: "Exam Schedule",    href: "/dashboard/exam-controller/schedule" },
-            { icon: ListChecks,    label: "Assign Exams",     href: "/dashboard/exam-controller/assign" },
-            { icon: Layers,        label: "Question Papers",  href: "/dashboard/exam-controller/papers" },
+            { icon: ClipboardList, label: "Exam Types",        href: "/dashboard/exam-controller/exams" },
+            { icon: CalendarRange, label: "Exam Schedules",    href: "/dashboard/exam-controller/schedules" },
+          ],
+        },
+        {
+          groupLabel: "Grading & Marks",
+          items: [
+            { icon: FileSpreadsheet, label: "Grading Rules",   href: "/dashboard/exam-controller/grading" },
+            { icon: ClipboardEdit,   label: "Approve Marks",   href: "/dashboard/exam-controller/marks-approval" },
           ],
         },
         {
           groupLabel: "Results",
           items: [
-            { icon: ClipboardEdit, label: "Enter Results",    href: "/dashboard/result" },
-            { icon: CheckSquare,   label: "Approve Results",  href: "/dashboard/exam-controller/approve" },
-            { icon: Printer,       label: "Result Cards",     href: "/dashboard/exam-controller/result-cards" },
+            { icon: CheckSquare,   label: "Publish Results",   href: "/dashboard/exam-controller/publish-results" },
+            { icon: UsersRound,    label: "Failed Students",   href: "/dashboard/exam-controller/failed-students" },
+          ],
+        },
+        {
+          groupLabel: "Admit Cards",
+          items: [
+            { icon: Printer,       label: "Admit Cards",       href: "/dashboard/exam-controller/admit-cards" },
+          ],
+        },
+        {
+          groupLabel: "Class Routine",
+          items: [
+            { icon: CalendarDays,  label: "Manage Routine",    href: "/dashboard/exam-controller/routine" },
+            { icon: ShieldCheck,   label: "Routine Conflicts", href: "/dashboard/exam-controller/routine-conflicts" },
           ],
         },
         {
@@ -353,7 +370,7 @@ case "SCHOOL_ADMIN":
         },
       ];
 
-    // ─────────────────────────────────────────────────────────────────────
+    // 
     case "HR":
       return [
         { items: commonTop },
@@ -369,7 +386,7 @@ case "SCHOOL_ADMIN":
         {
           groupLabel: "Attendance & Leave",
           items: [
-            { icon: CalendarCheck, label: "Attendance",       href: "/dashboard/attendances" },
+            { icon: CalendarCheck, label: "Staff Attendance",       href: "/dashboard/hr/attendance" },
             { icon: TimerReset,    label: "Leave Requests",   href: "/dashboard/hr/leave" },
             { icon: CalendarRange, label: "Leave Calendar",   href: "/dashboard/hr/leave-calendar" },
           ],

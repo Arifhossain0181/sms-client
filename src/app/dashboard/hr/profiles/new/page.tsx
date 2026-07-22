@@ -75,7 +75,11 @@ export default function NewStaffPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const payload: Record<string, any> = { ...form };
+      const payload: Record<string, any> = {
+        ...form,
+        certificates: [],
+        experience: form.experience ? Number(form.experience) : undefined,
+      };
       if (!payload.experience) delete payload.experience;
       if (!payload.departmentId) delete payload.departmentId;
       await api.post("/hr/staff", payload);

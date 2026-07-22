@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import api from "@/lib/axios";
@@ -33,6 +33,8 @@ type JobPosting = {
 type Department = {
   id: string;
   name: string;
+  code?: string;
+  description?: string;
 };
 
 const roleLabels: Record<Role, string> = {
@@ -51,7 +53,7 @@ const cardVariants = {
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: i * 0.08, duration: 0.4, ease: "easeOut" },
+    transition: { delay: i * 0.08, duration: 0.4, ease: "easeOut" as const },
   }),
 };
 
@@ -63,22 +65,29 @@ export default function RecruitmentDashboard() {
   const [jobs, setJobs] = useState<JobPosting[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
+  const [showJobForm, setShowJobForm] = useState(false);
+  const [showDeptForm, setShowDeptForm] = useState(false);
+  const [savingJob, setSavingJob] = useState(false);
+  const [savingDept, setSavingDept] = useState(false);
+  const [editingDept, setEditingDept] = useState<Department | null>(null);
+  const [savingEditDept, setSavingEditDept] = useState(false);
+  const [jobForm, setJobForm] = useState({
     title: "",
     designation: "",
     vacancies: "",
     deadline: "",
-    department: "",
+    departmentId: "",
     status: "OPEN",
   });
+  const [deptForm, setDeptForm] = useState({ name: "", code: "", description: "" });
 
   useEffect(() => {
     if (role && role !== "HR" && role !== "SCHOOL_ADMIN") {
       router.replace("/dashboard");
     }
   }, [role, router]);
+
+  const canCreateDepartment = role === "HR" || role === "SCHOOL_ADMIN" || role === "SUPER_ADMIN";
 
   useEffect(() => {
     let cancelled = false;
@@ -115,36 +124,25 @@ export default function RecruitmentDashboard() {
     return () => { cancelled = true; };
   }, []);
 
-  const updateForm = (field: string, value: string) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+  const updateJobForm = (field: string, value: string) => {
+    setJobForm((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleCreateJob = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
+    setSavingJob(true);
     try {
       const payload: Record<string, any> = {
-        title: form.title,
-        designation: form.designation,
-        vacancies: Number(form.vacancies),
-        deadline: form.deadline,
-        status: form.status,
-        description: "",
-        requirements: "",
+        title: jobForm.title,
+        designation: jobForm.designation,
+        vacancies: Number(jobForm.vacancies),
+        deadline: jobForm.deadline,
+        status: jobForm.status,
+        departmentId: jobForm.departmentId || undefined,
       };
-      const deptName = form.department?.trim();
-      if (deptName) {
-        const matchedDept = departments.find((d) => d.name.toLowerCase() === deptName.toLowerCase());
-        if (matchedDept) {
-          payload.departmentId = matchedDept.id;
-        } else {
-          payload.description = deptName;
-          payload.requirements = "";
-        }
-      }
       await api.post("/recruitment/jobs", payload);
-      setForm({ title: "", designation: "", vacancies: "", deadline: "", department: "", status: "OPEN" });
-      setShowForm(false);
+      setJobForm({ title: "", designation: "", vacancies: "", deadline: "", departmentId: "", status: "OPEN" });
+      setShowJobForm(false);
       const res = await api.get("/recruitment/jobs?limit=10");
       const data = res.data?.data ?? res.data;
       setJobs(data.postings ?? []);
@@ -154,7 +152,55 @@ export default function RecruitmentDashboard() {
     } catch (err: any) {
       alert(err?.response?.data?.message ?? "Failed to create job posting");
     } finally {
-      setSaving(false);
+      setSavingJob(false);
+    }
+  };
+
+  const handleCreateDepartment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingDept(true);
+    try {
+      await api.post("/hr/departments", deptForm);
+      setDeptForm({ name: "", code: "", description: "" });
+      setShowDeptForm(false);
+      const res = await api.get("/hr/departments");
+      const payload = res.data?.data ?? res.data;
+      setDepartments(Array.isArray(payload) ? payload : []);
+    } catch (err: any) {
+      alert(err?.response?.data?.message ?? "Failed to create department");
+    } finally {
+      setSavingDept(false);
+    }
+  };
+
+  const handleUpdateDepartment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingDept) return;
+    setSavingEditDept(true);
+    try {
+      await api.patch(`/hr/departments/${editingDept.id}`, {
+        name: editingDept.name,
+        code: editingDept.code,
+        description: editingDept.description,
+      });
+      setEditingDept(null);
+      const res = await api.get("/hr/departments");
+      const payload = res.data?.data ?? res.data;
+      setDepartments(Array.isArray(payload) ? payload : []);
+    } catch (err: any) {
+      alert(err?.response?.data?.message ?? "Failed to update department");
+    } finally {
+      setSavingEditDept(false);
+    }
+  };
+
+  const handleDeleteDepartment = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this department?")) return;
+    try {
+      await api.delete(`/hr/departments/${id}`);
+      setDepartments((prev) => prev.filter((d) => d.id !== id));
+    } catch (err: any) {
+      alert(err?.response?.data?.message ?? "Failed to delete department. It might be in use.");
     }
   };
 
@@ -226,19 +272,99 @@ export default function RecruitmentDashboard() {
                   Job postings, applicant tracking, interviews, and offers
                 </p>
               </div>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setShowForm(!showForm)}
-                className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 text-white px-4 py-2 text-sm font-semibold shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 transition-all"
-              >
-                <Plus className="h-4 w-4" /> New Job Post
-              </motion.button>
+              <div className="flex items-center gap-3">
+                {canCreateDepartment && (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowDeptForm(!showDeptForm)}
+                    className="flex items-center gap-2 rounded-lg border border-white/40 dark:border-white/10 bg-white/60 dark:bg-white/5 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-white/80 dark:hover:bg-white/10"
+                  >
+                    <Building2 className="h-4 w-4" /> New Department
+                  </motion.button>
+                )}
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowJobForm(!showJobForm)}
+                  className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 text-white px-4 py-2 text-sm font-semibold shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 transition-all"
+                >
+                  <Plus className="h-4 w-4" /> New Job Post
+                </motion.button>
+              </div>
             </div>
           </div>
 
           <div className="p-4 sm:p-6 space-y-6">
-            {showForm && (
+            {showDeptForm && canCreateDepartment && (
+              <motion.form
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                onSubmit={handleCreateDepartment}
+                className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-6 shadow-xl space-y-4"
+              >
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-indigo-400" /> Create Department
+                  </h3>
+                  <button type="button" onClick={() => setShowDeptForm(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1">Name *</label>
+                    <input
+                      required
+                      value={deptForm.name}
+                      onChange={(e) => setDeptForm({ ...deptForm, name: e.target.value })}
+                      placeholder="e.g. Mathematics"
+                      className="w-full rounded-lg border border-white/40 dark:border-white/10 bg-white/60 dark:bg-white/5 px-3 py-2 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1">Code</label>
+                    <input
+                      value={deptForm.code}
+                      onChange={(e) => setDeptForm({ ...deptForm, code: e.target.value })}
+                      placeholder="e.g. MATH"
+                      className="w-full rounded-lg border border-white/40 dark:border-white/10 bg-white/60 dark:bg-white/5 px-3 py-2 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1">Description</label>
+                    <input
+                      value={deptForm.description}
+                      onChange={(e) => setDeptForm({ ...deptForm, description: e.target.value })}
+                      placeholder="Brief description"
+                      className="w-full rounded-lg border border-white/40 dark:border-white/10 bg-white/60 dark:bg-white/5 px-3 py-2 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    type="submit"
+                    disabled={savingDept}
+                    className="rounded-lg bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 text-white px-4 py-2 text-sm font-semibold shadow-md shadow-indigo-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {savingDept ? "Creating..." : "Create"}
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    type="button"
+                    onClick={() => setShowDeptForm(false)}
+                    className="rounded-lg border border-white/40 dark:border-white/10 bg-white/60 dark:bg-white/5 px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-white/80 dark:hover:bg-white/10"
+                  >
+                    Cancel
+                  </motion.button>
+                </div>
+              </motion.form>
+            )}
+
+            {showJobForm && (
               <motion.form
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -249,7 +375,7 @@ export default function RecruitmentDashboard() {
                   <h3 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                     <Briefcase className="w-4 h-4 text-indigo-400" /> Create Job Posting
                   </h3>
-                  <button type="button" onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                  <button type="button" onClick={() => setShowJobForm(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                     <X className="h-4 w-4" />
                   </button>
                 </div>
@@ -258,8 +384,8 @@ export default function RecruitmentDashboard() {
                     <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1">Job Title *</label>
                     <input
                       required
-                      value={form.title}
-                      onChange={(e) => updateForm("title", e.target.value)}
+                      value={jobForm.title}
+                      onChange={(e) => updateJobForm("title", e.target.value)}
                       placeholder="e.g. Senior Mathematics Teacher"
                       className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-white/5 px-3 py-2 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
                     />
@@ -268,8 +394,8 @@ export default function RecruitmentDashboard() {
                     <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1">Designation *</label>
                     <input
                       required
-                      value={form.designation}
-                      onChange={(e) => updateForm("designation", e.target.value)}
+                      value={jobForm.designation}
+                      onChange={(e) => updateJobForm("designation", e.target.value)}
                       placeholder="e.g. Teacher, Accountant, Admin"
                       className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-white/5 px-3 py-2 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
                     />
@@ -280,8 +406,8 @@ export default function RecruitmentDashboard() {
                       required
                       type="number"
                       min="1"
-                      value={form.vacancies}
-                      onChange={(e) => updateForm("vacancies", e.target.value)}
+                      value={jobForm.vacancies}
+                      onChange={(e) => updateJobForm("vacancies", e.target.value)}
                       placeholder="1"
                       className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-white/5 px-3 py-2 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
                     />
@@ -291,25 +417,29 @@ export default function RecruitmentDashboard() {
                     <input
                       required
                       type="date"
-                      value={form.deadline}
-                      onChange={(e) => updateForm("deadline", e.target.value)}
+                      value={jobForm.deadline}
+                      onChange={(e) => updateJobForm("deadline", e.target.value)}
                       className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-white/5 px-3 py-2 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
                     />
                   </div>
                   <div>
                     <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1">Department</label>
-                    <input
-                      value={form.department}
-                      onChange={(e) => updateForm("department", e.target.value)}
-                      placeholder="e.g. Mathematics, Science"
+                    <select
+                      value={jobForm.departmentId}
+                      onChange={(e) => updateJobForm("departmentId", e.target.value)}
                       className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-white/5 px-3 py-2 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
-                    />
+                    >
+                      <option value="">Select department</option>
+                      {departments.map((d) => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1">Status</label>
                     <select
-                      value={form.status}
-                      onChange={(e) => updateForm("status", e.target.value)}
+                      value={jobForm.status}
+                      onChange={(e) => updateJobForm("status", e.target.value)}
                       className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-white/5 px-3 py-2 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
                     >
                       <option value="OPEN">Open</option>
@@ -323,12 +453,12 @@ export default function RecruitmentDashboard() {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     type="submit"
-                    disabled={saving}
+                    disabled={savingJob}
                     className="rounded-lg bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 text-white px-4 py-2 text-sm font-semibold shadow-md shadow-indigo-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {saving ? "Creating..." : "Create Job Post"}
+                    {savingJob ? "Creating..." : "Create Job Post"}
                   </motion.button>
-                  <button type="button" onClick={() => setShowForm(false)} className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-white/5 px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-white/80 dark:hover:bg-white/10">
+                  <button type="button" onClick={() => setShowJobForm(false)} className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-white/5 px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-white/80 dark:hover:bg-white/10">
                     Cancel
                   </button>
                 </div>
@@ -443,6 +573,102 @@ export default function RecruitmentDashboard() {
                 >
                   View all job postings →
                 </button>
+              </motion.div>
+            )}
+
+            {departments.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-6 shadow-xl"
+              >
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                  <Building2 className="w-5 h-5 text-indigo-400" /> Departments
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {departments.map((dept, idx) => (
+                    <motion.div
+                      key={dept.id}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: idx * 0.05 }}
+                      className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-white/5 p-4 shadow-sm relative group"
+                    >
+                      {editingDept?.id === dept.id ? (
+                        <form onSubmit={handleUpdateDepartment} className="space-y-3">
+                          <input
+                            required
+                            value={editingDept.name}
+                            onChange={(e) => setEditingDept({ ...editingDept, name: e.target.value })}
+                            placeholder="Department Name"
+                            className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-white/5 px-2 py-1 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                          />
+                          <input
+                            value={editingDept.code ?? ""}
+                            onChange={(e) => setEditingDept({ ...editingDept, code: e.target.value })}
+                            placeholder="Code"
+                            className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-white/5 px-2 py-1 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                          />
+                          <input
+                            value={editingDept.description ?? ""}
+                            onChange={(e) => setEditingDept({ ...editingDept, description: e.target.value })}
+                            placeholder="Description"
+                            className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-white/5 px-2 py-1 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              type="submit"
+                              disabled={savingEditDept}
+                              className="text-xs bg-indigo-500 text-white px-2 py-1 rounded hover:bg-indigo-600 disabled:opacity-50"
+                            >
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingDept(null)}
+                              className="text-xs border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <>
+                          <div className="pr-12">
+                            <h4 className="font-semibold text-slate-900 dark:text-white truncate" title={dept.name}>
+                              {dept.name}
+                            </h4>
+                            {dept.code && (
+                              <p className="text-xs font-mono text-indigo-500 mt-1">{dept.code}</p>
+                            )}
+                            {dept.description && (
+                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2" title={dept.description}>
+                                {dept.description}
+                              </p>
+                            )}
+                          </div>
+                          {canCreateDepartment && (
+                            <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => setEditingDept(dept)}
+                                className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeleteDepartment(dept.id)}
+                                className="text-xs text-red-600 dark:text-red-400 hover:underline"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </motion.div>
+                  ))}
+                </div>
               </motion.div>
             )}
           </div>
