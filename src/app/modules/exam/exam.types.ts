@@ -30,6 +30,8 @@ export interface Exam {
   date: string;
   totalMarks: number;
   createdAt: string;
+  status?: string;
+  publishedAt?: string;
 }
 
 export interface CreateExamPayload {
