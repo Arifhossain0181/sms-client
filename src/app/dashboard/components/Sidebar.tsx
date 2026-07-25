@@ -255,6 +255,7 @@ case "SCHOOL_ADMIN":
             { icon: ClipboardList, label: "Exams",            href: "/dashboard/exam" },
             { icon: ClipboardEdit, label: "Mark Results",     href: "/dashboard/result" },
             { icon: BookOpen,      label: "Subjects",         href: "/dashboard/subject" },
+            { icon: BookMarked,    label: "Homework",         href: "/dashboard/teacher/homework" },
           ],
         },
         {
