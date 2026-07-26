@@ -19,6 +19,7 @@ export interface Student {
     name: string;
   };
   createdAt: string;
+  isActive?: boolean;
 }
 
 export interface CreateStudentPayload {

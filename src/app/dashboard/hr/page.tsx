@@ -14,6 +14,7 @@ import {
   TrendingUp,
   Users,
   Clock,
+  FileBadge,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -28,6 +29,7 @@ type DashboardStats = {
   avgAttendance: number;
   currentMonth: number;
   currentYear: number;
+  pendingTeachingApplications: number;
 };
 
 const roleLabels: Record<Role, string> = {
@@ -74,12 +76,23 @@ export default function HrDashboard() {
       try {
         setLoading(true);
 
-        const statsRes = await api.get("/hr/dashboard");
-        const statsData = statsRes.data?.data ?? statsRes.data;
-        setStats(statsData);
+        const [statsRes, staffRes, teachingRes] = await Promise.allSettled([
+          api.get("/hr/dashboard"),
+          api.get("/hr/staff/directory"),
+          api.get("/teaching"),
+        ]);
+        const statsData = statsRes.status === "fulfilled" ? (statsRes.value.data?.data ?? statsRes.value.data) : null;
+        setStats({
+          ...(statsData || {}),
+          pendingTeachingApplications:
+            teachingRes.status === "fulfilled"
+              ? (teachingRes.value.data?.data ?? teachingRes.value.data ?? []).filter(
+                  (a: any) => a.status === "PENDING"
+                ).length
+              : 0,
+        });
 
-        const staffRes = await api.get("/hr/staff/directory");
-        const staffData = staffRes.data?.data ?? staffRes.data;
+        const staffData = staffRes.status === "fulfilled" ? (staffRes.value.data?.data ?? staffRes.value.data) : [];
         setStaffList(Array.isArray(staffData) ? staffData : []);
       } catch {
         setStaffList([]);
@@ -123,6 +136,13 @@ export default function HrDashboard() {
         : "—",
       sub: `${stats?.pendingLeaves ?? 0} leaves · ${stats?.pendingPayrolls ?? 0} payrolls`,
       icon: <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />,
+    },
+    {
+      label: "Pending Teaching Applications",
+      value: stats ? String(stats.pendingTeachingApplications ?? 0) : "—",
+      icon: <FileBadge className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />,
+      link: "/dashboard/teaching-applications",
+      linkText: "Review →",
     },
   ];
 

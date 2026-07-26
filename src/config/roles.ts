@@ -165,6 +165,7 @@ const rolePermissions: Record<Role, Permission[]> = {
     "generate_payslips",
     "schedule_appraisals",
     "post_hr_notices",
+    "create_teacher",
   ],
 };
 

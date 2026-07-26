@@ -5,7 +5,7 @@ import RouteChrome from "@/components/RouteChrome";
 import { Toaster } from "sonner";
 import LenisProvider from "./providers/lenis-provider";
 import QueryProvider from "./providers/query-provider";
-import SocketProvider from "./modules/nitfication/SocketProvider";
+import SocketProvider from "./modules/notification/SocketProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

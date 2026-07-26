@@ -52,7 +52,7 @@ import {
   FileBadge,
   CalendarRange,
   MessageSquare,
-   
+  Presentation,
   ShieldCheck,
   FileSpreadsheet,
 } from "lucide-react";
@@ -92,7 +92,7 @@ const getNavGroups = (role: Role | null): NavGroup[] => {
   const commonTop: NavItem[] = [
     { icon: Home,            label: "Home",          href: "/" },
     { icon: LayoutDashboard, label: "Dashboard",     href: dashboardHref },
-    { icon: Bell,            label: "Notifications", href: "/dashboard/nitfication" },
+    { icon: Bell,            label: "Notifications", href: "/dashboard/notification" },
   ];
 
   switch (role) {
@@ -129,81 +129,43 @@ const getNavGroups = (role: Role | null): NavGroup[] => {
     // add these icon imports:
 // UserCog, ShieldCheck, ClipboardCheck, FileSpreadsheet
 
-case "SCHOOL_ADMIN":
-  return [
-    { items: commonTop },
-    {
-      groupLabel: "Academic",
-      items: [
-        { icon: GraduationCap, label: "Students",   href: "/dashboard/students" },
-        { icon: UserCheck,     label: "Teachers",   href: "/dashboard/teachers" },
-        { icon: Layers,        label: "Classes",    href: "/dashboard/class" },
-        { icon: BookOpen,      label: "Subjects",   href: "/dashboard/subject" },
-        { icon: CalendarDays,  label: "Timetable",  href: "/dashboard/timetable" },
-      ],
-    },
-    {
-      groupLabel: "Admissions",
-      items: [
-        { icon: UserPlus,  label: "Admissions",     href: "/dashboard/admission" },
-        // add this item for teaching applications
-        { icon: FileBadge, label: "Teaching Apply", href: "/dashboard/teaching-applications" },
-      ],
-    },
-    
-    {
-      
-      groupLabel: "Approvals",
-      items: [
-        { icon: ShieldCheck, label: "Pending Approvals", href: "/dashboard/approvals" },
-      ],
-    },
-    {
-      groupLabel: "Communication",
-      items: [
-        { icon: Megaphone, label: "Notices", href: "/dashboard/notices" },
-      ],
-    },
-    {
-      // req 3.4: export attendance/result/fee/student-list reports
-      groupLabel: "Reports",
-      items: [
-        { icon: FileSpreadsheet, label: "Reports", href: "/dashboard/reports" },
-      ],
-    },
-  ];
+    case "SCHOOL_ADMIN":
       return [
         { items: commonTop },
         {
-          groupLabel: "Academic",
+          groupLabel: "Admissions & Students",
           items: [
-            { icon: GraduationCap, label: "Students",          href: "/dashboard/students" },
-            { icon: UserCheck,     label: "Teachers",          href: "/dashboard/teachers" },
-            { icon: Layers,        label: "Classes",           href: "/dashboard/class" },
-            { icon: BookOpen,      label: "Subjects",          href: "/dashboard/subject" },
-            { icon: CalendarDays,  label: "Timetable",         href: "/dashboard/timetable" },
+            { icon: UserPlus,      label: "Admissions",     href: "/dashboard/school-admin/admissions" },
+            { icon: Users,         label: "Student Records",href: "/dashboard/school-admin/students" },
+            { icon: TrendingUp,    label: "Promotions",     href: "/dashboard/school-admin/promotions" },
+            { icon: FileBadge,     label: "Transfer Cert.", href: "/dashboard/school-admin/tc" },
           ],
         },
         {
-          groupLabel: "Admissions",
+          groupLabel: "Academics",
           items: [
-            { icon: UserPlus,      label: "Admissions",        href: "/dashboard/admission" },
-            { icon: FileBadge,     label: "Teaching Apply",    href: "/dashboard/teaching-applications" },
+            { icon: GraduationCap, label: "Classes & Sections", href: "/dashboard/school-admin/classes" },
+            { icon: BookOpen,      label: "Subjects",           href: "/dashboard/school-admin/subjects" },
           ],
         },
         {
-          groupLabel: "Operations",
+          groupLabel: "Staff Management",
           items: [
-            { icon: CalendarCheck, label: "Attendance",        href: "/dashboard/attendances" },
-            { icon: ClipboardList, label: "Exams",             href: "/dashboard/exam" },
-            { icon: BarChart3,     label: "Results",           href: "/dashboard/result" },
-            { icon: Wallet,        label: "Fees",              href: "/dashboard/fees" },
+            { icon: Presentation,  label: "Teachers",       href: "/dashboard/school-admin/teachers" },
+            { icon: ShieldCheck,   label: "Role Assignments",href: "/dashboard/school-admin/staff-roles" },
+            { icon: ClipboardCheck,label: "Escalations",    href: "/dashboard/school-admin/escalations" },
           ],
         },
         {
           groupLabel: "Communication",
           items: [
-            { icon: Megaphone,     label: "Notices",           href: "/dashboard/notices" },
+            { icon: Megaphone, label: "Notices", href: "/dashboard/school-admin/notices" },
+          ],
+        },
+        {
+          groupLabel: "Reports",
+          items: [
+            { icon: FileSpreadsheet, label: "Reports", href: "/dashboard/school-admin/reports" },
           ],
         },
       ];
@@ -380,8 +342,21 @@ case "SCHOOL_ADMIN":
           items: [
             { icon: UserCog,       label: "All Staff",        href: "/dashboard/teachers" },
             { icon: UserPlus,      label: "Recruitment",      href: "/dashboard/hr/recruitment" },
-            { icon: FileBadge,     label: "Teaching Apply",   href: "/dashboard/teaching-applications" },
             { icon: FolderOpen,    label: "Staff Profiles",   href: "/dashboard/hr/profiles" },
+          ],
+        },
+        {
+          groupLabel: "Recruitment",
+          items: [
+            { icon: BriefcaseMedical, label: "Jobs",         href: "/dashboard/hr/recruitment/jobs" },
+            { icon: Handshake,        label: "Applicants",   href: "/dashboard/hr/recruitment/applicants" },
+          ],
+        },
+        {
+          groupLabel: "Profiles",
+          items: [
+            { icon: UsersRound,    label: "Directory",        href: "/dashboard/hr/profiles/directory" },
+            { icon: UserPlus,      label: "New Profile",      href: "/dashboard/hr/profiles/new" },
           ],
         },
         {
@@ -397,6 +372,15 @@ case "SCHOOL_ADMIN":
           items: [
             { icon: DollarSign,    label: "Payroll",          href: "/dashboard/hr/payroll" },
             { icon: BarChart3,     label: "HR Reports",       href: "/dashboard/hr/reports" },
+            { icon: Award,         label: "Performance",      href: "/dashboard/hr/performance" },
+            { icon: Building2,     label: "Departments",      href: "/dashboard/hr/departments" },
+          ],
+        },
+        {
+          groupLabel: "Documents & Approvals",
+          items: [
+            { icon: FileText,      label: "Documents",        href: "/dashboard/hr/documents" },
+            { icon: ShieldCheck,   label: "Approvals",        href: "/dashboard/hr/approvals" },
           ],
         },
         {

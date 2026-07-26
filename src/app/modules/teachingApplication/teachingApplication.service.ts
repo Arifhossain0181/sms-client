@@ -7,7 +7,7 @@ import {
 export const teachingApplicationService = {
   getAll: async (): Promise<TeachingApplication[]> => {
     const res = await api.get("/teaching");
-    const payload = res.data?.data ?? res.data;
+    const payload = res.data?.data?.data ?? res.data?.data ?? res.data;
     return Array.isArray(payload) ? payload : [];
   },
 

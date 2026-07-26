@@ -53,4 +53,12 @@ export const studentService = {
   delete: async (id: string): Promise<void> => {
     await api.delete(`/students/${id}`);
   },
+
+  deactivate: async (id: string): Promise<void> => {
+    await api.patch(`/students/${id}/deactivate`);
+  },
+
+  reactivate: async (id: string): Promise<void> => {
+    await api.patch(`/students/${id}/reactivate`);
+  },
 };

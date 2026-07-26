@@ -15,20 +15,20 @@ type Role =
 
 const dashboardRoutes: Record<Role, string[]> = {
   SUPER_ADMIN: ["/dashboard", "/dashboard/super-admin"],
-  SCHOOL_ADMIN: ["/dashboard", "/dashboard/admin", "/dashboard/students", "/dashboard/teachers", "/dashboard/class", "/dashboard/subject", "/dashboard/attendances", "/dashboard/exam", "/dashboard/result", "/dashboard/fees", "/dashboard/notices", "/dashboard/admission", "/dashboard/timetable", "/dashboard/nitfication", "/dashboard/approvals", "/dashboard/hr"],
-  ACCOUNTANT: ["/dashboard", "/dashboard/accountant", "/dashboard/fees", "/dashboard/notices", "/dashboard/nitfication"],
-  LIBRARIAN: ["/dashboard", "/dashboard/librarian", "/dashboard/notices", "/dashboard/nitfication"],
-  TEACHER: ["/dashboard", "/dashboard/teacher", "/dashboard/attendances", "/dashboard/exam", "/dashboard/result", "/dashboard/notices", "/dashboard/timetable", "/dashboard/nitfication"],
-  STUDENT: ["/dashboard", "/dashboard/student", "/dashboard/result", "/dashboard/fees", "/dashboard/notices", "/dashboard/timetable", "/dashboard/nitfication"],
-  PARENT: ["/dashboard", "/dashboard/parent", "/dashboard/student", "/dashboard/result", "/dashboard/fees", "/dashboard/notices", "/dashboard/timetable", "/dashboard/nitfication"],
-  RECEPTIONIST: ["/dashboard", "/dashboard/receptionist", "/dashboard/notices", "/dashboard/nitfication"],
-  EXAM_CONTROLLER: ["/dashboard", "/dashboard/exam-controller", "/dashboard/exam", "/dashboard/result", "/dashboard/notices", "/dashboard/nitfication"],
-  HR: ["/dashboard", "/dashboard/hr", "/dashboard/teachers", "/dashboard/attendances", "/dashboard/notices", "/dashboard/nitfication", "/dashboard/hr/recruitment", "/dashboard/hr/profiles", "/dashboard/hr/leave", "/dashboard/hr/leave-calendar", "/dashboard/hr/payroll", "/dashboard/hr/reports", "/dashboard/hr/performance", "/dashboard/hr/departments", "/dashboard/hr/documents", "/dashboard/hr/attendance"],
+  SCHOOL_ADMIN: ["/dashboard", "/dashboard/admin", "/dashboard/students", "/dashboard/teachers", "/dashboard/class", "/dashboard/subject", "/dashboard/attendances", "/dashboard/exam", "/dashboard/result", "/dashboard/fees", "/dashboard/notices", "/dashboard/admission", "/dashboard/notification", "/dashboard/approvals", "/dashboard/hr"],
+  ACCOUNTANT: ["/dashboard", "/dashboard/accountant", "/dashboard/fees", "/dashboard/notices", "/dashboard/notification"],
+  LIBRARIAN: ["/dashboard", "/dashboard/librarian", "/dashboard/notices", "/dashboard/notification"],
+  TEACHER: ["/dashboard", "/dashboard/teacher", "/dashboard/attendances", "/dashboard/exam", "/dashboard/result", "/dashboard/notices", "/dashboard/timetable", "/dashboard/notification"],
+  STUDENT: ["/dashboard", "/dashboard/student", "/dashboard/result", "/dashboard/fees", "/dashboard/notices", "/dashboard/timetable", "/dashboard/notification"],
+  PARENT: ["/dashboard", "/dashboard/parent", "/dashboard/student", "/dashboard/result", "/dashboard/fees", "/dashboard/notices", "/dashboard/timetable", "/dashboard/notification"],
+  RECEPTIONIST: ["/dashboard", "/dashboard/receptionist", "/dashboard/notices", "/dashboard/notification"],
+  EXAM_CONTROLLER: ["/dashboard", "/dashboard/exam-controller", "/dashboard/exam", "/dashboard/result", "/dashboard/notices", "/dashboard/notification"],
+  HR: ["/dashboard", "/dashboard/hr", "/dashboard/teachers", "/dashboard/attendances", "/dashboard/notices", "/dashboard/notification", "/dashboard/hr/recruitment", "/dashboard/hr/profiles", "/dashboard/hr/leave", "/dashboard/hr/leave-calendar", "/dashboard/hr/payroll", "/dashboard/hr/reports", "/dashboard/hr/performance", "/dashboard/hr/departments", "/dashboard/hr/documents", "/dashboard/hr/attendance"],
 };
 
 const roleRoutes: Record<Role, string[]> = {
   SUPER_ADMIN: ["/dashboard"],
-  SCHOOL_ADMIN: ["/students", "/teachers", "/classes", "/subjects", "/attendance", "/exams", "/results", "/fees", "/notices", "/admission", "/timetable", "/notifications", "/hr"],
+  SCHOOL_ADMIN: ["/students", "/teachers", "/classes", "/subjects", "/attendance", "/exams", "/results", "/fees", "/notices", "/admission", "/notifications", "/hr"],
   ACCOUNTANT: ["/fees", "/notifications", "/hr"],
   LIBRARIAN: ["/notifications"],
   TEACHER: ["/attendance", "/exams", "/results", "/notices", "/timetable", "/notifications"],

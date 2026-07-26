@@ -14,6 +14,7 @@ import {
   Wallet,
   TrendingUp,
   Bell,
+  FileBadge,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -23,6 +24,7 @@ type StatItem = {
   icon: typeof GraduationCap;
   color: string;
   bg: string;
+  href?: string;
 };
 
 const cardVariants = {
@@ -32,7 +34,7 @@ const cardVariants = {
     y: 0,
     transition: { delay: i * 0.08, duration: 0.4, ease: "easeOut" },
   }),
-};
+} as any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 export default function SchoolAdminDashboard() {
   useLenis();
@@ -45,6 +47,7 @@ export default function SchoolAdminDashboard() {
     subjects: 0,
     pendingAdmissions: 0,
     collectedFees: "0",
+    pendingTeachingApplications: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -58,10 +61,14 @@ export default function SchoolAdminDashboard() {
     const load = async () => {
       try {
         setLoading(true);
-        const [studentsRes, teachersRes, classesRes] = await Promise.allSettled([
+        const [studentsRes, teachersRes, classesRes, subjectsRes, admissionsRes, feesRes, teachingRes] = await Promise.allSettled([
           api.get("/students"),
           api.get("/teachers"),
           api.get("/classes"),
+          api.get("/subjects"),
+          api.get("/admission"),
+          api.get("/fees"),
+          api.get("/teaching"),
         ]);
         setStats({
           students:
@@ -76,9 +83,24 @@ export default function SchoolAdminDashboard() {
             classesRes.status === "fulfilled"
               ? (classesRes.value.data?.data?.length ?? classesRes.value.data?.length ?? 0)
               : 0,
-          subjects: 0,
-          pendingAdmissions: 0,
-          collectedFees: "0",
+          subjects:
+            subjectsRes.status === "fulfilled"
+              ? (subjectsRes.value.data?.data?.length ?? subjectsRes.value.data?.length ?? 0)
+              : 0,
+          pendingAdmissions:
+            admissionsRes.status === "fulfilled"
+              ? (admissionsRes.value.data?.data ?? admissionsRes.value.data ?? []).filter((a: { status?: string }) => a.status === "PENDING").length
+              : 0,
+          collectedFees:
+            feesRes.status === "fulfilled"
+              ? String(feesRes.value.data?.data?.totalCollected ?? feesRes.value.data?.totalCollected ?? feesRes.value.data?.collected ?? "0")
+              : "0",
+          pendingTeachingApplications:
+            teachingRes.status === "fulfilled"
+              ? (teachingRes.value.data?.data ?? teachingRes.value.data ?? []).filter(
+                  (a: { status?: string }) => a.status === "PENDING"
+                ).length
+              : 0,
         });
       } catch {
         // fallback
@@ -126,6 +148,14 @@ export default function SchoolAdminDashboard() {
       bg: "bg-yellow-50 dark:bg-yellow-950/30",
     },
     {
+      label: "Pending Teaching Applications",
+      value: loading ? "—" : stats.pendingTeachingApplications,
+      icon: FileBadge,
+      color: "text-indigo-600",
+      bg: "bg-indigo-50 dark:bg-indigo-950/30",
+      href: "/dashboard/teaching-applications",
+    },
+    {
       label: "Fees Collected",
       value: loading ? "—" : `৳${stats.collectedFees}`,
       icon: Wallet,
@@ -160,7 +190,7 @@ export default function SchoolAdminDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
         {statCards.map((card, i) => {
           const Icon = card.icon;
-          return (
+          const cardContent = (
             <motion.div
               key={card.label}
               custom={i}
@@ -180,6 +210,14 @@ export default function SchoolAdminDashboard() {
               </div>
             </motion.div>
           );
+          if (card.href) {
+            return (
+              <a key={card.label} href={card.href} className="block">
+                {cardContent}
+              </a>
+            );
+          }
+          return cardContent;
         })}
       </div>
 

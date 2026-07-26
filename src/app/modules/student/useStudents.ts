@@ -80,6 +80,33 @@ export const useDeleteStudent = () => {
             toast.error(getErrorMessage(err, "Failed to delete student"))
         }
     })
-
-
 }
+
+export const useDeactivateStudent = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (id: string) => studentService.deactivate(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["students"] });
+            toast.success("Student deactivated successfully");
+        },
+        onError: (err: unknown) => {
+            toast.error(getErrorMessage(err, "Failed to deactivate student"));
+        },
+    });
+};
+
+export const useReactivateStudent = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (id: string) => studentService.reactivate(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["students"] });
+            toast.success("Student reactivated successfully");
+        },
+        onError: (err: unknown) => {
+            toast.error(getErrorMessage(err, "Failed to reactivate student"));
+        },
+    });
+};
+    

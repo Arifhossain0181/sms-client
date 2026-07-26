@@ -216,7 +216,7 @@ export default function Admission() {
     try {
       const formData = new FormData();
       formData.append("document", file);
-      const res = await api.post("/admissions/upload-document", formData, {
+      const res = await api.post("/admission/upload-document", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       const url = res.data?.data?.url || res.data?.url;
@@ -260,7 +260,7 @@ export default function Admission() {
     finalizeSuccess();
   };
 
-  // NOTE: /admissions/stripe/checkout and /admissions/stripe/verify do not
+  // NOTE: /admission/stripe/checkout and /admission/stripe/verify do not
   // exist on the backend yet — this UI is wired up but will 404 until those
   // two endpoints are built there.
   useEffect(() => {
@@ -270,7 +270,7 @@ export default function Admission() {
     const verify = async () => {
       setStripeVerifying(true);
       try {
-        const res = await api.get("/admissions/stripe/verify", { params: { session_id: sessionId } });
+        const res = await api.get("/admission/stripe/verify", { params: { session_id: sessionId } });
         const payload = res.data?.data ?? res.data;
         if (payload?.paid) {
           setStripePaid(true);
@@ -305,7 +305,7 @@ export default function Admission() {
     }
     try {
       saveDraft();
-      const res = await api.post("/admissions/stripe/checkout", {
+      const res = await api.post("/admission/stripe/checkout", {
         amount: paymentAmount,
         applicantName,
         targetClassId,

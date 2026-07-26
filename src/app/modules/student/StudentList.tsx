@@ -15,13 +15,18 @@ import {
   Calendar,
   Sparkles,
   Loader2,
+  Power,
+  PowerOff,
+  Filter,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDate } from "@/lib/utils";
 import { hasPermission } from "@/config/roles";
 import StudentForm from "./StudentForm";
-import { useDeleteStudent, useStudents } from "./useStudents";
+import { useDeleteStudent, useDeactivateStudent, useReactivateStudent, useStudents } from "./useStudents";
+import { useClasses } from "@/app/modules/class/useClasses";
 import { Student } from "./student.types";
+import { Class } from "@/app/modules/class/class.types";
 
 const rowGradients = [
   "from-sky-50 to-indigo-50 dark:from-sky-500/10 dark:to-indigo-500/10",
@@ -41,20 +46,30 @@ const avatarGradients = [
 
 export default function StudentList() {
   const { data: students, isLoading } = useStudents();
+  const { data: classes } = useClasses();
   const { mutate: deleteStudent } = useDeleteStudent();
+  const { mutate: deactivateStudent } = useDeactivateStudent();
+  const { mutate: reactivateStudent } = useReactivateStudent();
   const { role } = useAuth();
 
   const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState<Student | null>(null);
   const [search, setSearch] = useState("");
+  const [selectedClassId, setSelectedClassId] = useState<string>("");
 
   const studentList = Array.isArray(students) ? students : [];
-  const filteredStudents = studentList.filter(
-    (student) =>
+  const classList = Array.isArray(classes) ? classes : [];
+
+  const filteredStudents = studentList.filter((student) => {
+    const matchesSearch =
       student.name.toLowerCase().includes(search.toLowerCase()) ||
       (student.email ?? "").toLowerCase().includes(search.toLowerCase()) ||
-      (student.guardianEmail ?? "").toLowerCase().includes(search.toLowerCase()),
-  );
+      (student.guardianEmail ?? "").toLowerCase().includes(search.toLowerCase());
+
+    const matchesClass = !selectedClassId || student.classId === selectedClassId || student.class?.id === selectedClassId;
+
+    return matchesSearch && matchesClass;
+  });
 
   const handleEdit = (student: Student) => {
     setSelected(student);
@@ -64,6 +79,18 @@ export default function StudentList() {
   const handleDelete = (id: string) => {
     if (confirm("Are you sure you want to delete this student?")) {
       deleteStudent(id);
+    }
+  };
+
+  const handleDeactivate = (id: string) => {
+    if (confirm("Are you sure you want to deactivate this student? They will not be able to log in.")) {
+      deactivateStudent(id);
+    }
+  };
+
+  const handleReactivate = (id: string) => {
+    if (confirm("Are you sure you want to reactivate this student?")) {
+      reactivateStudent(id);
     }
   };
 
@@ -147,21 +174,38 @@ export default function StudentList() {
           )}
         </motion.div>
 
-        {/* Search */}
+        {/* Search and Class Filter */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="relative mb-6 max-w-md"
+          className="flex flex-col sm:flex-row gap-3 mb-6"
         >
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search by name or email…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-full border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl pl-11 pr-4 py-2.5 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400 transition"
-          />
+          <div className="relative flex-1 max-w-md">
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search by name or email…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-full border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl pl-11 pr-4 py-2.5 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400 transition"
+            />
+          </div>
+          <div className="relative min-w-[200px]">
+            <Filter className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <select
+              value={selectedClassId}
+              onChange={(e) => setSelectedClassId(e.target.value)}
+              className="w-full rounded-full border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl pl-11 pr-4 py-2.5 text-sm text-slate-800 dark:text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400 transition appearance-none cursor-pointer"
+            >
+              <option value="">All Classes</option>
+              {classList.map((cls: Class) => (
+                <option key={cls.id} value={cls.id}>
+                  {cls.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </motion.div>
 
         {/* Table card */}
@@ -262,6 +306,29 @@ export default function StudentList() {
                                 <Pencil className="h-3 w-3" />
                                 Edit
                               </motion.button>
+                              {student.isActive !== false ? (
+                                <motion.button
+                                  whileHover={{ scale: 1.08 }}
+                                  whileTap={{ scale: 0.92 }}
+                                  onClick={() => handleDeactivate(student.id)}
+                                  className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-600 dark:text-amber-300 hover:bg-amber-500 hover:text-white transition"
+                                  title="Deactivate"
+                                >
+                                  <PowerOff className="h-3 w-3" />
+                                  Deactivate
+                                </motion.button>
+                              ) : (
+                                <motion.button
+                                  whileHover={{ scale: 1.08 }}
+                                  whileTap={{ scale: 0.92 }}
+                                  onClick={() => handleReactivate(student.id)}
+                                  className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-300 hover:bg-emerald-500 hover:text-white transition"
+                                  title="Reactivate"
+                                >
+                                  <Power className="h-3 w-3" />
+                                  Reactivate
+                                </motion.button>
+                              )}
                               {canDelete && (
                                 <motion.button
                                   whileHover={{ scale: 1.08 }}
@@ -283,7 +350,7 @@ export default function StudentList() {
 
                 {filteredStudents.length === 0 && (
                   <tr>
-                    <td colSpan={canEdit ? 7 : 6} className="px-5 py-16 text-center">
+                    <td colSpan={canEdit ? 8 : 7} className="px-5 py-16 text-center">
                       <div className="flex flex-col items-center gap-3 text-slate-500 dark:text-slate-400">
                         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800">
                           <Users className="h-6 w-6" />
