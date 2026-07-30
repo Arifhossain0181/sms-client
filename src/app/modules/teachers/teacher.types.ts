@@ -10,6 +10,11 @@ export interface Teacher {
   subjectId: string;
   createdAt: string;
   joiningDate?: string;
+  role?: string;
+  classes?: string[];
+  department?: string;
+  designation?: string;
+  isActive?: boolean;
 }
 
 export interface CreateTeacherPayload {

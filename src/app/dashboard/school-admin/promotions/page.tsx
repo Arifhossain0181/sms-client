@@ -23,7 +23,7 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Types 
 
 type Student = {
   id: string;
@@ -50,7 +50,7 @@ type ClassType = {
 
 type Toast = { msg: string; ok: boolean } | null;
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Helpers 
 
 function fmt(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("en-GB", {
@@ -66,7 +66,7 @@ function Skel({ className = "" }: { className?: string }) {
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// ─── Main Page 
 
 const LIMIT = 12;
 
@@ -75,7 +75,7 @@ export default function SchoolAdminPromotionsPage() {
   const { role } = useAuth();
   const queryClient = useQueryClient();
 
-  // ── Role guard ────────────────────────────────────────────────────────────
+  // ── Role guard 
   useEffect(() => {
     if (role && role !== "SCHOOL_ADMIN" && role !== "SUPER_ADMIN") {
       router.replace("/dashboard");
@@ -84,7 +84,7 @@ export default function SchoolAdminPromotionsPage() {
 
   const canPromote = role ? hasPermission(role, "promote_students") : false;
 
-  // ── State ─────────────────────────────────────────────────────────────────
+  // ── State 
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [classFilter, setClassFilter] = useState("");
@@ -99,13 +99,13 @@ export default function SchoolAdminPromotionsPage() {
     setTimeout(() => setToast(null), 3500);
   };
 
-  // ── Fetch classes ─────────────────────────────────────────────────────────
+  // ── Fetch classes 
   const { data: classes = [] } = useQuery({
     queryKey: ["classes"],
     queryFn: classService.getAll,
   });
 
-  // ── Fetch students ────────────────────────────────────────────────────────
+  // ── Fetch students 
   const { data: students = [], isLoading, refetch } = useQuery({
     queryKey: ["students", "promotions", page, search, classFilter],
     queryFn: async () => {
@@ -125,7 +125,7 @@ export default function SchoolAdminPromotionsPage() {
   // Compute meta if available from response (we'll derive it from students list)
   const totalPages = useMemo(() => Math.max(1, Math.ceil((students as Student[]).length / LIMIT)), [students]);
 
-  // ── useMemo: derived values ───────────────────────────────────────────────
+  // ── useMemo: derived values 
   const classMap = useMemo(() => {
     const m = new Map<string, ClassType>();
     classes.forEach((c) => m.set(c.id, c));
@@ -144,7 +144,7 @@ export default function SchoolAdminPromotionsPage() {
     [students, selectedIds]
   );
 
-  // ── Toggle select ─────────────────────────────────────────────────────────
+  // ── Toggle select 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -163,7 +163,7 @@ export default function SchoolAdminPromotionsPage() {
     });
   };
 
-  // ── Promote mutation ──────────────────────────────────────────────────────
+  // ── Promote mutation 
   const promoteMutation = useMutation({
     mutationFn: async (payload: { studentIds: string[]; targetClassId: string; targetSectionId: string }) => {
       const res = await api.post("/students/promote", payload);
@@ -193,7 +193,7 @@ export default function SchoolAdminPromotionsPage() {
     });
   };
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // ── Render 
   if (!canPromote) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
