@@ -17,12 +17,14 @@ import {
   Sparkles,
   CalendarDays,
 } from "lucide-react";
-import { useTimetables, useDeleteTimetable } from "../timetable/useTimetable";
+import { useTimetables, useMyTimetable, useDeleteTimetable } from "../timetable/useTimetable";
 import { useClasses } from "../class/useClasses";
 import TimetableForm from "./TimetableForm";
 import { Timetable, DayOfWeek } from "./timetable.types";
 import { useAuth } from "@/hooks/useAuth";
 import { hasPermission } from "@/config/roles";
+import { useQuery } from "@tanstack/react-query";
+import { timetableService } from "./timetable.service";
 
 const DAYS: DayOfWeek[] = [
   "SATURDAY",
@@ -62,10 +64,19 @@ const dayAccent: Record<DayOfWeek, string> = {
 };
 
 export default function TimetableGrid() {
-  const { data: timetables, isLoading } = useTimetables();
+  const { role } = useAuth();
+  const isStudent = role === "STUDENT";
+  const { data: myRoutine, isLoading: myLoading } = useMyTimetable();
+  const { data: allTimetables, isLoading: allLoading } = useQuery({
+    queryKey: ["timetables"],
+    queryFn: timetableService.getAll,
+    enabled: !isStudent,
+  });
   const { data: classes } = useClasses();
   const { mutate: deleteTimetable } = useDeleteTimetable();
-  const { role } = useAuth();
+
+  const timetables = isStudent ? myRoutine : allTimetables;
+  const isLoading = isStudent ? myLoading : allLoading;
 
   const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState<Timetable | null>(null);

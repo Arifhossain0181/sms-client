@@ -21,6 +21,7 @@ import {
   Loader2,
   ChevronRight,
   Filter,
+  Search,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -158,6 +159,8 @@ export default function SchoolAdminReportsPage() {
     return d.toISOString().split("T")[0];
   });
   const [examFilter, setExamFilter] = useState("");
+  const [studentSearch, setStudentSearch] = useState("");
+  const [selectedStudentId, setSelectedStudentId] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
 
   // ── Fetch classes ──────────────────────────────────────────────────────────
@@ -185,50 +188,85 @@ export default function SchoolAdminReportsPage() {
 
   const examList: Exam[] = Array.isArray(exams) ? exams : [];
 
+  // ── Fetch students for single-student export ──────────────────────────────
+  const { data: students = [] } = useQuery({
+    queryKey: ["students", "report-search", studentSearch],
+    queryFn: async () => {
+      const res = await api.get("/students", { params: { search: studentSearch, limit: 50 } });
+      const d = res.data?.data ?? res.data;
+      if (Array.isArray(d)) return d;
+      if (Array.isArray(d?.data)) return d.data;
+      return [];
+    },
+    enabled: !!studentSearch,
+  });
+
+  const studentList = Array.isArray(students) ? students : [];
+  const selectedStudent = studentList.find((s) => s.id === selectedStudentId);
+
   // ── useMemo: report config & filters validity ──────────────────────────────
   const currentConfig = REPORT_TYPES.find((r) => r.key === reportType)!;
 
   const canExport = useMemo(() => {
     switch (reportType) {
       case "students":
-        return true;
+        return !!selectedStudentId || !!classFilter;
       case "attendance":
-        return !!(classFilter && sectionFilter && attendanceDate);
+        return !!(selectedStudentId && classFilter && sectionFilter && attendanceDate) || (!selectedStudentId && classFilter && sectionFilter && attendanceDate);
       case "fees":
-        return true;
+        return !!selectedStudentId;
       case "results":
-        return !!examFilter;
+        return !!(examFilter || selectedStudentId);
       default:
         return false;
     }
-  }, [reportType, classFilter, sectionFilter, attendanceDate, examFilter]);
+  }, [reportType, classFilter, sectionFilter, attendanceDate, examFilter, selectedStudentId]);
 
-  const handleExport = async (fmt: "pdf" | "csv") => {
-    if (!canExport && reportType !== "fees" && reportType !== "students") return;
+  const handleExport = async (format: "pdf" | "csv") => {
+    if (!canExport) return;
     setActionLoading(true);
     try {
       let url = "";
       let filename = "";
       switch (reportType) {
         case "students":
-          url = buildDownloadUrl(`/reports/students/${fmt}`, { classId: classFilter });
-          filename = classFilter ? `students-${classFilter}.${fmt}` : `students.${fmt}`;
+          url = buildDownloadUrl(`/reports/students/${format}`, {
+            classId: classFilter || undefined,
+            studentId: selectedStudentId || undefined,
+          });
+          filename = selectedStudentId
+            ? `students-${selectedStudent?.name || 'student'}.${format}`
+            : classFilter
+              ? `students-${classFilter}.${format}`
+              : `students.${format}`;
           break;
         case "attendance":
-          url = buildDownloadUrl(`/reports/attendance/${fmt}`, {
+          url = buildDownloadUrl(`/reports/attendance/${format}`, {
             classId: classFilter,
             sectionId: sectionFilter,
             date: attendanceDate,
+            studentId: selectedStudentId || undefined,
           });
-          filename = `attendance-${attendanceDate}.${fmt}`;
+          filename = selectedStudentId
+            ? `attendance-${selectedStudent?.name || 'student'}-${attendanceDate}.${format}`
+            : `attendance-${attendanceDate}.${format}`;
           break;
         case "fees":
-          url = buildDownloadUrl(`/reports/fees/${fmt}`, {});
-          filename = `fees.${fmt}`;
+          url = buildDownloadUrl(`/reports/fees/${format}`, {
+            studentId: selectedStudentId || undefined,
+          });
+          filename = selectedStudentId
+            ? `fees-${selectedStudent?.name || 'student'}.${format}`
+            : `fees.${format}`;
           break;
         case "results":
-          url = buildDownloadUrl(`/reports/results/${fmt}`, { examId: examFilter });
-          filename = `results-${examFilter}.${fmt}`;
+          url = buildDownloadUrl(`/reports/results/${format}`, {
+            examId: examFilter,
+            studentId: selectedStudentId,
+          });
+          filename = selectedStudentId
+            ? `results-${selectedStudent?.name || 'student'}.${format}`
+            : `results-${examFilter}.${format}`;
           break;
       }
       await triggerDownload(url, filename);
@@ -244,6 +282,8 @@ export default function SchoolAdminReportsPage() {
     setClassFilter("");
     setSectionFilter("");
     setExamFilter("");
+    setStudentSearch("");
+    setSelectedStudentId("");
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -421,6 +461,47 @@ export default function SchoolAdminReportsPage() {
             </div>
           )}
 
+          {/* Student filter (single student export) */}
+          {reportType && (
+            <div className="flex-1 min-w-[200px]">
+              <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">
+                Student {reportType !== "results" && "(optional)"}
+              </label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Search student by name…"
+                  value={studentSearch}
+                  onChange={(e) => {
+                    setStudentSearch(e.target.value);
+                    setSelectedStudentId("");
+                  }}
+                  className="w-full pl-9 pr-4 py-2.5 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              {studentSearch && (
+                <select
+                  value={selectedStudentId}
+                  onChange={(e) => setSelectedStudentId(e.target.value)}
+                  className="w-full mt-2 px-3 py-2 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="">All Students</option>
+                  {studentList.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} {s.studentId ? `(${s.studentId})` : ""}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {selectedStudentId && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Exporting for: <span className="font-medium text-foreground">{selectedStudent?.name ?? "selected student"}</span>
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Export buttons */}
           <div className="flex items-end gap-2 lg:ml-auto">
             <button
@@ -446,9 +527,9 @@ export default function SchoolAdminReportsPage() {
           </div>
         </div>
 
-        {!canExport && reportType !== "fees" && reportType !== "students" && (
+        {!canExport && (
           <p className="text-xs text-muted-foreground mt-3">
-            Please fill all required filters to enable export.
+            Please select a student or fill the required filters to enable export.
           </p>
         )}
       </motion.div>
@@ -469,10 +550,10 @@ export default function SchoolAdminReportsPage() {
               {currentConfig.label} Export
             </h3>
             <p className="text-xs text-muted-foreground mt-1 max-w-2xl">
-              {reportType === "students" && "Export the complete student list including ID, name, class, section, roll number, email, and active status. Use class filter to narrow down."}
-              {reportType === "attendance" && "Export a daily attendance report for a specific class, section, and date. Shows roll number, student ID, name, status, and who marked it."}
-              {reportType === "fees" && "Export the complete fee collection report including student name, class, fee type, amount, paid amount, status, and due date."}
-              {reportType === "results" && "Export exam results showing exam name, student, class, subject, marks obtained, and grade. Select an exam to filter."}
+              {reportType === "students" && "Export the complete student list including ID, name, class, section, roll number, email, and active status. Use class filter or search a single student to narrow down."}
+              {reportType === "attendance" && "Export a daily attendance report for a specific class, section, and date. Shows roll number, student ID, name, status, and who marked it. You can also export for a single student."}
+              {reportType === "fees" && "Export the complete fee collection report including student name, class, fee type, amount, paid amount, status, and due date. Search a student to export only their fees."}
+              {reportType === "results" && "Export exam results showing exam name, student, class, subject, marks obtained, and grade. Select an exam to filter, or search a single student."}
             </p>
           </div>
         </div>

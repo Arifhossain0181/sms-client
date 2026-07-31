@@ -63,9 +63,6 @@ type Stats = {
 
 type ConvertForm = {
   admissionId: string;
-  email: string;
-  password: string;
-  rollNumber: string;
 };
 
 // ─── Status badge config 
@@ -113,9 +110,6 @@ function DetailModal({
   const [showConvert, setShowConvert] = useState(false);
   const [convertForm, setConvertForm] = useState<ConvertForm>({
     admissionId: admission.id,
-    email: admission.studentEmail,
-    password: "",
-    rollNumber: "",
   });
 
   const cfg = STATUS_CONFIG[admission.status];
@@ -308,37 +302,9 @@ function DetailModal({
             ) : (
               <div className="space-y-3">
                 <p className="text-sm font-semibold">Create Student Account</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="col-span-2">
-                    <label className="text-xs text-muted-foreground">Email</label>
-                    <input
-                      type="email"
-                      value={convertForm.email}
-                      onChange={(e) => setConvertForm((f) => ({ ...f, email: e.target.value }))}
-                      className="w-full mt-0.5 text-sm border border-border rounded-lg px-3 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-ring"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-muted-foreground">Password</label>
-                    <input
-                      type="password"
-                      placeholder="Min 6 chars"
-                      value={convertForm.password}
-                      onChange={(e) => setConvertForm((f) => ({ ...f, password: e.target.value }))}
-                      className="w-full mt-0.5 text-sm border border-border rounded-lg px-3 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-ring"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-muted-foreground">Roll Number</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 01"
-                      value={convertForm.rollNumber}
-                      onChange={(e) => setConvertForm((f) => ({ ...f, rollNumber: e.target.value }))}
-                      className="w-full mt-0.5 text-sm border border-border rounded-lg px-3 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-ring"
-                    />
-                  </div>
-                </div>
+                <p className="text-xs text-muted-foreground">
+                  This will create a student profile, assign class/section/roll number, and send credentials to the student and parent email.
+                </p>
                 <div className="flex gap-2">
                   <button onClick={() => setShowConvert(false)}
                     className="flex-1 text-sm py-2.5 rounded-xl border border-border hover:bg-secondary transition-colors">
@@ -346,7 +312,7 @@ function DetailModal({
                   </button>
                   <button
                     onClick={() => onConvert(convertForm)}
-                    disabled={!convertForm.password || !convertForm.rollNumber || actionLoading}
+                    disabled={actionLoading}
                     className="flex-1 flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold py-2.5 rounded-xl transition-colors disabled:opacity-50"
                   >
                     {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
@@ -470,7 +436,7 @@ export default function AdminAdmissionsPage() {
   const handleConvert = async (form: ConvertForm) => {
     try {
       setActionLoading(true);
-      await api.post("/admission/convert-to-student", form);
+      await api.post("/admission/convert-to-student", { admissionId: form.admissionId });
       showToast("Student account created ✓");
       setSelected(null);
       fetchData();

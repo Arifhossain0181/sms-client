@@ -15,6 +15,8 @@ export interface Teacher {
   department?: string;
   designation?: string;
   isActive?: boolean;
+  subjectAssignments?: { id: string; subjectId: string; subject: { id: string; name: string } }[];
+  sectionTeacher?: { id: string; class: { id: string; name: string } }[];
 }
 
 export interface CreateTeacherPayload {

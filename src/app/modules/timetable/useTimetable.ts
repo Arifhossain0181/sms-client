@@ -11,6 +11,13 @@ export const useTimetables = () => {
   });
 };
 
+export const useMyTimetable = () => {
+  return useQuery({
+    queryKey: ["timetables", "my-routine"],
+    queryFn: timetableService.getMyRoutine,
+  });
+};
+
 export const useTimetableByClass = (classId: string) => {
   return useQuery({
     queryKey: ["timetables", classId],

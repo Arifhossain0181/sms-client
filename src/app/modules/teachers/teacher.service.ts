@@ -25,6 +25,16 @@ export const teacherService = {
     return res.data?.data ?? res.data;
   },
 
+  assignSubjects: async (id: string, subjectIds: string[]): Promise<Teacher> => {
+    const res = await api.patch(`/teachers/${id}/assign-subjects`, { subjectIds });
+    return res.data?.data ?? res.data;
+  },
+
+  assignClasses: async (id: string, classIds: string[]): Promise<Teacher> => {
+    const res = await api.patch(`/teachers/${id}/assign-classes`, { classIds });
+    return res.data?.data ?? res.data;
+  },
+
   delete: async (id: string): Promise<void> => {
     await api.delete(`/teachers/${id}`);
   },

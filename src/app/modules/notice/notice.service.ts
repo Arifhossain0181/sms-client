@@ -50,8 +50,9 @@ const mapNotice = (item: ApiNotice): Notice => {
 };
 
 export const noticeService = {
-  getAll: async (): Promise<Notice[]> => {
-    const res = await api.get("/notices");
+  getAll: async (params?: { priority?: string }): Promise<Notice[]> => {
+    const url = params?.priority ? `/notices?priority=${params.priority}` : "/notices";
+    const res = await api.get(url);
     const payload = res.data?.data?.data ?? res.data?.data ?? res.data;
     return Array.isArray(payload) ? payload.map(mapNotice) : [];
   },

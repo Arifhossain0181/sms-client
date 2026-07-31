@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { hasPermission } from "@/config/roles";
 import { teacherService } from "@/app/modules/teachers/teacher.service";
+import { classService } from "@/app/modules/class/class.service";
+import { subjectService } from "@/app/modules/subject/subject.service";
 import { motion } from "framer-motion";
 import {
   GraduationCap,
@@ -19,6 +21,10 @@ import {
   Mars,
   Venus,
   User,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import TeacherForm from "@/app/modules/teachers/teacherForm";
@@ -79,6 +85,11 @@ export default function SchoolAdminTeachersPage() {
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
+  const [assignSubjectIds, setAssignSubjectIds] = useState<string[]>([]);
+  const [assignClassIds, setAssignClassIds] = useState<string[]>([]);
+  const [showSubjectModal, setShowSubjectModal] = useState(false);
+  const [showClassModal, setShowClassModal] = useState(false);
+  const [assignLoading, setAssignLoading] = useState(false);
 
   // ── Fetch teachers ─────────────────────────────────────────────────────────
   const { data: teachers = [], isLoading, refetch } = useQuery({
@@ -95,6 +106,23 @@ export default function SchoolAdminTeachersPage() {
 
   const teacherList = Array.isArray(teachers) ? teachers : [];
 
+  // ── Fetch classes & subjects ───────────────────────────────────────────────
+  const { data: classes = [] } = useQuery({
+    queryKey: ["classes"],
+    queryFn: classService.getAll,
+  });
+
+  const classList = Array.isArray(classes) ? classes : [];
+
+  const { data: subjects = [] } = useQuery({
+    queryKey: ["subjects"],
+    queryFn: async () => {
+      return await subjectService.getAll(undefined);
+    },
+  });
+
+  const subjectList = Array.isArray(subjects) ? subjects : [];
+
   // ── Mutations ──────────────────────────────────────────────────────────────
   const deleteMutation = useMutation({
     mutationFn: (id: string) => teacherService.delete(id),
@@ -108,6 +136,40 @@ export default function SchoolAdminTeachersPage() {
            ?.message ?? (err instanceof Error ? err.message : "Failed to delete teacher");
       toast.error(msg);
     },
+  });
+
+  const assignSubjectsMutation = useMutation({
+    mutationFn: ({ id, subjectIds }: { id: string; subjectIds: string[] }) =>
+      teacherService.assignSubjects(id, subjectIds),
+    onSuccess: async () => {
+      toast.success("Subjects assigned successfully");
+      await queryClient.invalidateQueries({ queryKey: ["teachers"] });
+      setShowSubjectModal(false);
+    },
+    onError: (err: unknown) => {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        (err instanceof Error ? err.message : "Failed to assign subjects");
+      toast.error(msg);
+    },
+    onSettled: () => setAssignLoading(false),
+  });
+
+  const assignClassesMutation = useMutation({
+    mutationFn: ({ id, classIds }: { id: string; classIds: string[] }) =>
+      teacherService.assignClasses(id, classIds),
+    onSuccess: async () => {
+      toast.success("Classes assigned successfully");
+      await queryClient.invalidateQueries({ queryKey: ["teachers"] });
+      setShowClassModal(false);
+    },
+    onError: (err: unknown) => {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        (err instanceof Error ? err.message : "Failed to assign classes");
+      toast.error(msg);
+    },
+    onSettled: () => setAssignLoading(false),
   });
 
   // ── useMemo: derived values ────────────────────────────────────────────────
@@ -146,6 +208,32 @@ export default function SchoolAdminTeachersPage() {
     if (confirm("Are you sure you want to deactivate this teacher?")) {
       deleteMutation.mutate(id);
     }
+  };
+
+  const openAssignSubjects = (teacher: Teacher) => {
+    const currentIds = teacher.subjectAssignments?.map((sa) => sa.subjectId) ?? [];
+    setAssignSubjectIds(currentIds);
+    setSelectedTeacher(teacher);
+    setShowSubjectModal(true);
+  };
+
+  const openAssignClasses = (teacher: Teacher) => {
+    const currentIds = teacher.sectionTeacher?.map((st) => st.class.id) ?? [];
+    setAssignClassIds(currentIds);
+    setSelectedTeacher(teacher);
+    setShowClassModal(true);
+  };
+
+  const handleAssignSubjects = () => {
+    if (!selectedTeacher) return;
+    setAssignLoading(true);
+    assignSubjectsMutation.mutate({ id: selectedTeacher.id, subjectIds: assignSubjectIds });
+  };
+
+  const handleAssignClasses = () => {
+    if (!selectedTeacher) return;
+    setAssignLoading(true);
+    assignClassesMutation.mutate({ id: selectedTeacher.id, classIds: assignClassIds });
   };
 
   const handleCloseModal = () => {
@@ -354,31 +442,47 @@ export default function SchoolAdminTeachersPage() {
                       <td className="px-5 py-3.5 text-muted-foreground hidden lg:table-cell whitespace-nowrap">
                         {teacher.joiningDate ? fmt(teacher.joiningDate) : "—"}
                       </td>
-                      {(canEdit || canDelete) && (
-                        <td className="px-5 py-3.5">
-                          <div className="flex items-center justify-end gap-2">
-                            {canEdit && (
-                              <button
-                                onClick={() => handleEdit(teacher)}
-                                className="w-8 h-8 rounded-lg hover:bg-secondary flex items-center justify-center transition-colors"
-                                title="Edit teacher"
-                              >
-                                <Pencil className="w-4 h-4 text-muted-foreground" />
-                              </button>
-                            )}
-                            {canDelete && (
-                              <button
-                                onClick={() => handleDelete(teacher.id)}
-                                disabled={deleteMutation.isPending}
-                                className="w-8 h-8 rounded-lg hover:bg-secondary flex items-center justify-center transition-colors disabled:opacity-50"
-                                title="Deactivate teacher"
-                              >
-                                <Trash2 className="w-4 h-4 text-red-500" />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      )}
+                       {(canEdit || canDelete) && (
+                         <td className="px-5 py-3.5">
+                           <div className="flex items-center justify-end gap-1">
+                             {canEdit && (
+                               <>
+                                 <button
+                                   onClick={() => openAssignSubjects(teacher)}
+                                   className="w-8 h-8 rounded-lg hover:bg-secondary flex items-center justify-center transition-colors"
+                                   title="Assign subjects"
+                                 >
+                                   <BookOpen className="w-4 h-4 text-muted-foreground" />
+                                 </button>
+                                 <button
+                                   onClick={() => openAssignClasses(teacher)}
+                                   className="w-8 h-8 rounded-lg hover:bg-secondary flex items-center justify-center transition-colors"
+                                   title="Assign classes"
+                                 >
+                                   <Users className="w-4 h-4 text-muted-foreground" />
+                                 </button>
+                                 <button
+                                   onClick={() => handleEdit(teacher)}
+                                   className="w-8 h-8 rounded-lg hover:bg-secondary flex items-center justify-center transition-colors"
+                                   title="Edit teacher"
+                                 >
+                                   <Pencil className="w-4 h-4 text-muted-foreground" />
+                                 </button>
+                               </>
+                             )}
+                             {canDelete && (
+                               <button
+                                 onClick={() => handleDelete(teacher.id)}
+                                 disabled={deleteMutation.isPending}
+                                 className="w-8 h-8 rounded-lg hover:bg-secondary flex items-center justify-center transition-colors disabled:opacity-50"
+                                 title="Deactivate teacher"
+                               >
+                                 <Trash2 className="w-4 h-4 text-red-500" />
+                               </button>
+                             )}
+                           </div>
+                         </td>
+                       )}
                     </tr>
                   );
                 })
@@ -394,6 +498,120 @@ export default function SchoolAdminTeachersPage() {
           teacher={selectedTeacher ?? undefined}
           onClose={handleCloseModal}
         />
+      )}
+
+      {/* Subject Assignment Modal */}
+      {showSubjectModal && selectedTeacher && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowSubjectModal(false)} />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="relative bg-card border border-border rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+          >
+            <div className="sticky top-0 bg-card/95 backdrop-blur border-b border-border/60 px-6 py-4 flex items-center justify-between z-10">
+              <h2 className="font-semibold text-base">Assign Subjects</h2>
+              <button onClick={() => setShowSubjectModal(false)} className="w-8 h-8 rounded-lg hover:bg-secondary flex items-center justify-center">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Select subjects for <span className="font-medium text-foreground">{selectedTeacher.name}</span>
+              </p>
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                {subjectList.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No subjects available.</p>
+                ) : (
+                  subjectList.map((subj) => (
+                    <label key={subj.id} className="flex items-center gap-3 p-3 rounded-xl border border-border/60 hover:bg-secondary/20 cursor-pointer transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={assignSubjectIds.includes(subj.id)}
+                        onChange={(e) => {
+                          setAssignSubjectIds((prev) =>
+                            e.target.checked ? [...prev, subj.id] : prev.filter((id) => id !== subj.id)
+                          );
+                        }}
+                        className="rounded border-gray-300"
+                      />
+                      <div>
+                        <p className="text-sm font-medium">{subj.name}</p>
+                        <p className="text-xs text-muted-foreground">{subj.code}</p>
+                      </div>
+                    </label>
+                  ))
+                )}
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setShowSubjectModal(false)} className="flex-1 py-2.5 rounded-xl border border-border hover:bg-secondary transition-colors text-sm font-medium">
+                  Cancel
+                </button>
+                <button onClick={handleAssignSubjects} disabled={assignLoading || assignSubjectsMutation.isPending} className="flex-1 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                  {assignLoading || assignSubjectsMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                  Save Subjects
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Class Assignment Modal */}
+      {showClassModal && selectedTeacher && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowClassModal(false)} />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="relative bg-card border border-border rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+          >
+            <div className="sticky top-0 bg-card/95 backdrop-blur border-b border-border/60 px-6 py-4 flex items-center justify-between z-10">
+              <h2 className="font-semibold text-base">Assign Classes</h2>
+              <button onClick={() => setShowClassModal(false)} className="w-8 h-8 rounded-lg hover:bg-secondary flex items-center justify-center">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Select classes for <span className="font-medium text-foreground">{selectedTeacher.name}</span>
+              </p>
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                {classList.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No classes available.</p>
+                ) : (
+                  classList.map((cls) => (
+                    <label key={cls.id} className="flex items-center gap-3 p-3 rounded-xl border border-border/60 hover:bg-secondary/20 cursor-pointer transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={assignClassIds.includes(cls.id)}
+                        onChange={(e) => {
+                          setAssignClassIds((prev) =>
+                            e.target.checked ? [...prev, cls.id] : prev.filter((id) => id !== cls.id)
+                          );
+                        }}
+                        className="rounded border-gray-300"
+                      />
+                      <div>
+                        <p className="text-sm font-medium">{cls.name}</p>
+                        <p className="text-xs text-muted-foreground">Level {cls.numericLevel}</p>
+                      </div>
+                    </label>
+                  ))
+                )}
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setShowClassModal(false)} className="flex-1 py-2.5 rounded-xl border border-border hover:bg-secondary transition-colors text-sm font-medium">
+                  Cancel
+                </button>
+                <button onClick={handleAssignClasses} disabled={assignLoading || assignClassesMutation.isPending} className="flex-1 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                  {assignLoading || assignClassesMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                  Save Classes
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
       )}
     </div>
   );

@@ -240,6 +240,8 @@ const getNavGroups = (role: Role | null): NavGroup[] => {
             { icon: CalendarCheck, label: "Attendance",       href: "/dashboard/student/attendance" },
             { icon: ClipboardList, label: "Exams",            href: "/dashboard/student/exams" },
             { icon: Award,         label: "Results",          href: "/dashboard/result" },
+            { icon: BookOpen,      label: "Homework",         href: "/dashboard/student/homework" },
+            { icon: BookMarked,    label: "Library",          href: "/dashboard/student/library" },
           ],
         },
         {

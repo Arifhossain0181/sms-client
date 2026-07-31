@@ -11,19 +11,17 @@ function errorMessage(err: unknown, fallback: string): string {
   return message || fallback;
 }
 
-export const useNotices = () => {
+export const useNotices = (params?: { priority?: string }) => {
   const { role } = useAuth();
   const isHydrated = useHydration();
 
   const isAdmin = role === "SCHOOL_ADMIN";
-  const queryFn = isAdmin ? noticeService.getAll : noticeService.getFeed;
+  const queryFn = isAdmin ? () => noticeService.getAll(params) : noticeService.getFeed;
 
   return useQuery({
-    queryKey: ["notices"],
+    queryKey: ["notices", params],
     queryFn,
     retry: false,
-    // wait for hydration + role, so an unauthenticated client never fires
-    // a request that's guaranteed to 401
     enabled: isHydrated && !!role,
   });
 };

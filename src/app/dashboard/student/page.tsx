@@ -90,16 +90,16 @@ export default function StudentDashboard() {
 
         // ✅ Priority 2: Load remaining data in parallel (non-blocking)
         Promise.allSettled([
-          api.get(`/results/student/${me.id}`),
-          api.get(`/fees/student/${me.id}`),
-          me.classId ? api.get(`/exams?classId=${me.classId}`) : Promise.resolve({ data: { data: [] } }),
+          api.get(`/results/my-results`),
+          api.get(`/fees/my-fees`),
+          me.classId ? api.get(`/dashboard/student/dashboard/exams`) : Promise.resolve({ data: { data: [] } }),
           api.get("/notices/feed"),
         ]).then(([resultRes, feeRes, examsRes, noticeRes]) => {
-          const results = resultRes.status === "fulfilled"
-            ? unwrap<{ percentage?: number; marks?: Array<any> }>(resultRes.value)
-            : null;
+          const resultsPayload = resultRes.status === "fulfilled"
+            ? unwrap<Array<any>>(resultRes.value)
+            : [];
           const fees = feeRes.status === "fulfilled"
-            ? unwrap<{ outstanding?: number }>(feeRes.value)
+            ? unwrap<{ totalDue?: number; totalPaid?: number; totalOverdue?: number }>(feeRes.value)
             : null;
           const exams = examsRes.status === "fulfilled"
             ? unwrap<Array<any>>(examsRes.value)
@@ -108,13 +108,19 @@ export default function StudentDashboard() {
             ? unwrap<Array<any>>(noticeRes.value)
             : [];
 
-          setResultPercent(results?.percentage ?? 0);
-          setPendingFees(fees?.outstanding ?? 0);
+          const latestResult = resultsPayload?.[0];
+          const latestSubjects = latestResult?.subjects ?? [];
+          const totalObtained = latestSubjects.reduce((sum: number, m: any) => sum + (m.marksObtained ?? 0), 0);
+          const totalFull = latestSubjects.reduce((sum: number, m: any) => sum + (m.subject?.fullMarks ?? 0), 0);
+          const percentage = totalFull > 0 ? Math.round((totalObtained / totalFull) * 100) : 0;
 
-          const resultItems = (results?.marks ?? []).slice(0, 5).map((mark: any) => ({
+          setResultPercent(percentage);
+          setPendingFees(fees?.totalDue ?? 0);
+
+          const resultItems = latestSubjects.slice(0, 5).map((mark: any) => ({
             id: mark.id,
             subject: mark.subject?.name ?? "Subject",
-            exam: mark.exam?.name ?? "Exam",
+            exam: latestResult?.exam?.name ?? "Exam",
             marks: `${mark.marksObtained ?? "-"}/${mark.subject?.fullMarks ?? "-"}`,
             grade: mark.grade ?? undefined,
           }));
@@ -122,19 +128,15 @@ export default function StudentDashboard() {
 
           const todayStart = new Date();
           todayStart.setHours(0, 0, 0, 0);
-          const examItems = exams
-            .flatMap((exam: any) =>
-              (exam.schedules ?? []).map((schedule: any) => ({
-                id: schedule.id,
-                title: `${exam.name} - ${schedule.subject?.name ?? "Subject"}`,
-                date: formatShortDate(schedule.examDate),
-                dateValue: new Date(schedule.examDate).getTime(),
-              }))
-            )
-            .filter((item: any) => item.dateValue >= todayStart.getTime())
-            .sort((a: any, b: any) => a.dateValue - b.dateValue)
+          const examItems = (exams ?? [])
+            .filter((exam: any) => exam.status === "UPCOMING" && exam.nextExamDate)
+            .sort((a: any, b: any) => new Date(a.nextExamDate).getTime() - new Date(b.nextExamDate).getTime())
             .slice(0, 2)
-            .map(({ id, title, date }) => ({ id, title, date }));
+            .map((exam: any) => ({
+              id: exam.examId,
+              title: `${exam.examName} (${exam.examType})`,
+              date: formatShortDate(exam.nextExamDate),
+            }));
 
           setUpcomingExams(examItems);
 

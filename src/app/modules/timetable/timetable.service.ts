@@ -8,6 +8,12 @@ export const timetableService = {
     return Array.isArray(payload) ? payload : [];
   },
 
+  getMyRoutine: async (): Promise<Timetable[]> => {
+    const res = await api.get("/timetable/my-routine");
+    const payload = res.data?.data ?? res.data;
+    return Array.isArray(payload) ? payload : [];
+  },
+
   getByClass: async (classId: string): Promise<Timetable[]> => {
     const res = await api.get(`/timetable?classId=${classId}`);
     const payload = res.data?.data ?? res.data;
