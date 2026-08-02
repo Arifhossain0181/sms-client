@@ -194,7 +194,7 @@ const getNavGroups = (role: Role | null): NavGroup[] => {
         {
           groupLabel: "Communication",
           items: [
-            { icon: Megaphone,    label: "Notices",           href: "/dashboard/notices" },
+            { icon: Megaphone,     label: "Notices",          href: "/dashboard/student/notices" },
           ],
         },
       ];
@@ -239,15 +239,14 @@ const getNavGroups = (role: Role | null): NavGroup[] => {
             { icon: CalendarDays,  label: "Timetable",        href: "/dashboard/timetable" },
             { icon: CalendarCheck, label: "Attendance",       href: "/dashboard/student/attendance" },
             { icon: ClipboardList, label: "Exams",            href: "/dashboard/student/exams" },
-            { icon: Award,         label: "Results",          href: "/dashboard/result" },
+            { icon: Award,         label: "Results",          href: "/dashboard/student/results" },
             { icon: BookOpen,      label: "Homework",         href: "/dashboard/student/homework" },
-            { icon: BookMarked,    label: "Library",          href: "/dashboard/student/library" },
           ],
         },
         {
           groupLabel: "Finance",
           items: [
-            { icon: Wallet,        label: "My Fees",          href: "/dashboard/fees" },
+            { icon: Wallet,        label: "My Fees",          href: "/dashboard/student/fees" },
             { icon: Receipt,       label: "Payment History",  href: "/dashboard/student/payments" },
           ],
         },

@@ -1,6 +1,38 @@
 import api from "@/lib/axios";
 import { Timetable, CreateTimetablePayload } from "./timetable.types";
 
+type TeacherScheduleItem = {
+  id: string;
+  classId?: string;
+  class?: {
+    id: string;
+    name: string;
+  };
+  section?: {
+    id: string;
+    name: string;
+    classId?: string;
+    class?: {
+      id: string;
+      name: string;
+    };
+  };
+  subjectId?: string;
+  subject?: {
+    id: string;
+    name: string;
+  };
+  teacherId?: string;
+  teacher?: {
+    id: string;
+    name: string;
+  };
+  dayOfWeek: Timetable["dayOfWeek"];
+  startTime: string;
+  endTime: string;
+  createdAt?: string;
+};
+
 export const timetableService = {
   getAll: async (): Promise<Timetable[]> => {
     const res = await api.get("/timetable");
@@ -39,9 +71,52 @@ export const timetableService = {
   },
 
   getByTeacher: async (teacherId: string): Promise<Timetable[]> => {
-    const res = await api.get(`/timetable?teacherId=${teacherId}`);
+    const res = await api.get(`/teachers/${teacherId}/schedule`);
     const payload = res.data?.data ?? res.data;
-    return Array.isArray(payload) ? payload : [];
+
+    if (!Array.isArray(payload)) {
+      return [];
+    }
+
+    return payload.map((item: TeacherScheduleItem) => ({
+      id: item.id,
+      classId: item.section?.classId ?? item.classId ?? "",
+      class: item.section?.class
+        ? {
+            id: item.section.class.id,
+            name: item.section.class.name,
+          }
+        : item.class
+          ? {
+              id: item.class.id,
+              name: item.class.name,
+            }
+          : undefined,
+      section: item.section
+        ? {
+            id: item.section.id,
+            name: item.section.name,
+          }
+        : undefined,
+      subjectId: item.subjectId ?? item.subject?.id ?? "",
+      subject: item.subject
+        ? {
+            id: item.subject.id,
+            name: item.subject.name,
+          }
+        : undefined,
+      teacherId: item.teacherId ?? item.teacher?.id ?? teacherId,
+      teacher: item.teacher
+        ? {
+            id: item.teacher.id,
+            name: item.teacher.name,
+          }
+        : undefined,
+      dayOfWeek: item.dayOfWeek,
+      startTime: item.startTime,
+      endTime: item.endTime,
+      createdAt: item.createdAt ?? "",
+    }));
   },
 
   create: async (data: CreateTimetablePayload): Promise<Timetable> => {

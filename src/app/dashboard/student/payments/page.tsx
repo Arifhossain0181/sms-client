@@ -25,9 +25,10 @@ type Payment = {
 };
 
 type FeeSummary = {
-  totalDue: number;
+  totalFees: number;
   totalPaid: number;
-  totalOverdue: number;
+  outstanding: number;
+  overDue: number;
   payments: Payment[];
 };
 
@@ -108,9 +109,9 @@ export default function StudentPaymentsPage() {
       {!loading && summary && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { label: "Total Due", value: `৳${summary.totalDue.toLocaleString()}` },
-            { label: "Total Paid", value: `৳${summary.totalPaid.toLocaleString()}` },
-            { label: "Total Overdue", value: `৳${summary.totalOverdue.toLocaleString()}` },
+            { label: "Total Due", value: `৳${(summary.outstanding ?? 0).toLocaleString()}` },
+            { label: "Total Paid", value: `৳${(summary.totalPaid ?? 0).toLocaleString()}` },
+            { label: "Overdue", value: (summary.overDue ?? 0).toString() },
           ].map((item) => (
             <div key={item.label} className="rounded-xl border border-border/60 bg-card p-4 shadow-soft">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">{item.label}</p>

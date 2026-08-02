@@ -26,11 +26,11 @@ export const useTimetableByClass = (classId: string) => {
   });
 };
 
-export const useTimetableByTeacher = (teacherId: string) => {
+export const useTimetableByTeacher = (teacherId: string, enabled = true) => {
   return useQuery({
     queryKey: ["timetables", "teacher", teacherId],
     queryFn: () => timetableService.getByTeacher(teacherId),
-    enabled: !!teacherId,
+    enabled: enabled && !!teacherId,
   });
 };
 

@@ -17,7 +17,11 @@ import {
   Sparkles,
   CalendarDays,
 } from "lucide-react";
-import { useTimetables, useMyTimetable, useDeleteTimetable } from "../timetable/useTimetable";
+import {
+  useMyTimetable,
+  useTimetableByTeacher,
+  useDeleteTimetable,
+} from "../timetable/useTimetable";
 import { useClasses } from "../class/useClasses";
 import TimetableForm from "./TimetableForm";
 import { Timetable, DayOfWeek } from "./timetable.types";
@@ -64,27 +68,34 @@ const dayAccent: Record<DayOfWeek, string> = {
 };
 
 export default function TimetableGrid() {
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const isStudent = role === "STUDENT";
+  const isTeacher = role === "TEACHER";
+  const roleLoaded = !!role;
+
   const { data: myRoutine, isLoading: myLoading } = useMyTimetable();
+  const { data: teacherTimetables, isLoading: teacherLoading } = useTimetableByTeacher(
+    user?.id ?? "",
+    isTeacher
+  );
   const { data: allTimetables, isLoading: allLoading } = useQuery({
     queryKey: ["timetables"],
     queryFn: timetableService.getAll,
-    enabled: !isStudent,
+    enabled: roleLoaded && !isStudent && !isTeacher,
   });
   const { data: classes } = useClasses();
   const { mutate: deleteTimetable } = useDeleteTimetable();
 
-  const timetables = isStudent ? myRoutine : allTimetables;
-  const isLoading = isStudent ? myLoading : allLoading;
+  const timetables = isStudent ? myRoutine : isTeacher ? teacherTimetables : allTimetables;
+  const isLoading = !roleLoaded || (isStudent ? myLoading : isTeacher ? teacherLoading : allLoading);
 
   const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState<Timetable | null>(null);
   const [classId, setClassId] = useState("");
 
-  const filtered = timetables?.filter((t) =>
-    classId ? t.classId === classId : true
-  );
+  const filtered = isStudent || isTeacher
+    ? timetables
+    : timetables?.filter((t) => (classId ? t.classId === classId : true));
 
   const groupedByDay = DAYS.reduce((acc, day) => {
     acc[day] = filtered?.filter((t) => t.dayOfWeek === day) ?? [];
@@ -138,20 +149,20 @@ export default function TimetableGrid() {
               <div className="grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br from-sky-500 via-indigo-500 to-violet-500 shadow-lg shadow-indigo-500/30">
                 <Calendar className="h-6 w-6 text-white" />
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-                    Timetable
-                  </h1>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-indigo-100 dark:bg-indigo-500/15 px-2 py-0.5 text-[11px] font-medium text-indigo-700 dark:text-indigo-300 ring-1 ring-indigo-300/50 dark:ring-indigo-400/30">
-                    <Sparkles className="h-3 w-3" />
-                    Weekly
-                  </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+                      Timetable
+                    </h1>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-indigo-100 dark:bg-indigo-500/15 px-2 py-0.5 text-[11px] font-medium text-indigo-700 dark:text-indigo-300 ring-1 ring-indigo-300/50 dark:ring-indigo-400/30">
+                      <Sparkles className="h-3 w-3" />
+                      {isStudent ? "My Routine" : "Weekly"}
+                    </span>
+                  </div>
+                   <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">
+                     {isStudent ? "Your class weekly routine" : isTeacher ? "Your assigned classes routine" : "Class অনুযায়ী সাপ্তাহিক রুটিন"}
+                   </p>
                 </div>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">
-                  Class অনুযায়ী সাপ্তাহিক রুটিন
-                </p>
-              </div>
             </div>
 
             {role && hasPermission(role, "manage_timetable") && (
@@ -166,35 +177,37 @@ export default function TimetableGrid() {
           </div>
         </div>
 
-        {/* Class Filter */}
-        <div className="relative rounded-2xl border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-white/[0.03] backdrop-blur-xl p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-2">
-            <Filter className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-              Filter by Class
-            </span>
-          </div>
-          <div className="relative">
-            <select
-              value={classId}
-              onChange={(e) => setClassId(e.target.value)}
-              className="w-full appearance-none rounded-lg border border-slate-300 dark:border-white/20 bg-white dark:bg-slate-950/80 px-4 py-2.5 pr-10 text-sm font-medium text-slate-900 dark:text-slate-100 outline-none transition duration-200 hover:border-indigo-400 dark:hover:border-indigo-400/50 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/30 cursor-pointer"
-            >
-              <option value="">সব Class</option>
-              {classes?.map((cls: any) => (
-                <option key={cls.id} value={cls.id}>
-                  {cls.name}{" "}
-                  {cls.sections && cls.sections.length > 0
-                    ? `(${cls.sections.length} sections)`
-                    : ""}
-                </option>
-              ))}
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-              <CalendarDays className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+         {/* Class Filter - hidden for students and teachers */}
+         {!isStudent && !isTeacher && (
+          <div className="relative rounded-2xl border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-white/[0.03] backdrop-blur-xl p-4 shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <Filter className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                Filter by Class
+              </span>
+            </div>
+            <div className="relative">
+              <select
+                value={classId}
+                onChange={(e) => setClassId(e.target.value)}
+                className="w-full appearance-none rounded-lg border border-slate-300 dark:border-white/20 bg-white dark:bg-slate-950/80 px-4 py-2.5 pr-10 text-sm font-medium text-slate-900 dark:text-slate-100 outline-none transition duration-200 hover:border-indigo-400 dark:hover:border-indigo-400/50 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/30 cursor-pointer"
+              >
+                <option value="">সব Class</option>
+                {classes?.map((cls: any) => (
+                  <option key={cls.id} value={cls.id}>
+                    {cls.name}{" "}
+                    {cls.sections && cls.sections.length > 0
+                      ? `(${cls.sections.length} sections)`
+                      : ""}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                <CalendarDays className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Grid View */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
@@ -259,11 +272,11 @@ export default function TimetableGrid() {
                               {t.teacher?.name ?? "—"}
                             </div>
 
-                            {/* Class */}
-                            <div className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-200">
-                              <School className="h-3.5 w-3.5 text-violet-600 dark:text-violet-300" />
-                              {t.class?.name} — {t.class?.section}
-                            </div>
+                             {/* Class */}
+                             <div className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-200">
+                               <School className="h-3.5 w-3.5 text-violet-600 dark:text-violet-300" />
+                               {t.class?.name} — {t.section?.name}
+                             </div>
 
                             {/* Actions */}
                             {role &&

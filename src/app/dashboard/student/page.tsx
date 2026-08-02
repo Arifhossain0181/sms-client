@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { CalendarCheck, CreditCard, Trophy } from "lucide-react";
+import { CalendarCheck, CreditCard, Trophy, Clock } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -26,6 +26,7 @@ export default function StudentDashboard() {
   const [recentResults, setRecentResults] = useState<Array<{ id: string; subject: string; exam: string; marks: string; grade?: string }>>([]);
   const [upcomingExams, setUpcomingExams] = useState<Array<{ id: string; title: string; date: string }>>([]);
   const [notices, setNotices] = useState<Array<{ id: string; title: string; date: string }>>([]);
+  const [todayClasses, setTodayClasses] = useState<Array<{ id: string; subject: string; startTime: string; endTime: string; teacher?: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -86,6 +87,23 @@ export default function StudentDashboard() {
           setRecentAttendance(attendanceRecords);
         } catch (err) {
           console.error("Attendance load failed", err);
+        }
+
+        // Load today's classes
+        try {
+          const todayRes = await api.get(`/timetable/my-routine/today`);
+          const todayData = unwrap<Array<any>>(todayRes);
+          setTodayClasses(
+            todayData.map((slot: any) => ({
+              id: slot.id,
+              subject: slot.subject?.name ?? "Subject",
+              startTime: slot.startTime,
+              endTime: slot.endTime,
+              teacher: slot.teacher?.user?.name ?? slot.teacher?.name,
+            }))
+          );
+        } catch (err) {
+          console.error("Today's classes load failed", err);
         }
 
         // ✅ Priority 2: Load remaining data in parallel (non-blocking)
@@ -284,6 +302,31 @@ export default function StudentDashboard() {
               <div key={result.id} className="flex items-center justify-between">
                 <span>{result.subject} • {result.exam}</span>
                 <span className="text-xs">{result.marks}{result.grade ? ` (${result.grade})` : ""}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-2xl border border-border/60 bg-card/80 p-6 shadow-soft">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Today's Classes</h3>
+            <Link
+              href="/dashboard/timetable"
+              className="text-xs text-primary hover:underline"
+            >
+              View timetable
+            </Link>
+          </div>
+          <div className="mt-4 space-y-3 text-sm text-muted-foreground">
+            {todayClasses.length === 0 && !loading && (
+              <p className="text-xs text-muted-foreground">No classes scheduled for today.</p>
+            )}
+            {todayClasses.map((cls) => (
+              <div key={cls.id} className="flex items-center justify-between">
+                <span>{cls.subject}</span>
+                <span className="text-xs">
+                  {cls.startTime} - {cls.endTime}
+                  {cls.teacher ? ` • ${cls.teacher}` : ""}
+                </span>
               </div>
             ))}
           </div>

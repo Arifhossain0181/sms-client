@@ -56,7 +56,7 @@ export default function StudentLoginForm() {
         return;
       }
 
-      router.push("/student-dashboard");
+      router.push("/dashboard/student");
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, "Student login failed"));
     }
@@ -180,7 +180,7 @@ export default function StudentLoginForm() {
           </form>
 
           <p className="mt-5 text-center text-sm text-slate-500">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link href="/apply-for-admission" className="font-semibold text-blue-700 hover:underline">
               Apply for admission
             </Link>

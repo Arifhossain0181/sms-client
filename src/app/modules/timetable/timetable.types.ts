@@ -12,7 +12,10 @@ export interface Timetable {
   class?: {
     id: string;
     name: string;
-    section: string;
+  };
+  section?: {
+    id: string;
+    name: string;
   };
   subjectId: string;
   subject?: {
