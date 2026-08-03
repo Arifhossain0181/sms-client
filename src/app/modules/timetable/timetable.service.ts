@@ -25,7 +25,10 @@ type TeacherScheduleItem = {
   teacherId?: string;
   teacher?: {
     id: string;
-    name: string;
+    employeeId?: string;
+    user?: {
+      name?: string;
+    };
   };
   dayOfWeek: Timetable["dayOfWeek"];
   startTime: string;
@@ -109,7 +112,7 @@ export const timetableService = {
       teacher: item.teacher
         ? {
             id: item.teacher.id,
-            name: item.teacher.name,
+            name: item.teacher.user?.name,
           }
         : undefined,
       dayOfWeek: item.dayOfWeek,

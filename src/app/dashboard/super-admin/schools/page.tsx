@@ -6,26 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import api from "@/lib/axios";
 import { useLenis } from "@/hooks/useLenis";
 import { motion } from "framer-motion";
-import {
-  BarChart3,
-  Building2,
-  Plus,
-  Search,
-  Shield,
-  Users,
-  School,
-  TrendingUp,
-  Settings,
-  FileSpreadsheet,
-  ClipboardList,
-  Server,
-  Eye,
-  Edit,
-  Trash2,
-  X,
-  CheckCircle,
-  XCircle,
-} from "lucide-react";
+import { Plus, Search, Edit, Trash2, XCircle, CheckCircle, Building2, Users, GraduationCap, X } from "lucide-react";
 import type { Role } from "@/tyPes/auth.tyPes";
 
 type School = {
@@ -65,7 +46,7 @@ const cardVariants = {
   }),
 };
 
-export default function SuperAdminDashboard() {
+export default function SuperAdminSchoolsPage() {
   useLenis();
   const router = useRouter();
   const { role } = useAuth();
@@ -117,10 +98,6 @@ export default function SuperAdminDashboard() {
       s.code.toLowerCase().includes(search.toLowerCase())
   );
 
-  const totalStudents = schools.reduce((sum, s) => sum + (s.stats?.students ?? 0), 0);
-  const totalTeachers = schools.reduce((sum, s) => sum + (s.stats?.teachers ?? 0), 0);
-  const activeSchools = schools.filter((s) => s.isActive).length;
-
   const openCreate = () => {
     setModalMode("create");
     setSelectedSchool(null);
@@ -157,7 +134,7 @@ export default function SuperAdminDashboard() {
       setShowModal(false);
       loadSchools();
     } catch {
-      // error handled by axios interceptor
+      // handled by interceptor
     } finally {
       setSaving(false);
     }
@@ -190,12 +167,8 @@ export default function SuperAdminDashboard() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">
-            {roleLabels.SUPER_ADMIN} Dashboard
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Platform-wide control, analytics, and school management.
-          </p>
+          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Schools</h1>
+          <p className="text-muted-foreground mt-1">Onboard and manage school branches.</p>
         </div>
         <button
           onClick={openCreate}
@@ -205,33 +178,12 @@ export default function SuperAdminDashboard() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-        {[
-          { label: "Total Schools", value: schools.length, icon: School, color: "text-blue-500" },
-          { label: "Active Schools", value: activeSchools, icon: CheckCircle, color: "text-emerald-500" },
-          { label: "Total Students", value: totalStudents, icon: Users, color: "text-purple-500" },
-          { label: "Total Teachers", value: totalTeachers, icon: TrendingUp, color: "text-orange-500" },
-        ].map((stat, i) => (
-          <motion.div
-            key={stat.label}
-            custom={i}
-            variants={cardVariants}
-            initial="hidden"
-            animate="visible"
-            className="rounded-2xl border border-border/60 bg-card/80 p-6 shadow-soft"
-          >
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{stat.label}</p>
-            <div className="mt-3 flex items-center gap-3">
-              <stat.icon className={`w-5 h-5 ${stat.color}`} />
-              <p className="text-2xl font-semibold">{stat.value}</p>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-
       <div className="rounded-2xl border border-border/60 bg-card/80 shadow-soft">
         <div className="p-6 border-b border-border/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <h3 className="text-lg font-semibold">Schools Overview</h3>
+          <div className="flex items-center gap-2">
+            <Building2 className="w-5 h-5 text-muted-foreground" />
+            <h3 className="text-lg font-semibold">All Schools</h3>
+          </div>
           <div className="relative w-full sm:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
@@ -249,81 +201,94 @@ export default function SuperAdminDashboard() {
           ) : filtered.length === 0 ? (
             <p className="text-xs text-muted-foreground">No schools found.</p>
           ) : (
-            <div className="space-y-4">
-              {filtered.map((school) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+              {filtered.map((school, idx) => (
                 <motion.div
                   key={school.id}
+                  custom={idx}
                   variants={cardVariants}
                   initial="hidden"
                   animate="visible"
-                  className="rounded-xl border border-border/60 bg-secondary/30 p-5"
+                  className="rounded-xl border border-border/60 bg-secondary/20 p-5 hover:border-border transition-colors"
                 >
-                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center text-white shrink-0">
-                        <Building2 className="w-6 h-6" />
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center text-white shrink-0">
+                        <Building2 className="w-5 h-5" />
                       </div>
                       <div>
-                        <h4 className="font-semibold text-base">{school.name}</h4>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Code: {school.code} · {school.stats?.students ?? 0} students · {school.stats?.teachers ?? 0} teachers
-                        </p>
-                        {school.subscription && (
-                          <span className="inline-block mt-2 text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-                            {school.subscription.plan} · {school.subscription.status}
-                          </span>
-                        )}
+                        <h4 className="font-semibold text-sm">{school.name}</h4>
+                        <p className="text-xs text-muted-foreground mt-0.5">Code: {school.code}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span
-                        className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-                          school.isActive
-                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
-                            : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
-                        }`}
-                      >
-                        {school.isActive ? "Active" : "Suspended"}
-                      </span>
-                      <button
-                        onClick={() => router.push(`/dashboard/super-admin/users?schoolId=${school.id}`)}
-                        className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-                        title="View Users"
-                      >
-                        <Users className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => openEdit(school)}
-                        className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-                        title="Edit"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      {school.isActive ? (
-                        <button
-                          onClick={() => handleSuspend(school.id)}
-                          className="p-2 rounded-lg hover:bg-red-50 text-red-500 hover:text-red-700 transition-colors"
-                          title="Suspend"
-                        >
-                          <XCircle className="w-4 h-4" />
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleReactivate(school.id)}
-                          className="p-2 rounded-lg hover:bg-emerald-50 text-emerald-500 hover:text-emerald-700 transition-colors"
-                          title="Reactivate"
-                        >
-                          <CheckCircle className="w-4 h-4" />
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleDelete(school.id)}
-                        className="p-2 rounded-lg hover:bg-red-50 text-red-500 hover:text-red-700 transition-colors"
-                        title="Delete"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                    <span
+                      className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                        school.isActive
+                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                          : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                      }`}
+                    >
+                      {school.isActive ? "Active" : "Suspended"}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-3 gap-2">
+                    <div className="rounded-lg bg-secondary/40 p-2 text-center">
+                      <p className="text-[10px] text-muted-foreground">Students</p>
+                      <p className="text-sm font-semibold">{school.stats?.students ?? 0}</p>
                     </div>
+                    <div className="rounded-lg bg-secondary/40 p-2 text-center">
+                      <p className="text-[10px] text-muted-foreground">Teachers</p>
+                      <p className="text-sm font-semibold">{school.stats?.teachers ?? 0}</p>
+                    </div>
+                    <div className="rounded-lg bg-secondary/40 p-2 text-center">
+                      <p className="text-[10px] text-muted-foreground">Classes</p>
+                      <p className="text-sm font-semibold">{school.stats?.classes ?? 0}</p>
+                    </div>
+                  </div>
+
+                  {school.subscription && (
+                    <div className="mt-3 text-[10px] text-muted-foreground">
+                      Plan: <span className="font-medium">{school.subscription.plan}</span> · Status:{" "}
+                      <span className="font-medium">{school.subscription.status}</span>
+                    </div>
+                  )}
+
+                  <div className="mt-4 flex items-center gap-2">
+                    <button
+                      onClick={() => router.push(`/dashboard/super-admin/users?schoolId=${school.id}`)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-secondary/60 hover:bg-secondary text-xs font-medium transition-colors"
+                      title="View Users"
+                    >
+                      <Users className="w-3.5 h-3.5" /> Users
+                    </button>
+                    <button
+                      onClick={() => openEdit(school)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-secondary/60 hover:bg-secondary text-xs font-medium transition-colors"
+                    >
+                      <Edit className="w-3.5 h-3.5" /> Edit
+                    </button>
+                    {school.isActive ? (
+                      <button
+                        onClick={() => handleSuspend(school.id)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-xs font-medium transition-colors"
+                      >
+                        <XCircle className="w-3.5 h-3.5" /> Suspend
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleReactivate(school.id)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 text-xs font-medium transition-colors"
+                      >
+                        <CheckCircle className="w-3.5 h-3.5" /> Reactivate
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleDelete(school.id)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-xs font-medium transition-colors ml-auto"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </motion.div>
               ))}

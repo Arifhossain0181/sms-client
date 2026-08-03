@@ -157,7 +157,7 @@ export default function RoutinePage() {
     for (const [day, slots] of grouped) {
       const filtered = slots.filter((s) => {
         const subject = s.subject?.name?.toLowerCase() ?? "";
-        const teacher = s.teacher?.name?.toLowerCase() ?? "";
+        const teacher = s.teacher?.user?.name?.toLowerCase() ?? "";
         const cls = s.class?.name?.toLowerCase() ?? "";
         const section = s.class?.section?.toLowerCase() ?? "";
         const time = `${s.startTime} - ${s.endTime}`.toLowerCase();
@@ -403,12 +403,12 @@ export default function RoutinePage() {
                                 </span>
                               </td>
                               <td className="py-3.5 text-slate-600 dark:text-slate-300">
-                                {slot.teacher?.name ? (
+                                {slot.teacher?.user?.name ? (
                                   <span className="inline-flex items-center gap-1.5">
                                     <span className="w-6 h-6 rounded-full bg-gradient-to-br from-fuchsia-500 to-indigo-500 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
-                                      {slot.teacher.name.charAt(0).toUpperCase()}
+                                      {slot.teacher.user.name.charAt(0).toUpperCase()}
                                     </span>
-                                    {slot.teacher.name}
+                                    {slot.teacher.user.name}
                                   </span>
                                 ) : (
                                   <span className="text-slate-400 italic text-xs">Not assigned</span>

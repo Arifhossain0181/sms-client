@@ -55,6 +55,7 @@ import {
   Presentation,
   ShieldCheck,
   FileSpreadsheet,
+  Server,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import type { Role } from "@/tyPes/auth.tyPes";
@@ -121,6 +122,8 @@ const getNavGroups = (role: Role | null): NavGroup[] => {
           groupLabel: "System",
           items: [
             { icon: Settings,     label: "System Settings", href: "/dashboard/super-admin/settings" },
+            { icon: Server,       label: "Backups",         href: "/dashboard/super-admin/backups" },
+            { icon: ClipboardList,label: "Audit Logs",      href: "/dashboard/super-admin/audit-logs" },
           ],
         },
       ];
@@ -154,6 +157,7 @@ const getNavGroups = (role: Role | null): NavGroup[] => {
             { icon: Presentation,  label: "Teachers",       href: "/dashboard/school-admin/teachers" },
             { icon: ShieldCheck,   label: "Role Assignments",href: "/dashboard/school-admin/staff-roles" },
             { icon: ClipboardCheck,label: "Escalations",    href: "/dashboard/school-admin/escalations" },
+            { icon: FileBadge,     label: "Teaching Applications", href: "/dashboard/teaching-applications" },
           ],
         },
         {
@@ -351,6 +355,7 @@ const getNavGroups = (role: Role | null): NavGroup[] => {
           items: [
             { icon: BriefcaseMedical, label: "Jobs",         href: "/dashboard/hr/recruitment/jobs" },
             { icon: Handshake,        label: "Applicants",   href: "/dashboard/hr/recruitment/applicants" },
+            { icon: FileBadge,        label: "Teaching Applications", href: "/dashboard/teaching-applications" },
           ],
         },
         {

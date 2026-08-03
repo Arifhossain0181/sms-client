@@ -1,11 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useSearchParams } from "next/navigation";
 import api from "@/lib/axios";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
+import { motion } from "framer-motion";
+import { Briefcase, Building2, Calendar, Users, ExternalLink, BookOpen } from "lucide-react";
 
 const schema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -30,15 +34,63 @@ const schema = z.object({
 type FormInput = z.input<typeof schema>;
 type FormData = z.output<typeof schema>;
 
+type JobPosting = {
+  id: string;
+  title: string;
+  designation: string;
+  department?: { name: string };
+  vacancies: number;
+  deadline: string;
+  description?: string;
+  requirements?: string;
+};
+
 export default function ApplyForTeaching() {
+  const searchParams = useSearchParams();
+  const jobId = searchParams.get("jobId");
+  const { user } = useAuth();
   const [submitting, setSubmitting] = useState(false);
-  const { register, handleSubmit, reset, formState: { errors } } =
+  const [loadingJob, setLoadingJob] = useState(false);
+  const [job, setJob] = useState<JobPosting | null>(null);
+  const { register, handleSubmit, reset, setValue, formState: { errors } } =
     useForm<FormInput, unknown, FormData>({ resolver: zodResolver(schema) });
+
+  useEffect(() => {
+    if (!jobId) return;
+    setLoadingJob(true);
+    api.get(`/recruitment/jobs/${jobId}`)
+      .then((res) => {
+        const payload = res.data?.data ?? res.data;
+        const jobData = payload as JobPosting;
+        setJob(jobData);
+        if (jobData.designation) {
+          setValue("designation", jobData.designation);
+        }
+      })
+      .catch(() => setJob(null))
+      .finally(() => setLoadingJob(false));
+  }, [jobId, setValue]);
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
     try {
       setSubmitting(true);
       await api.post("/teaching/apply", data);
+
+      if (user && jobId) {
+        try {
+          await api.post("/recruitment/applicants", {
+            jobPostingId: jobId,
+            name: data.name,
+            email: data.email,
+            phone: data.phone,
+            resumeUrl: data.resumeUrl,
+            coverLetter: data.coverLetter,
+          });
+        } catch (applicantErr) {
+          console.error("Failed to create recruitment applicant:", applicantErr);
+        }
+      }
+
       toast.success("Application submitted successfully");
       reset();
     } catch (err: any) {
@@ -55,8 +107,75 @@ export default function ApplyForTeaching() {
           <h1 className="text-3xl font-bold text-foreground">Apply for Teaching</h1>
           <p className="text-muted-foreground mt-2">
             Fill in your details to apply for a teaching position.
+            {jobId && !loadingJob && job && (
+              <span className="block text-indigo-500 dark:text-indigo-400 mt-1">
+                Application is linked to a specific job posting.
+              </span>
+            )}
           </p>
         </div>
+
+        {jobId && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8 rounded-2xl border border-border/60 bg-card/80 p-6 shadow"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500 via-indigo-500 to-violet-500 flex items-center justify-center text-white shadow-md shrink-0">
+                  <Briefcase className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground">{loadingJob ? "Loading job..." : job?.title ?? "Job Details"}</h2>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    {!loadingJob && job ? `${job.designation} · ${job.department?.name ?? "—"}` : ""}
+                  </p>
+                </div>
+              </div>
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 px-2.5 py-0.5 text-xs font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Open
+              </span>
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="rounded-xl border border-border/60 bg-background/60 p-4">
+                <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                  <BookOpen className="h-3 w-3" /> Subject / Designation
+                </p>
+                <p className="mt-1 text-sm font-semibold text-foreground">{loadingJob ? "..." : job?.designation ?? "—"}</p>
+              </div>
+              <div className="rounded-xl border border-border/60 bg-background/60 p-4">
+                <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                  <Building2 className="h-3 w-3" /> Department
+                </p>
+                <p className="mt-1 text-sm font-semibold text-foreground">{loadingJob ? "..." : job?.department?.name ?? "—"}</p>
+              </div>
+              <div className="rounded-xl border border-border/60 bg-background/60 p-4">
+                <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                  <Calendar className="h-3 w-3" /> Last Date
+                </p>
+                <p className="mt-1 text-sm font-semibold text-foreground">
+                  {loadingJob || !job?.deadline ? "..." : new Date(job.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                </p>
+              </div>
+            </div>
+
+            {!loadingJob && job?.description && (
+              <div className="mt-4">
+                <p className="text-xs font-medium text-muted-foreground mb-1">Description</p>
+                <p className="text-sm text-foreground whitespace-pre-wrap">{job.description}</p>
+              </div>
+            )}
+            {!loadingJob && job?.requirements && (
+              <div className="mt-3">
+                <p className="text-xs font-medium text-muted-foreground mb-1">Requirements</p>
+                <p className="text-sm text-foreground whitespace-pre-wrap">{job.requirements}</p>
+              </div>
+            )}
+          </motion.div>
+        )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 bg-card/80 border border-border/60 rounded-2xl p-6 shadow">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

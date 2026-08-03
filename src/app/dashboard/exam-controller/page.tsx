@@ -210,9 +210,9 @@ export default function ExamControllerDashboard() {
                   <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
                     {stat.label}
                   </p>
-                  <p className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+                  <div className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
                     {isLoading ? <Skeleton className="h-8 w-16" /> : stat.value}
-                  </p>
+                  </div>
                 </div>
                 <div className={`rounded-2xl p-3 border ${stat.bg} backdrop-blur-xl`}>
                   <stat.icon className={`h-6 w-6 ${stat.iconColor}`} />

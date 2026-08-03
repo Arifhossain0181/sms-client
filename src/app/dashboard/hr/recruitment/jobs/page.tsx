@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import api from "@/lib/axios";
 import { useLenis } from "@/hooks/useLenis";
 import type { Role } from "@/tyPes/auth.tyPes";
-import { Plus, Search, Briefcase, Calendar, ChevronRight } from "lucide-react";
+import { Plus, Search, Briefcase, Calendar, ChevronRight, ExternalLink } from "lucide-react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -57,7 +59,7 @@ export default function JobsPage() {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    if (role && role !== "HR" && role !== "SCHOOL_ADMIN" && role !== "SUPER_ADMIN") {
+    if (role && role !== "HR" && role !== "SCHOOL_ADMIN" && role !== "SUPER_ADMIN" && role !== "TEACHER") {
       router.replace("/dashboard");
     }
   }, [role, router]);
@@ -224,15 +226,26 @@ export default function JobsPage() {
                       </div>
                       <div className="flex flex-col items-end gap-2 shrink-0">
                         {getStatusBadge(job.status)}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/dashboard/hr/recruitment/jobs/${job.id}`);
-                          }}
-                          className="flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
-                        >
-                          View <ChevronRight className="h-3 w-3" />
-                        </button>
+                        {role === "TEACHER" && job.status === "OPEN" && (
+                          <Link
+                            href={`/apply-for-Teaching?jobId=${job.id}`}
+                            onClick={(e: MouseEvent) => e.stopPropagation()}
+                            className="flex items-center gap-1 text-xs font-semibold text-white bg-indigo-500 hover:bg-indigo-600 rounded-full px-3 py-1 transition-colors"
+                          >
+                            Apply <ExternalLink className="h-3 w-3" />
+                          </Link>
+                        )}
+                        {(role === "HR" || role === "SCHOOL_ADMIN" || role === "SUPER_ADMIN") && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/dashboard/hr/recruitment/jobs/${job.id}`);
+                            }}
+                            className="flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
+                          >
+                            View <ChevronRight className="h-3 w-3" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   </motion.div>

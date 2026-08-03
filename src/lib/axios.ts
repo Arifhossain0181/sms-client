@@ -147,10 +147,13 @@ api.interceptors.response.use(
     }
 
     if (!isUnauthorized) {
+      const url = error.config?.url || "";
+      const isRecruitmentJobsFetch = url.includes("/recruitment/jobs") && error.config?.method?.toLowerCase() === "get";
+      
       if (!error.response) {
-        console.error(`[AXIOS-ERROR] Network Error - ${error.message} - URL: ${error.config?.url || "unknown"}`);
-      } else {
-        console.error(`[AXIOS-ERROR] ${error.response?.status} ${error.config?.method?.toUpperCase()} ${error.config?.url}`);
+        console.error(`[AXIOS-ERROR] Network Error - ${error.message} - URL: ${url}`);
+      } else if (!isRecruitmentJobsFetch || error.response?.status !== 403) {
+        console.error(`[AXIOS-ERROR] ${error.response?.status} ${error.config?.method?.toUpperCase()} ${url}`);
         console.error(`[AXIOS-ERROR] Response:`, error.response?.data);
       }
     }

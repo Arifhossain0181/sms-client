@@ -82,13 +82,14 @@ export default function HrDashboard() {
           api.get("/teaching"),
         ]);
         const statsData = statsRes.status === "fulfilled" ? (statsRes.value.data?.data ?? statsRes.value.data) : null;
+        const teachingPayload = teachingRes.status === "fulfilled"
+          ? (teachingRes.value.data?.data?.data ?? teachingRes.value.data?.data ?? teachingRes.value.data ?? [])
+          : [];
         setStats({
           ...(statsData || {}),
           pendingTeachingApplications:
-            teachingRes.status === "fulfilled"
-              ? (teachingRes.value.data?.data ?? teachingRes.value.data ?? []).filter(
-                  (a: any) => a.status === "PENDING"
-                ).length
+            Array.isArray(teachingPayload)
+              ? teachingPayload.filter((a: any) => a.status === "PENDING").length
               : 0,
         });
 

@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import api from "@/lib/axios";
 import { useLenis } from "@/hooks/useLenis";
 import type { Role } from "@/tyPes/auth.tyPes";
-import { ArrowLeft, UserPlus, MessageSquare, Award, Briefcase, Calendar, Users, MapPin, FileText } from "lucide-react";
+import { ArrowLeft, UserPlus, MessageSquare, Award, Briefcase, Calendar, Users, MapPin, FileText, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -70,7 +70,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (role && role !== "HR" && role !== "SCHOOL_ADMIN" && role !== "SUPER_ADMIN") {
+    if (role && role !== "HR" && role !== "SCHOOL_ADMIN" && role !== "SUPER_ADMIN" && role !== "TEACHER") {
       router.replace("/dashboard");
     }
   }, [role, router]);
@@ -142,14 +142,29 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                 )}
               </div>
               {!loading && job && (
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => router.push(`/dashboard/hr/recruitment/applicants/new?jobId=${job.id}`)}
-                  className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 text-white px-4 py-2 text-sm font-semibold shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 transition-all"
-                >
-                  <UserPlus className="h-4 w-4" /> Add Applicant
-                </motion.button>
+                <>
+                  {(role === "HR" || role === "SCHOOL_ADMIN" || role === "SUPER_ADMIN") && (
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => router.push(`/dashboard/hr/recruitment/applicants/new?jobId=${job.id}`)}
+                      className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 text-white px-4 py-2 text-sm font-semibold shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 transition-all"
+                    >
+                      <UserPlus className="h-4 w-4" /> Add Applicant
+                    </motion.button>
+                  )}
+                  {role === "TEACHER" && job.status === "OPEN" && (
+                    <Link href={`/apply-for-Teaching?jobId=${job.id}`}>
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 text-white px-4 py-2 text-sm font-semibold shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 transition-all"
+                      >
+                        <ExternalLink className="h-4 w-4" /> Apply Now
+                      </motion.button>
+                    </Link>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -306,7 +321,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                                     <motion.button
                                       whileHover={{ scale: 1.05 }}
                                       whileTap={{ scale: 0.95 }}
-                                      onClick={() => router.push(`/dashboard/hr/recruitment/interviews/${a.interviews[0].id}`)}
+                                      onClick={() => router.push(`/dashboard/hr/recruitment/applicants/${a.id}`)}
                                       className="flex items-center gap-1 text-xs text-sky-600 dark:text-sky-400 hover:underline font-medium"
                                     >
                                       <MessageSquare className="h-3 w-3" /> Interview

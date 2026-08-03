@@ -25,7 +25,9 @@ export interface Timetable {
   teacherId: string;
   teacher?: {
     id: string;
-    name: string;
+    user?: {
+      name?: string;
+    };
   };
   dayOfWeek: DayOfWeek;
   startTime: string;

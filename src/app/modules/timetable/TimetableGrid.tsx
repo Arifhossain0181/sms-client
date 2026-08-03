@@ -267,10 +267,10 @@ export default function TimetableGrid() {
                             </div>
 
                             {/* Teacher */}
-                            <div className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-200">
-                              <User className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-300" />
-                              {t.teacher?.name ?? "—"}
-                            </div>
+                              <div className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-200">
+                                <User className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-300" />
+                                {t.teacher?.user?.name ?? "—"}
+                              </div>
 
                              {/* Class */}
                              <div className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-200">

@@ -2,17 +2,18 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Menu, X, GraduationCap, LogIn, User, ChevronDown, LogOut, Sparkles } from "lucide-react";
+import { Menu, X, GraduationCap, LogIn, User, ChevronDown, LogOut, Sparkles, Briefcase } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Lenis from "lenis";
 import { useAuth } from "@/hooks/useAuth";
+import api from "@/lib/axios";
 
-const navLinks = [
+const BASE_NAV_LINKS = [
   { name: "Home", href: "/" },
   { name: "Dashboard", href: "/dashboard" },
   { name: "Students", href: "/students" },
+  { name: "Careers", href: "/careers" },
   { name: "Apply for Admission", href: "/apply-for-admission" },
-  { name: "Apply for Teaching", href: "/apply-for-Teaching" },
   { name: "Schedules", href: "/schedules" },
 ];
 
@@ -21,10 +22,20 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const [userOpen, setUserOpen] = useState(false);
+  const [latestJobId, setLatestJobId] = useState<string | null>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, role } = useAuth();
 
-  // Lenis smooth scroll
+  const teachingHref = latestJobId ? `/apply-for-Teaching?jobId=${latestJobId}` : "/apply-for-Teaching";
+
+  const navLinks = [
+    ...BASE_NAV_LINKS.slice(0, 3),
+    { name: "Careers", href: "/careers" },
+    { name: "Apply for Admission", href: "/apply-for-admission" },
+    { name: "Apply for Teaching", href: teachingHref },
+    { name: "Schedules", href: "/schedules" },
+  ];
+
   useEffect(() => {
     const lenis = new Lenis({
       duration: 1.2,
@@ -42,7 +53,6 @@ export default function Navbar() {
     };
   }, []);
 
-  // Scroll state
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     onScroll();
@@ -50,7 +60,6 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Close user menu on outside click
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
@@ -60,6 +69,26 @@ export default function Navbar() {
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadLatestJob = async () => {
+      try {
+        const res = await api.get("/recruitment/jobs?status=OPEN&limit=1");
+        const payload = res.data?.data ?? res.data;
+        const postings = payload.postings ?? [];
+        if (!cancelled && postings.length > 0) {
+          setLatestJobId(postings[0].id);
+        }
+      } catch {
+        // silently ignore - apply button will still show as generic link
+      }
+    };
+    if (isAuthenticated) {
+      loadLatestJob();
+    }
+    return () => { cancelled = true; };
+  }, [isAuthenticated]);
 
   return (
     <motion.header
@@ -118,6 +147,16 @@ export default function Navbar() {
               <span className="relative z-10">{link.name}</span>
             </Link>
           ))}
+          {latestJobId && (
+            <Link
+              href={teachingHref}
+              onMouseEnter={() => setHoveredIdx(navLinks.length - 1)}
+              className="relative inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-semibold text-white bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 rounded-full shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/30 transition-all"
+            >
+              <Briefcase className="h-3.5 w-3.5" />
+              <span className="relative z-10">Apply Now</span>
+            </Link>
+          )}
         </div>
 
         {/* CTA */}
@@ -230,6 +269,22 @@ export default function Navbar() {
                   </Link>
                 </motion.div>
               ))}
+              {latestJobId && (
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: navLinks.length * 0.05 }}
+                >
+                  <Link
+                    href={teachingHref}
+                    onClick={() => setMobileOpen(false)}
+                    className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 text-white font-semibold shadow-lg shadow-indigo-500/20"
+                  >
+                    <Briefcase className="h-4 w-4" />
+                    Apply for Teaching
+                  </Link>
+                </motion.div>
+              )}
               <div className="pt-3 border-t border-slate-100 mt-3">
                 {!isAuthenticated ? (
                   <div className="flex flex-col gap-2">
