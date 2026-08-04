@@ -167,7 +167,7 @@ export default function HrDashboard() {
   ];
 
   return (
-    <div className="relative min-h-screen flex items-start justify-center p-4 sm:p-6 overflow-hidden bg-slate-50/50 dark:bg-slate-950">
+    <div className="relative min-h-screen w-full overflow-hidden bg-slate-50/50 dark:bg-slate-950">
       <motion.div
         animate={{ x: [0, 40, 0], y: [0, -30, 0] }}
         transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
@@ -184,8 +184,8 @@ export default function HrDashboard() {
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-indigo-300/10 dark:bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"
       />
 
-      <div className="relative w-full max-w-5xl my-8 space-y-6">
-        <div className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl shadow-slate-200/40 dark:shadow-none overflow-hidden">
+      <div className="relative w-full max-w-none px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6">
+        <div className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl shadow-slate-200/40 dark:shadow-none overflow-hidden transition-all duration-300 hover:shadow-[0_25px_60px_-15px_rgba(15,23,42,0.35)]">
           <div className="relative px-6 sm:px-8 py-6 bg-gradient-to-r from-sky-50 via-indigo-50 to-violet-50 dark:from-sky-500/10 dark:via-indigo-500/10 dark:to-violet-500/10 border-b border-white/40 dark:border-white/5 overflow-hidden">
             <motion.div
               animate={{ x: [0, 100, 0] }}
@@ -213,7 +213,7 @@ export default function HrDashboard() {
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
               {loading
                 ? Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl">
+                    <div key={i} className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
                       <Skeleton className="w-14 h-14 rounded-2xl shrink-0 mb-4" />
                       <Skeleton className="h-3 w-24 rounded-md mb-2" />
                       <Skeleton className="h-6 w-16 rounded-md" />
@@ -226,7 +226,7 @@ export default function HrDashboard() {
                       initial="hidden"
                       animate="visible"
                       variants={cardVariants}
-                      className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl flex items-center gap-5 hover:shadow-2xl transition-shadow"
+                      className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl flex items-center gap-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
                     >
                       <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center shrink-0">
                         {card.icon}
@@ -260,7 +260,7 @@ export default function HrDashboard() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
               {loading
                 ? Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl">
+                    <div key={i} className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
                       <Skeleton className="w-14 h-14 rounded-2xl shrink-0 mb-4" />
                       <Skeleton className="h-3 w-32 rounded-md mb-2" />
                       <Skeleton className="h-6 w-12 rounded-md" />
@@ -273,7 +273,7 @@ export default function HrDashboard() {
                       initial="hidden"
                       animate="visible"
                       variants={cardVariants}
-                      className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl flex items-center gap-5 hover:shadow-2xl transition-shadow"
+                      className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl flex items-center gap-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
                     >
                       <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center shrink-0">
                         {card.icon}
@@ -299,7 +299,7 @@ export default function HrDashboard() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
-              className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl"
+              className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
             >
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Staff Directory</h3>
               {loading ? (
@@ -324,7 +324,7 @@ export default function HrDashboard() {
                   {staffList.slice(0, 20).map((item) => (
                     <div
                       key={item.id}
-                      className="flex items-center justify-between py-3"
+                      className="flex items-center justify-between py-3 px-2 rounded-xl transition-all duration-300 hover:bg-slate-50/80 dark:hover:bg-slate-800/40 hover:px-3"
                     >
                       <div>
                         <p className="text-sm font-medium text-slate-900 dark:text-white">{item.name}</p>

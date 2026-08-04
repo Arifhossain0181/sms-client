@@ -17,6 +17,7 @@ import {
   Sparkles,
   CalendarDays,
 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   useMyTimetable,
   useTimetableByTeacher,
@@ -73,7 +74,7 @@ export default function TimetableGrid() {
   const isTeacher = role === "TEACHER";
   const roleLoaded = !!role;
 
-  const { data: myRoutine, isLoading: myLoading } = useMyTimetable();
+  const { data: myRoutine, isLoading: myLoading } = useMyTimetable(isStudent);
   const { data: teacherTimetables, isLoading: teacherLoading } = useTimetableByTeacher(
     user?.id ?? "",
     isTeacher
@@ -128,8 +129,48 @@ export default function TimetableGrid() {
 
   if (isLoading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+      <div className="relative min-h-screen p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-sky-50 via-white to-violet-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+        <div className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-sky-400/20 dark:bg-sky-500/10 blur-3xl" />
+        <div className="pointer-events-none absolute top-1/2 right-0 h-80 w-80 rounded-full bg-violet-400/20 dark:bg-violet-500/10 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-indigo-400/20 dark:bg-indigo-500/5 blur-3xl" />
+
+        <div className="relative mx-auto max-w-7xl space-y-6">
+          <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-white/[0.03] backdrop-blur-xl p-5 sm:p-6 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <Skeleton className="h-12 w-12 rounded-xl" />
+                <div className="space-y-2">
+                  <Skeleton className="h-7 w-40" />
+                  <Skeleton className="h-4 w-64" />
+                </div>
+              </div>
+              <Skeleton className="h-10 w-28 rounded-xl" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+            {DAYS.map((_, idx) => (
+              <div
+                key={idx}
+                className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-white/[0.03] backdrop-blur-xl shadow-sm overflow-hidden"
+              >
+                <Skeleton className="h-14 w-full rounded-none" />
+                <div className="p-4 space-y-3">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="space-y-2 rounded-xl border border-slate-200/60 dark:border-white/10 bg-white/60 dark:bg-white/[0.02] p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-5 w-20 rounded-md" />
+                      </div>
+                      <Skeleton className="h-3 w-32" />
+                      <Skeleton className="h-3 w-28" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }

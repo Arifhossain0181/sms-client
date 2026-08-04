@@ -11,10 +11,11 @@ export const useTimetables = () => {
   });
 };
 
-export const useMyTimetable = () => {
+export const useMyTimetable = (enabled = true) => {
   return useQuery({
     queryKey: ["timetables", "my-routine"],
     queryFn: timetableService.getMyRoutine,
+    enabled,
   });
 };
 

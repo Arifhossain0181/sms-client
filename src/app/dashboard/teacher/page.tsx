@@ -5,11 +5,13 @@ import { CalendarCheck, ClipboardList, Layers, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useLenis } from "@/hooks/useLenis";
 import { useAuth } from "@/hooks/useAuth";
+import { useRouter } from "next/navigation";
 import api from "@/lib/axios";
 import { StatCard } from "../components/StatCard";
 
 export default function TeacherDashboard() {
   useLenis();
+  const router = useRouter();
   const { role, user } = useAuth();
   const [stats, setStats] = useState({
     totalStudents: 0,
@@ -151,7 +153,10 @@ export default function TeacherDashboard() {
               </div>
             ))}
           </div>
-          <button className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary">
+          <button
+            onClick={() => router.push("/dashboard/attendances")}
+            className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
+          >
             <ClipboardList className="h-4 w-4" /> Take Attendance
           </button>
         </div>

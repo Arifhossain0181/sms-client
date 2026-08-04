@@ -142,7 +142,7 @@ html.lenis, html.lenis body {
     background: linear-gradient(135deg, #0f766e 0%, #059669 45%, #22c55e 100%);
   }
   .gradient-card {
-    background: linear-gradient(160deg, rgba(255,255,255,0.7), rgba(255,255,255,0.95));
+    background: var(--card);
   }
   .shadow-soft {
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);

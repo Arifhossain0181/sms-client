@@ -87,7 +87,7 @@ export default function StaffProfilesPage() {
   };
 
   return (
-    <div className="relative min-h-screen flex items-start justify-center p-4 sm:p-6 overflow-hidden bg-slate-50/50 dark:bg-slate-950">
+    <div className="relative min-h-screen w-full overflow-hidden bg-slate-50/50 dark:bg-slate-950">
       <motion.div
         animate={{ x: [0, 40, 0], y: [0, -30, 0] }}
         transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
@@ -99,8 +99,8 @@ export default function StaffProfilesPage() {
         className="absolute bottom-10 -right-32 w-[600px] h-[600px] bg-violet-300/20 dark:bg-violet-500/10 rounded-full blur-3xl pointer-events-none"
       />
 
-      <div className="relative w-full max-w-6xl my-8 space-y-6">
-        <div className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl shadow-slate-200/40 dark:shadow-none overflow-hidden">
+      <div className="relative w-full max-w-none px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6">
+        <div className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl shadow-slate-200/40 dark:shadow-none overflow-hidden transition-all duration-300 hover:shadow-[0_25px_60px_-15px_rgba(15,23,42,0.35)]">
           <div className="relative px-6 sm:px-8 py-6 bg-gradient-to-r from-sky-50 via-indigo-50 to-violet-50 dark:from-sky-500/10 dark:via-indigo-500/10 dark:to-violet-500/10 border-b border-white/40 dark:border-white/5 overflow-hidden">
             <motion.div
               animate={{ x: [0, 100, 0] }}
@@ -149,7 +149,7 @@ export default function StaffProfilesPage() {
             {loading ? (
               <div className="space-y-3">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="flex items-center justify-between py-3">
+                  <div key={i} className="flex items-center justify-between rounded-xl px-2 py-3 transition-all duration-300 hover:bg-slate-50/80 dark:hover:bg-slate-800/40 hover:px-3">
                     <div className="flex items-center gap-4 flex-1">
                       <div className="space-y-2 flex-1">
                         <Skeleton className="h-4 w-32 rounded-md" />
@@ -183,8 +183,8 @@ export default function StaffProfilesPage() {
                 </p>
               </motion.div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-200 dark:border-slate-700 text-left text-xs uppercase text-slate-500 dark:text-slate-400">
                       <th className="pb-2 font-medium">Employee ID</th>
@@ -199,7 +199,7 @@ export default function StaffProfilesPage() {
                   </thead>
                   <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                     {staff.map((s) => (
-                      <tr key={s.id}>
+                      <tr key={s.id} className="transition-colors hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
                         <td className="py-3 font-mono text-xs text-slate-600 dark:text-slate-300">{s.employeeId}</td>
                         <td className="py-3 font-medium text-slate-900 dark:text-white">{s.name}</td>
                         <td className="py-3 text-slate-500 dark:text-slate-400">{s.email}</td>
@@ -227,7 +227,7 @@ export default function StaffProfilesPage() {
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.9 }}
                               onClick={() => router.push(`/dashboard/hr/profiles/${s.id}`)}
-                              className="rounded-lg p-1.5 hover:bg-white/10"
+                              className="rounded-lg p-1.5 transition-colors hover:bg-sky-500/10"
                               title="View"
                             >
                               <Eye className="h-4 w-4 text-slate-400" />
@@ -237,7 +237,7 @@ export default function StaffProfilesPage() {
                                 whileHover={{ scale: 1.1 }}
                                 whileTap={{ scale: 0.9 }}
                                 onClick={() => handleArchive(s.id)}
-                                className="rounded-lg p-1.5 hover:bg-red-500/10"
+                                className="rounded-lg p-1.5 transition-colors hover:bg-red-500/10"
                                 title="Deactivate"
                               >
                                 <Trash2 className="h-4 w-4 text-red-400" />
@@ -247,7 +247,7 @@ export default function StaffProfilesPage() {
                                 whileHover={{ scale: 1.1 }}
                                 whileTap={{ scale: 0.9 }}
                                 onClick={() => handleRestore(s.id)}
-                                className="rounded-lg p-1.5 hover:bg-emerald-500/10"
+                                className="rounded-lg p-1.5 transition-colors hover:bg-emerald-500/10"
                                 title="Restore"
                               >
                                 <RotateCcw className="h-4 w-4 text-emerald-400" />

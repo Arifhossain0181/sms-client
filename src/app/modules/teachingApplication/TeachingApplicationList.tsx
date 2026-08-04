@@ -64,14 +64,14 @@ export default function TeachingApplicationList() {
   const handleClose = () => { setSelected(null); setShowDetail(false); };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-sky-50/40 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950/30 p-4 md:p-6 lg:p-8">
-      <div className="mx-auto max-w-6xl space-y-6">
+    <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-white to-sky-50/40 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950/30 p-4 md:p-6 lg:p-8">
+      <div className="mx-auto max-w-none space-y-6">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="relative overflow-hidden rounded-3xl border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-white/[0.03] backdrop-blur-xl p-5 sm:p-6 shadow-sm"
+          className="relative overflow-hidden rounded-3xl border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-white/[0.03] backdrop-blur-xl p-5 sm:p-6 shadow-sm transition-all duration-300 hover:shadow-lg hover:shadow-slate-200/40 dark:hover:shadow-black/20"
         >
           <div className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-gradient-to-br from-sky-400/30 via-indigo-500/20 to-violet-500/20 blur-2xl" />
           <div className="relative flex items-center gap-4">
@@ -110,7 +110,7 @@ export default function TeachingApplicationList() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.15 + i * 0.05 }}
-              className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-white/[0.03] p-4 backdrop-blur-sm shadow-sm"
+              className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-white/[0.03] p-4 backdrop-blur-sm shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
             >
               <div className={`absolute -right-4 -top-4 h-16 w-16 rounded-full bg-gradient-to-br ${stat.color} opacity-20 blur-xl`} />
               <div className="relative flex items-center gap-3">
@@ -170,7 +170,7 @@ export default function TeachingApplicationList() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25, duration: 0.4 }}
-          className="overflow-hidden rounded-2xl border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-white/[0.03] backdrop-blur-sm shadow-sm"
+          className="overflow-hidden rounded-2xl border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-white/[0.03] backdrop-blur-sm shadow-sm transition-all duration-300 hover:shadow-lg"
         >
           {isLoading ? (
             <div className="flex items-center justify-center py-20">
@@ -240,7 +240,7 @@ export default function TeachingApplicationList() {
                               <motion.button
                                 whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
                                 onClick={() => handleView(item)}
-                                className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 dark:text-slate-400 hover:bg-sky-100 dark:hover:bg-sky-500/15 hover:text-sky-700 dark:hover:text-sky-300 transition-colors"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 dark:text-slate-400 hover:bg-sky-100 dark:hover:bg-sky-500/15 hover:text-sky-700 dark:hover:text-sky-300 transition-all duration-300 hover:-translate-y-0.5"
                                 title="View"
                               >
                                 <Eye className="h-4 w-4" />
@@ -251,7 +251,7 @@ export default function TeachingApplicationList() {
                                     whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
                                     onClick={() => handleApprove(item.id)}
                                     disabled={isUpdating}
-                                    className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 dark:text-slate-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/15 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors disabled:opacity-50"
+                                    className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 dark:text-slate-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/15 hover:text-emerald-700 dark:hover:text-emerald-300 transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-50"
                                     title="Approve"
                                   >
                                     <CheckCircle2 className="h-4 w-4" />
@@ -260,7 +260,7 @@ export default function TeachingApplicationList() {
                                     whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
                                     onClick={() => handleReject(item.id)}
                                     disabled={isUpdating}
-                                    className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 dark:text-slate-400 hover:bg-rose-100 dark:hover:bg-rose-500/15 hover:text-rose-700 dark:hover:text-rose-300 transition-colors disabled:opacity-50"
+                                    className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 dark:text-slate-400 hover:bg-rose-100 dark:hover:bg-rose-500/15 hover:text-rose-700 dark:hover:text-rose-300 transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-50"
                                     title="Reject"
                                   >
                                     <XCircle className="h-4 w-4" />
@@ -285,7 +285,7 @@ export default function TeachingApplicationList() {
         {showDetail && selected && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
             onClick={handleClose}
           >
             <motion.div
@@ -294,7 +294,7 @@ export default function TeachingApplicationList() {
               exit={{ opacity: 0, scale: 0.96, y: 12 }}
               transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden rounded-3xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 shadow-2xl"
+              className="relative w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden rounded-3xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 shadow-2xl transition-transform duration-300"
             >
               {/* Header */}
               <div className="relative overflow-hidden bg-gradient-to-br from-sky-500 via-indigo-500 to-violet-600 px-6 py-5">

@@ -52,14 +52,6 @@ type Toast = { msg: string; ok: boolean } | null;
 
 // ─── Helpers 
 
-function fmt(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
-
 function Skel({ className = "" }: { className?: string }) {
   return (
     <span className={`inline-block rounded bg-muted/60 animate-pulse ${className}`} />
@@ -123,8 +115,6 @@ export default function SchoolAdminPromotionsPage() {
   });
 
   // Compute meta if available from response (we'll derive it from students list)
-  const totalPages = useMemo(() => Math.max(1, Math.ceil((students as Student[]).length / LIMIT)), [students]);
-
   // ── useMemo: derived values 
   const classMap = useMemo(() => {
     const m = new Map<string, ClassType>();
@@ -139,16 +129,16 @@ export default function SchoolAdminPromotionsPage() {
   }, [targetClassId, classMap]);
 
   const selectedCount = selectedIds.size;
-  const selectedStudents = useMemo(
-    () => (students as Student[]).filter((s) => selectedIds.has(s.id)),
-    [students, selectedIds]
-  );
 
   // ── Toggle select 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
       return next;
     });
   };
@@ -211,7 +201,7 @@ export default function SchoolAdminPromotionsPage() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className={`fixed top-5 right-5 z-[60] px-4 py-3 rounded-xl shadow-lg text-sm font-medium flex items-center gap-2 ${
+            className={`fixed top-5 right-5 z-60 px-4 py-3 rounded-xl shadow-lg text-sm font-medium flex items-center gap-2 ${
               toast.ok ? "bg-emerald-600 text-white" : "bg-red-600 text-white"
             }`}
           >
@@ -291,7 +281,7 @@ export default function SchoolAdminPromotionsPage() {
         className="flex flex-col sm:flex-row gap-3 flex-wrap"
       >
         {/* Search */}
-        <div className="relative flex-1 min-w-[200px]">
+        <div className="relative flex-1 min-w-50">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"

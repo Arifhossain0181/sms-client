@@ -85,7 +85,7 @@ export default function JobsPage() {
   const openJobs = jobs.filter((j) => j.status === "OPEN").length;
 
   return (
-    <div className="relative min-h-screen flex items-start justify-center p-4 sm:p-6 overflow-hidden bg-slate-50/50 dark:bg-slate-950">
+    <div className="relative min-h-screen w-full overflow-hidden bg-slate-50/50 dark:bg-slate-950">
       <motion.div
         animate={{ x: [0, 40, 0], y: [0, -30, 0] }}
         transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
@@ -102,8 +102,8 @@ export default function JobsPage() {
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-indigo-300/10 dark:bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"
       />
 
-      <div className="relative w-full max-w-5xl my-8 space-y-6">
-        <div className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl shadow-slate-200/40 dark:shadow-none overflow-hidden">
+      <div className="relative w-full max-w-none px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6">
+        <div className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl shadow-slate-200/40 dark:shadow-none overflow-hidden transition-all duration-300 hover:shadow-[0_25px_60px_-15px_rgba(15,23,42,0.35)]">
           <div className="relative px-6 sm:px-8 py-6 bg-gradient-to-r from-sky-50 via-indigo-50 to-violet-50 dark:from-sky-500/10 dark:via-indigo-500/10 dark:to-violet-500/10 border-b border-white/40 dark:border-white/5 overflow-hidden">
             <motion.div
               animate={{ x: [0, 100, 0] }}
@@ -157,7 +157,7 @@ export default function JobsPage() {
             {loading ? (
               <div className="space-y-4">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-5 shadow-xl">
+                  <div key={i} className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-5 shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
                     <div className="flex items-center justify-between">
                       <div className="space-y-3 flex-1">
                         <Skeleton className="h-5 w-48 rounded-lg" />
@@ -199,7 +199,7 @@ export default function JobsPage() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.05 }}
-                    className="group rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-white/5 p-5 shadow-xl hover:shadow-2xl transition-all cursor-pointer"
+                    className="group rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-white/5 p-5 shadow-xl transition-all duration-300 cursor-pointer hover:-translate-y-1 hover:shadow-2xl"
                     onClick={() => router.push(`/dashboard/hr/recruitment/jobs/${job.id}`)}
                   >
                     <div className="flex items-start justify-between gap-4">
@@ -230,7 +230,7 @@ export default function JobsPage() {
                           <Link
                             href={`/apply-for-Teaching?jobId=${job.id}`}
                             onClick={(e: MouseEvent) => e.stopPropagation()}
-                            className="flex items-center gap-1 text-xs font-semibold text-white bg-indigo-500 hover:bg-indigo-600 rounded-full px-3 py-1 transition-colors"
+                            className="flex items-center gap-1 text-xs font-semibold text-white bg-indigo-500 hover:bg-indigo-600 rounded-full px-3 py-1 transition-all duration-300 hover:-translate-y-0.5"
                           >
                             Apply <ExternalLink className="h-3 w-3" />
                           </Link>
@@ -241,7 +241,7 @@ export default function JobsPage() {
                               e.stopPropagation();
                               router.push(`/dashboard/hr/recruitment/jobs/${job.id}`);
                             }}
-                            className="flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
+                            className="flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium transition-colors"
                           >
                             View <ChevronRight className="h-3 w-3" />
                           </button>

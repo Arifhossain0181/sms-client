@@ -19,7 +19,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { hasPermission } from "@/config/roles";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { Skeleton } from "@/components/ui/skeleton";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -467,16 +466,16 @@ export default function TransactionsPage() {
                       <div className="space-y-3">
                         {Array.from({ length: 8 }).map((_, i) => (
                           <div key={i} className="flex items-center gap-4">
-                            <Skeleton className="w-9 h-9 rounded-full shrink-0" />
+                            <div className="w-9 h-9 bg-slate-200 dark:bg-slate-700 rounded-full shrink-0 animate-pulse" />
                             <div className="flex-1 space-y-1">
-                              <Skeleton className="h-4 w-40 rounded-md" />
-                              <Skeleton className="h-3 w-24 rounded-md" />
+                              <div className="h-4 w-40 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
+                              <div className="h-3 w-24 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
                             </div>
-                            <Skeleton className="h-4 w-20 rounded-md" />
-                            <Skeleton className="h-4 w-16 rounded-md" />
-                            <Skeleton className="h-4 w-24 rounded-md" />
-                            <Skeleton className="h-4 w-16 rounded-md" />
-                            <Skeleton className="h-4 w-20 rounded-md" />
+                            <div className="h-4 w-20 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
+                            <div className="h-4 w-16 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
+                            <div className="h-4 w-24 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
+                            <div className="h-4 w-16 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
+                            <div className="h-4 w-20 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
                           </div>
                         ))}
                       </div>
@@ -542,11 +541,11 @@ export default function TransactionsPage() {
               </p>
               <div className="flex gap-2">
                 <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}
-                  className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors">
+                  className="px-3 py-1.5 rounded-lg bg-indigo-50 text-xs font-medium text-indigo-700 ring-1 ring-indigo-200 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-300 dark:ring-indigo-500/30 dark:hover:bg-indigo-500/20 disabled:opacity-50 transition-colors">
                   Previous
                 </motion.button>
                 <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages}
-                  className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors">
+                  className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-medium shadow-sm shadow-indigo-500/20 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 transition-colors">
                   Next
                 </motion.button>
               </div>

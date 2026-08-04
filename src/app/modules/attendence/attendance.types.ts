@@ -22,6 +22,20 @@ export interface Attendance {
   createdAt: string;
 }
 
+export interface AttendanceReportRow {
+  student: {
+    id: string;
+    name: string;
+    rollNumber: number;
+  };
+  present: number;
+  absent: number;
+  late: number;
+  total: number;
+  percentage: number;
+  belowThreshold: boolean;
+}
+
 export interface TakeAttendancePayload {
   classId: string;
   sectionId: string;

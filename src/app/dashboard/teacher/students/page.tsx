@@ -341,7 +341,7 @@ export default function TeacherStudentsPage() {
     if (!user?.id) return;
     const loadClasses = async () => {
       try {
-        const res = await api.get(`/teachers/${user.id}`);
+        const res = await api.get("/teachers/me");
         const payload = res.data?.data ?? res.data;
         const classes =
           (payload?.sectionTeacher as Array<{ class: AssignedClass }> | undefined)

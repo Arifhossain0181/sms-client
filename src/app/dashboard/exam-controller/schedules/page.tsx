@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLenis } from "@/hooks/useLenis";
 import { useAuth } from "@/hooks/useAuth";
-import { examService } from "@/app/modules/exam/exam.service";
-import { Exam } from "@/app/modules/exam/exam.types";
 import { useRouter } from "next/navigation";
+import { examService } from "@/app/modules/exam/exam.service";
+import { classService } from "@/app/modules/class/class.service";
+import { Exam } from "@/app/modules/exam/exam.types";
 import {
   ClipboardList,
   Calendar,
@@ -14,11 +15,13 @@ import {
   GraduationCap,
   Clock,
   Search,
+  ChevronRight,
+  AlertTriangle,
+  ArrowLeft,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
-
-type Role = "EXAM_CONTROLLER" | "SCHOOL_ADMIN" | "TEACHER";
+import { toast } from "sonner";
 
 type FlatSchedule = {
   id: string;
@@ -26,6 +29,7 @@ type FlatSchedule = {
   examName: string;
   examType: string;
   subjectName: string;
+  fullMarks?: number;
   className: string;
   classId: string;
   examDate: string;
@@ -37,13 +41,30 @@ export default function ExamSchedulesPage() {
   useLenis();
   const router = useRouter();
   const { role } = useAuth();
+  const queryClient = useQueryClient();
 
-  const { data: exams = [], isLoading } = useQuery({
+  const [search, setSearch] = useState("");
+  const [filterExamId, setFilterExamId] = useState<string>("");
+  const [filterClassId, setFilterClassId] = useState<string>("");
+  const [expandedScheduleId, setExpandedScheduleId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (role && role !== "EXAM_CONTROLLER" && role !== "SCHOOL_ADMIN" && role !== "TEACHER") {
+      router.replace("/dashboard");
+    }
+  }, [role, router]);
+
+  const { data: exams = [], isLoading: examsLoading } = useQuery({
     queryKey: ["exams"],
     queryFn: async () => {
       const data = await examService.getAll();
       return Array.isArray(data) ? data : [];
     },
+  });
+
+  const { data: classes = [], isLoading: classesLoading } = useQuery({
+    queryKey: ["classes"],
+    queryFn: classService.getAll,
   });
 
   const flatSchedules: FlatSchedule[] = useMemo(() => {
@@ -57,6 +78,7 @@ export default function ExamSchedulesPage() {
           examName: exam.name,
           examType: exam.type ?? "CLASS_TEST",
           subjectName: s.subject?.name ?? "—",
+          fullMarks: s.subject?.fullMarks,
           className: s.class?.name ?? "—",
           classId: s.class?.id ?? "",
           examDate: s.examDate
@@ -73,10 +95,6 @@ export default function ExamSchedulesPage() {
     });
   }, [exams]);
 
-  const [search, setSearch] = useState("");
-  const [filterExamId, setFilterExamId] = useState<string>("");
-  const [filterClassId, setFilterClassId] = useState<string>("");
-
   const classList = useMemo(() => {
     const map = new Map<string, string>();
     for (const s of flatSchedules) {
@@ -86,6 +104,16 @@ export default function ExamSchedulesPage() {
       .map(([id, name]) => ({ id, name }))
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [flatSchedules]);
+
+  const examsList = useMemo(() => {
+    const map = new Map<string, { id: string; name: string }>();
+    for (const e of exams) {
+      if (!map.has(e.id)) map.set(e.id, { id: e.id, name: e.name });
+    }
+    return Array.from(map.values()).sort((a, b) =>
+      a.name.localeCompare(b.name),
+    );
+  }, [exams]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -113,19 +141,26 @@ export default function ExamSchedulesPage() {
     return groups;
   }, [filtered]);
 
-  const examsList = useMemo(() => {
-    const map = new Map<string, { id: string; name: string }>();
-    for (const e of exams) {
-      if (!map.has(e.id)) map.set(e.id, { id: e.id, name: e.name });
-    }
-    return Array.from(map.values()).sort((a, b) =>
-      a.name.localeCompare(b.name),
+  const counts = useMemo(() => {
+    return flatSchedules.reduce(
+      (acc, s) => {
+        acc.total += 1;
+        acc[s.examType] = (acc[s.examType] ?? 0) + 1;
+        return acc;
+      },
+      { total: 0 } as Record<string, number>,
     );
-  }, [exams]);
+  }, [flatSchedules]);
+
+  const toggleExpand = (id: string) => {
+    setExpandedScheduleId((prev) => (prev === id ? null : id));
+  };
+
+  const isLoading = examsLoading || classesLoading;
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950 p-4 sm:p-6">
+      <div className="relative min-h-screen flex items-start justify-center p-4 sm:p-6 overflow-hidden bg-slate-50/50 dark:bg-slate-950">
         <Skeleton className="h-10 w-48 mb-6" />
         <Skeleton className="h-12 w-full mb-4" />
         <div className="space-y-3">
@@ -155,7 +190,7 @@ export default function ExamSchedulesPage() {
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-indigo-300/10 dark:bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"
       />
 
-      <div className="relative w-full max-w-6xl my-8 space-y-6">
+      <div className="relative w-full my-8 space-y-6">
         <div className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl shadow-slate-200/40 dark:shadow-none overflow-hidden">
           <div className="relative px-6 sm:px-8 py-6 bg-gradient-to-r from-sky-50 via-indigo-50 to-violet-50 dark:from-sky-500/10 dark:via-indigo-500/10 dark:to-violet-500/10 border-b border-white/40 dark:border-white/5 overflow-hidden">
             <motion.div
@@ -179,17 +214,19 @@ export default function ExamSchedulesPage() {
                   View all exam schedules across classes and subjects
                 </p>
               </div>
-              <div className="flex items-center gap-3">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() =>
-                    router.push("/dashboard/exam-controller/exams")
-                  }
-                  className="flex items-center gap-2 rounded-lg border border-white/40 dark:border-white/10 bg-white/60 dark:bg-white/5 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-white/80 dark:hover:bg-white/10"
-                >
-                  <ClipboardList className="h-4 w-4" /> Exams
-                </motion.button>
+              <div className="flex items-center gap-3 text-xs">
+                <span className="rounded-full bg-slate-100 dark:bg-slate-800 px-2.5 py-1 text-slate-600 dark:text-slate-300">
+                  Total: <b>{counts.total}</b>
+                </span>
+                <span className="rounded-full bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300 px-2.5 py-1">
+                  Final: <b>{counts.FINAL ?? 0}</b>
+                </span>
+                <span className="rounded-full bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300 px-2.5 py-1">
+                  Mid: <b>{counts.MID_TERM ?? 0}</b>
+                </span>
+                <span className="rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300 px-2.5 py-1">
+                  Class: <b>{(counts.CLASS_TEST ?? 0) + (counts.UNIT_TEST ?? 0)}</b>
+                </span>
               </div>
             </div>
           </div>
@@ -230,8 +267,22 @@ export default function ExamSchedulesPage() {
                   </option>
                 ))}
               </select>
+              {(filterExamId || filterClassId || search) && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    setSearch("");
+                    setFilterExamId("");
+                    setFilterClassId("");
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/40 dark:border-white/10 bg-white/60 dark:bg-white/5 px-3 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-white/80 dark:hover:bg-white/10"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" /> Reset
+                </motion.button>
+              )}
               <div className="text-xs text-slate-500 dark:text-slate-400">
-                Total:{" "}
+                Showing:{" "}
                 <b className="text-slate-700 dark:text-slate-300">
                   {filtered.length}
                 </b>
@@ -259,8 +310,24 @@ export default function ExamSchedulesPage() {
                   No schedules found
                 </h3>
                 <p className="mt-1 text-sm text-slate-400 dark:text-slate-500">
-                  Create exam schedules from the Exams page.
+                  {flatSchedules.length === 0
+                    ? "Create exams and add schedules from the Exams page."
+                    : "No schedules match your search filters."}
                 </p>
+                {(filterExamId || filterClassId || search) && (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      setSearch("");
+                      setFilterExamId("");
+                      setFilterClassId("");
+                    }}
+                    className="mt-4 inline-flex items-center gap-2 rounded-lg border border-white/40 dark:border-white/10 bg-white/60 dark:bg-white/5 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-white/80 dark:hover:bg-white/10"
+                  >
+                    <ArrowLeft className="h-4 w-4" /> Clear Filters
+                  </motion.button>
+                )}
               </motion.div>
             ) : (
               <div className="space-y-8">
@@ -289,65 +356,129 @@ export default function ExamSchedulesPage() {
                           <table className="w-full text-sm">
                             <thead>
                               <tr className="border-b border-slate-200 dark:border-slate-700 text-left text-xs uppercase text-slate-500 dark:text-slate-400 bg-slate-50/60 dark:bg-slate-800/40">
-                                <th className="pb-3 pt-3 font-medium pl-4 w-40">Date</th>
-                                <th className="pb-3 pt-3 font-medium w-44">Time</th>
-                                <th className="pb-3 pt-3 font-medium">Exam</th>
+                                <th className="pb-3 pt-3 font-medium pl-4 w-40">
+                                  Date
+                                </th>
+                                <th className="pb-3 pt-3 font-medium w-44">
+                                  Time
+                                </th>
+                                <th className="pb-3 pt-3 font-medium">
+                                  Exam
+                                </th>
                                 <th className="pb-3 pt-3 font-medium">Type</th>
-                                <th className="pb-3 pt-3 font-medium">Subject</th>
+                                <th className="pb-3 pt-3 font-medium">
+                                  Subject
+                                </th>
+                                <th className="pb-3 pt-3 font-medium">
+                                  Full Marks
+                                </th>
+                                <th className="pb-3 pt-3 font-medium text-right pr-4">
+                                  Details
+                                </th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                              {items.map((schedule, idx) => (
-                                <motion.tr
-                                  key={schedule.id}
-                                  initial={{ opacity: 0, x: -10 }}
-                                  animate={{ opacity: 1, x: 0 }}
-                                  transition={{
-                                    delay: groupIdx * 0.05 + idx * 0.02,
-                                  }}
-                                  className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors"
-                                >
-                                  <td className="py-3.5 pl-4 text-slate-600 dark:text-slate-300 whitespace-nowrap">
-                                    {schedule.examDate
-                                      ? new Date(
-                                          schedule.examDate,
-                                        ).toLocaleDateString("en-US", {
-                                          year: "numeric",
-                                          month: "short",
-                                          day: "numeric",
-                                        })
-                                      : "—"}
-                                  </td>
-                                  <td className="py-3.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">
-                                    {schedule.startTime && schedule.endTime
-                                      ? `${schedule.startTime} - ${schedule.endTime}`
-                                      : "—"}
-                                  </td>
-                                  <td className="py-3.5 font-medium text-slate-900 dark:text-white">
-                                    {schedule.examName}
-                                  </td>
-                                  <td className="py-3.5 whitespace-nowrap">
-                                    <span
-                                      className={`inline-flex rounded-md px-2.5 py-1.5 text-xs font-medium border ${
-                                        schedule.examType === "FINAL_EXAM" ||
-                                        schedule.examType === "FINAL"
-                                          ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/20"
-                                          : schedule.examType === "MID_TERM"
-                                            ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/20"
-                                            : "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/20"
-                                      }`}
-                                    >
-                                      {schedule.examType.replace("_", " ")}
-                                    </span>
-                                  </td>
-                                  <td className="py-3.5 text-slate-700 dark:text-slate-200">
-                                    {schedule.subjectName}
-                                  </td>
-                                </motion.tr>
-                              ))}
+                              {items.map((schedule, idx) => {
+                                const isExpanded =
+                                  expandedScheduleId === schedule.id;
+                                return (
+                                  <motion.tr
+                                    key={schedule.id}
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{
+                                      delay: groupIdx * 0.05 + idx * 0.02,
+                                    }}
+                                    className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors"
+                                  >
+                                    <td className="py-3.5 pl-4 text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                                      {schedule.examDate
+                                        ? new Date(
+                                            schedule.examDate,
+                                          ).toLocaleDateString(
+                                            "en-US",
+                                            {
+                                              year: "numeric",
+                                              month: "short",
+                                              day: "numeric",
+                                            },
+                                          )
+                                        : "—"}
+                                    </td>
+                                    <td className="py-3.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                                      {schedule.startTime &&
+                                      schedule.endTime ? (
+                                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-indigo-50 dark:bg-indigo-500/10 rounded-lg text-indigo-600 dark:text-indigo-400">
+                                          <Clock className="h-3 w-3" />
+                                          {schedule.startTime} -{" "}
+                                          {schedule.endTime}
+                                        </span>
+                                      ) : (
+                                        "—"
+                                      )}
+                                    </td>
+                                    <td className="py-3.5 font-medium text-slate-900 dark:text-white">
+                                      {schedule.examName}
+                                    </td>
+                                    <td className="py-3.5 whitespace-nowrap">
+                                      <span
+                                        className={`inline-flex rounded-md px-2.5 py-1.5 text-xs font-medium border ${
+                                          schedule.examType === "FINAL_EXAM" ||
+                                          schedule.examType === "FINAL"
+                                            ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/20"
+                                            : schedule.examType === "MID_TERM"
+                                              ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/20"
+                                              : "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/20"
+                                        }`}
+                                      >
+                                        {schedule.examType.replace("_", " ")}
+                                      </span>
+                                    </td>
+                                    <td className="py-3.5 text-slate-700 dark:text-slate-200">
+                                      {schedule.subjectName}
+                                    </td>
+                                    <td className="py-3.5 text-slate-600 dark:text-slate-300">
+                                      {schedule.fullMarks ?? "—"}
+                                    </td>
+                                    <td className="py-3.5 pr-4">
+                                      <button
+                                        onClick={() =>
+                                          toggleExpand(schedule.id)
+                                        }
+                                        className="inline-flex items-center justify-end gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:underline w-full"
+                                      >
+                                        <span className="group-open:hidden">
+                                          {isExpanded ? "Hide" : "View"}
+                                        </span>
+                                        <ChevronRight
+                                          className={`h-3.5 w-3.5 transition-transform ${
+                                            isExpanded
+                                              ? "rotate-90"
+                                              : ""
+                                          }`}
+                                        />
+                                      </button>
+                                    </td>
+                                  </motion.tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>
+
+                        {items.length > 0 && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            className="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/40 dark:bg-slate-800/20 p-4"
+                          >
+                            <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                              <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+                              Click &quot;View&quot; on any schedule row above to see
+                              detailed information.
+                            </p>
+                          </motion.div>
+                        )}
                       </motion.div>
                     );
                   },

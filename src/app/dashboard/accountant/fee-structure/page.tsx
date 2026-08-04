@@ -23,7 +23,6 @@ import { formatTaka, cn } from "@/lib/utils";
 import { useClasses } from "@/app/modules/class/useClasses";
 import { feesService } from "@/app/modules/fees/fees.service";
 import { toast } from "sonner";
-import { Skeleton } from "@/components/ui/skeleton";
 
 type FeeType = "TUITION" | "ADMISSION" | "EXAM";
 const FEE_TYPES: FeeType[] = ["TUITION", "ADMISSION", "EXAM"];
@@ -83,11 +82,13 @@ export default function FeeStructurePage() {
         ...(filterStatus ? { status: filterStatus } : {}),
         ...(filterMonth ? { month: filterMonth } : {}),
       }),
+    placeholderData: (previousData) => previousData,
   });
 
   const { data: summary } = useQuery({
     queryKey: ["fees", "summary", filterMonth],
     queryFn: () => feesService.getSummary(filterMonth ? { month: filterMonth } : undefined),
+    placeholderData: (previousData) => previousData,
   });
 
   const createMutation = useMutation({
@@ -170,15 +171,15 @@ export default function FeeStructurePage() {
   const totalPaid = fees.reduce((s, f) => s + f.paidAmount, 0);
   const totalDue = fees.reduce((s, f) => s + f.dueAmount, 0);
 
-  if (isLoading) {
+  if (isLoading && !data) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-4xl">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="bg-white dark:bg-slate-900 rounded-2xl p-5 ring-1 ring-slate-200 dark:ring-slate-800 shadow-xl space-y-3">
-              <Skeleton className="h-3 w-24 rounded-md" />
-              <Skeleton className="h-8 w-20 rounded-md" />
-              <Skeleton className="w-10 h-10 rounded-xl ml-auto" />
+              <div className="h-3 w-24 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
+              <div className="h-8 w-20 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
+              <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-xl ml-auto animate-pulse" />
             </div>
           ))}
         </div>

@@ -19,6 +19,8 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { classService } from "@/app/modules/class/class.service";
+import { subjectService } from "@/app/modules/subject/subject.service";
 
 type RowSelection = Record<string, boolean>;
 
@@ -33,6 +35,7 @@ export default function MarksApprovalPage() {
   const [selectedSubjectId, setSelectedSubjectId] = useState("");
   const [rejectReason, setRejectReason] = useState("");
   const [rowSelection, setRowSelection] = useState<RowSelection>({});
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (role && role !== "EXAM_CONTROLLER" && role !== "SCHOOL_ADMIN" && role !== "SUPER_ADMIN") {
@@ -57,6 +60,22 @@ export default function MarksApprovalPage() {
         selectedSubjectId || undefined,
       ),
     enabled: !!selectedExamId,
+  });
+
+  const { data: allClasses = [] } = useQuery({
+    queryKey: ["classes"],
+    queryFn: async () => {
+      const data = await classService.getAll();
+      return Array.isArray(data) ? data : [];
+    },
+  });
+
+  const { data: allSubjects = [] } = useQuery({
+    queryKey: ["subjects"],
+    queryFn: async () => {
+      const data = await subjectService.getAll();
+      return Array.isArray(data) ? data : [];
+    },
   });
 
   const approveMutation = useMutation({
@@ -109,27 +128,37 @@ export default function MarksApprovalPage() {
 
   const examsList = useMemo(() => Array.isArray(exams) ? exams : [], [exams]);
 
+  const selectedExam = useMemo(() => {
+    return examsList.find((e: Exam) => e.id === selectedExamId);
+  }, [examsList, selectedExamId]);
+
   const classList = useMemo(() => {
-    const unique = new Map<string, string>();
-    for (const m of pendingMarks) {
-      const cls = m.student.section.class;
-      if (!unique.has(cls.id)) unique.set(cls.id, cls.name);
-    }
-    return Array.from(unique.entries()).map(([id, name]) => ({ id, name }));
-  }, [pendingMarks]);
+    return allClasses
+      .map((c: any) => ({ id: c.id, name: c.name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [allClasses]);
 
   const subjectList = useMemo(() => {
-    const unique = new Map<string, string>();
-    for (const m of pendingMarks) {
-      if (!unique.has(m.subject.id)) unique.set(m.subject.id, m.subject.name);
-    }
-    return Array.from(unique.entries()).map(([id, name]) => ({ id, name }));
-  }, [pendingMarks]);
+    return allSubjects
+      .map((s: any) => ({ id: s.id, name: s.name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [allSubjects]);
+
+  const filteredPendingMarks = useMemo(() => {
+    if (!searchQuery.trim()) return pendingMarks;
+    const q = searchQuery.toLowerCase();
+    return pendingMarks.filter((m: PendingMark) => {
+      const studentName = m.student.name.toLowerCase();
+      const className = m.student.section.class.name.toLowerCase();
+      const subjectName = m.subject.name.toLowerCase();
+      return studentName.includes(q) || className.includes(q) || subjectName.includes(q);
+    });
+  }, [pendingMarks, searchQuery]);
 
   const selectedAll = useMemo(() => {
-    if (pendingMarks.length === 0) return false;
-    return pendingMarks.every((m) => rowSelection[m.id]);
-  }, [pendingMarks, rowSelection]);
+    if (filteredPendingMarks.length === 0) return false;
+    return filteredPendingMarks.every((m) => rowSelection[m.id]);
+  }, [filteredPendingMarks, rowSelection]);
 
   const selectedCount = useMemo(
     () => Object.keys(rowSelection).filter((id) => rowSelection[id]).length,
@@ -140,7 +169,7 @@ export default function MarksApprovalPage() {
     if (selectedAll) {
       setRowSelection({});
     } else {
-      setRowSelection(Object.fromEntries(pendingMarks.map((m) => [m.id, true])));
+      setRowSelection(Object.fromEntries(filteredPendingMarks.map((m) => [m.id, true])));
     }
   };
 
@@ -194,7 +223,7 @@ export default function MarksApprovalPage() {
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-indigo-300/10 dark:bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"
       />
 
-      <div className="relative w-full max-w-6xl my-8 space-y-6">
+      <div className="relative w-full my-8 space-y-6">
         <div className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl shadow-slate-200/40 dark:shadow-none overflow-hidden">
           <div className="relative px-6 sm:px-8 py-6 bg-gradient-to-r from-sky-50 via-indigo-50 to-violet-50 dark:from-sky-500/10 dark:via-indigo-500/10 dark:to-violet-500/10 border-b border-white/40 dark:border-white/5 overflow-hidden">
             <motion.div
@@ -279,14 +308,19 @@ export default function MarksApprovalPage() {
                     <input
                       type="text"
                       placeholder="Search student, subject, class..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
                       className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-white/5 pl-9 pr-4 py-2 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
                     />
                   </div>
                   <div className="text-xs text-slate-500 dark:text-slate-400">
                     Total:{" "}
                     <b className="text-slate-700 dark:text-slate-300">
-                      {pendingMarks.length}
+                      {filteredPendingMarks.length}
                     </b>
+                    {searchQuery.trim() && pendingMarks.length !== filteredPendingMarks.length && (
+                      <span> (filtered from {pendingMarks.length})</span>
+                    )}
                   </div>
                 </>
               )}
@@ -308,14 +342,14 @@ export default function MarksApprovalPage() {
                   <Skeleton key={i} className="h-16 w-full rounded-2xl" />
                 ))}
               </div>
-            ) : pendingMarks.length === 0 ? (
+            ) : filteredPendingMarks.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <AlertCircle className="w-10 h-10 text-indigo-400 mb-4" />
                 <h3 className="text-base font-semibold text-slate-700 dark:text-slate-200">
-                  No pending marks
+                  {searchQuery.trim() ? "No matching marks found" : "No pending marks"}
                 </h3>
                 <p className="mt-1 text-sm text-slate-400 dark:text-slate-500">
-                  All marks for this exam have been reviewed.
+                  {searchQuery.trim() ? "Try adjusting your search query." : "All marks for this exam have been reviewed."}
                 </p>
               </div>
             ) : (
@@ -340,7 +374,7 @@ export default function MarksApprovalPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                    {pendingMarks.map((mark, idx) => (
+                    {filteredPendingMarks.map((mark, idx) => (
                       <motion.tr
                         key={mark.id}
                         initial={{ opacity: 0, x: -10 }}

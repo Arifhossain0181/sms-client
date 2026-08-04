@@ -51,3 +51,19 @@ export const useUpdateAttendance = () => {
     },
   });
 };
+
+export const useMonthlyReport = (classId: string, sectionId: string, month: number, year: number) => {
+  return useQuery({
+    queryKey: ["attendance-monthly-report", classId, sectionId, month, year],
+    queryFn: () => attendanceService.getMonthlyReport(classId, sectionId, month, year),
+    enabled: Boolean(classId && sectionId && month && year),
+  });
+};
+
+export const useYearlyReport = (classId: string, sectionId: string, year: number) => {
+  return useQuery({
+    queryKey: ["attendance-yearly-report", classId, sectionId, year],
+    queryFn: () => attendanceService.getYearlyReport(classId, sectionId, year),
+    enabled: Boolean(classId && sectionId && year),
+  });
+};

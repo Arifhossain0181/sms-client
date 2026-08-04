@@ -6,7 +6,20 @@ import { useLenis } from "@/hooks/useLenis";
 import { useAuth } from "@/hooks/useAuth";
 import { examService } from "@/app/modules/exam/exam.service";
 import { useRouter } from "next/navigation";
-import { FileText, CheckCircle2, XCircle, BookOpen, Calendar, Clock, GraduationCap, Search, Users } from "lucide-react";
+import {
+  FileText,
+  CheckCircle2,
+  XCircle,
+  BookOpen,
+  Calendar,
+  Clock,
+  GraduationCap,
+  Search,
+  Users,
+  RefreshCcw,
+  AlertTriangle,
+  ChevronRight,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -62,12 +75,19 @@ export default function PublishResultsPage() {
   const [publishingId, setPublishingId] = useState<string | null>(null);
   const [confirmUnpublishId, setConfirmUnpublishId] = useState<string | null>(null);
 
-  const { data: publishableExams = [], isLoading } = useQuery({
+  const {
+    data: publishableExams = [],
+    isLoading,
+    isError,
+    refetch,
+    isRefetching,
+  } = useQuery({
     queryKey: ["exams", "publishing"],
     queryFn: async () => {
       const data = await examService.getPublishable();
       return Array.isArray(data) ? data : [];
     },
+    refetchInterval: 30_000,
   });
 
   const flatItems: FlatItem[] = useMemo(() => {
@@ -234,12 +254,39 @@ export default function PublishResultsPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950 p-4 sm:p-6">
-        <Skeleton className="h-10 w-48 mb-6" />
+        <Skeleton className="h-10 w-56 mb-6" />
         <Skeleton className="h-12 w-full mb-4" />
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-16 w-full rounded-2xl" />
           ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="relative min-h-screen flex items-start justify-center p-4 sm:p-6 overflow-hidden bg-slate-50/50 dark:bg-slate-950">
+        <div className="w-full max-w-6xl my-8">
+          <div className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl shadow-slate-200/40 dark:shadow-none p-8 text-center">
+            <AlertTriangle className="w-12 h-12 text-rose-500 mx-auto mb-4" />
+            <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-2">
+              Failed to load publishable exams
+            </h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+              Something went wrong while fetching data from the server.
+            </p>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => refetch()}
+              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 hover:bg-indigo-700 cursor-pointer"
+            >
+              <RefreshCcw className="h-4 w-4" />
+              Retry
+            </motion.button>
+          </div>
         </div>
       </div>
     );
@@ -297,6 +344,16 @@ export default function PublishResultsPage() {
                 <span className="rounded-full bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300 px-2.5 py-1">
                   Ready: <b>{(counts.DRAFT ?? 0) + (counts.UNPUBLISHED ?? 0)}</b>
                 </span>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => refetch()}
+                  disabled={isRefetching}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-white/60 dark:bg-white/10 border border-white/40 dark:border-white/10 px-2.5 py-1 text-slate-600 dark:text-slate-300 hover:bg-white/80 disabled:opacity-50 cursor-pointer"
+                  title="Refresh"
+                >
+                  <RefreshCcw className={`h-3.5 w-3.5 ${isRefetching ? "animate-spin" : ""}`} />
+                </motion.button>
               </div>
             </div>
           </div>
@@ -385,16 +442,23 @@ export default function PublishResultsPage() {
                                   {formatTimeRange(item.startTime, item.endTime)}
                                 </td>
                                 <td className="py-3.5 font-medium text-slate-900 dark:text-white">
-                                  {item.examName}
+                                  <button
+                                    onClick={() => router.push(`/dashboard/exam-controller/exams`)}
+                                    className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+                                  >
+                                    {item.examName}
+                                  </button>
                                 </td>
                                 <td className="py-3.5 whitespace-nowrap">
-                                  <span className={`inline-flex rounded-md px-2.5 py-1.5 text-xs font-medium border ${
-                                    item.examType === "FINAL" || item.examType === "FINAL_EXAM"
-                                      ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/20"
-                                      : item.examType === "MID_TERM"
-                                        ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/20"
-                                      : "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/20"
-                                  }`}>
+                                  <span
+                                    className={`inline-flex rounded-md px-2.5 py-1.5 text-xs font-medium border ${
+                                      item.examType === "FINAL" || item.examType === "FINAL_EXAM"
+                                        ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/20"
+                                        : item.examType === "MID_TERM"
+                                          ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/20"
+                                          : "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/20"
+                                    }`}
+                                  >
                                     {item.examType.replace("_", " ")}
                                   </span>
                                 </td>
@@ -427,6 +491,14 @@ export default function PublishResultsPage() {
                                     ) : (
                                       <span className="text-xs text-slate-400">Not ready</span>
                                     )}
+                                    <motion.button
+                                      whileHover={{ scale: 1.05 }}
+                                      whileTap={{ scale: 0.95 }}
+                                      onClick={() => router.push(`/dashboard/exam-controller/exams`)}
+                                      className="inline-flex items-center gap-1 rounded-lg border border-white/40 dark:border-white/10 bg-white/60 dark:bg-white/5 px-2.5 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-white/80 disabled:opacity-50"
+                                    >
+                                      <ChevronRight className="h-3.5 w-3.5" />
+                                    </motion.button>
                                   </div>
                                 </td>
                               </motion.tr>
@@ -439,47 +511,47 @@ export default function PublishResultsPage() {
                 })}
               </div>
             )}
-
-            <AnimatePresence>
-              {confirmUnpublishId && (
-                <motion.div
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 4 }}
-                  className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm"
-                >
-                  <motion.div
-                    initial={{ scale: 0.95, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.95, opacity: 0 }}
-                    className="bg-white dark:bg-[#1E293B] rounded-2xl p-6 shadow-xl w-full max-w-md border border-slate-100 dark:border-slate-800"
-                  >
-                    <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-2">Unpublish Results</h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-                      Students will no longer be able to view these results. Are you sure?
-                    </p>
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => setConfirmUnpublishId(null)}
-                        className="px-4 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={confirmUnpublish}
-                        disabled={unpublishMutation.isPending}
-                        className="px-4 py-2 text-xs font-medium bg-rose-600 text-white rounded-lg hover:bg-rose-700 disabled:opacity-50 transition-colors"
-                      >
-                        Yes, Unpublish
-                      </button>
-                    </div>
-                  </motion.div>
-                </motion.div>
-              )}
-            </AnimatePresence>
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {confirmUnpublishId && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white dark:bg-[#1E293B] rounded-2xl p-6 shadow-xl w-full max-w-md border border-slate-100 dark:border-slate-800"
+            >
+              <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-2">Unpublish Results</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+                Students will no longer be able to view these results. Are you sure?
+              </p>
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  onClick={() => setConfirmUnpublishId(null)}
+                  className="px-4 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmUnpublish}
+                  disabled={unpublishMutation.isPending}
+                  className="px-4 py-2 text-xs font-medium bg-rose-600 text-white rounded-lg hover:bg-rose-700 disabled:opacity-50 transition-colors"
+                >
+                  Yes, Unpublish
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

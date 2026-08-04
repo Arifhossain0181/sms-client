@@ -12,6 +12,7 @@ interface Props {
   trend: number;
   trendLabel?: string;
   delay?: number;
+  colorScheme?: "default" | "indigo";
 }
 
 export const StatCard = ({
@@ -23,6 +24,7 @@ export const StatCard = ({
   trend,
   trendLabel,
   delay = 0,
+  colorScheme = "default",
 }: Props) => {
   const [count, setCount] = useState(0);
 
@@ -44,21 +46,35 @@ export const StatCard = ({
 
   const positive = trend >= 0;
 
+  const isIndigo = colorScheme === "indigo";
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       whileHover={{ y: -6 }}
-      className="group relative overflow-hidden rounded-2xl gradient-card border border-border/60 p-6 shadow-soft hover:shadow-elegant transition-all duration-300"
+      className={`group relative overflow-hidden rounded-2xl border p-6 shadow-soft hover:shadow-elegant transition-all duration-300 ${
+        isIndigo
+          ? "bg-gradient-to-br from-white/80 to-slate-50/80 dark:from-slate-900/40 dark:to-slate-800/40 border-white/40 dark:border-white/10 backdrop-blur-sm"
+          : "gradient-card border-border/60"
+      }`}
     >
-      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
-        <div className="absolute -top-1/2 -right-1/2 w-full h-full rounded-full bg-primary/10 blur-3xl" />
+      <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none ${
+        isIndigo ? "" : ""
+      }`}>
+        {!isIndigo && (
+          <div className="absolute -top-1/2 -right-1/2 w-full h-full rounded-full bg-primary/10 blur-3xl" />
+        )}
       </div>
 
       <div className="relative flex items-start justify-between mb-6">
-        <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center shadow-elegant group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300">
-          <Icon className="w-6 h-6 text-white" />
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-elegant group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300 ${
+          isIndigo
+            ? "bg-gradient-to-br from-sky-400 via-indigo-400 to-violet-500 text-white shadow-md shadow-indigo-500/20"
+            : "gradient-primary"
+        }`}>
+          <Icon className={`w-6 h-6 ${isIndigo ? "text-white" : "text-white"}`} />
         </div>
         <div
           className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
@@ -79,12 +95,14 @@ export const StatCard = ({
       </h3>
       {trendLabel && <p className="relative text-xs text-muted-foreground mt-2">{trendLabel}</p>}
 
-      <div className="absolute bottom-0 left-0 right-0 h-1 bg-secondary overflow-hidden">
+      <div className={`absolute bottom-0 left-0 right-0 h-1 overflow-hidden ${
+        isIndigo ? "bg-white/40 dark:bg-white/10" : "bg-secondary"
+      }`}>
         <motion.div
           initial={{ x: "-100%" }}
           animate={{ x: "0%" }}
           transition={{ delay: delay + 0.3, duration: 1, ease: "easeOut" }}
-          className="h-full gradient-primary"
+          className={`h-full ${isIndigo ? "bg-gradient-to-r from-sky-400 via-indigo-400 to-violet-500" : "gradient-primary"}`}
         />
       </div>
     </motion.div>

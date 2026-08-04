@@ -213,6 +213,7 @@ const getNavGroups = (role: Role | null): NavGroup[] => {
             { icon: GraduationCap, label: "My Students",      href: "/dashboard/teacher/students" },
             { icon: CalendarDays,  label: "Timetable",        href: "/dashboard/timetable" },
             { icon: CalendarCheck, label: "Attendance",       href: "/dashboard/attendances" },
+            { icon: FileSpreadsheet, label: "Attendance Reports", href: "/dashboard/teacher/attendance-reports" },
           ],
         },
         {
@@ -488,14 +489,19 @@ const SidebarContent = ({ showClose, onClose }: { showClose: boolean; onClose: (
                   <Link
                     href={item.href}
                     onClick={() => showClose && onClose()}
-                    className={`relative z-10 flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-white/5 group`}
+                    aria-current={isActive ? "page" : undefined}
+                    className={`relative z-10 flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 group ${
+                      isActive
+                        ? "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.18)]"
+                        : "hover:bg-white/5 hover:translate-x-0.5"
+                    }`}
                   >
                     <Icon
                       className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-110 ${
                         isActive ? "text-white" : "text-sidebar-muted"
                       }`}
                     />
-                    <span className={isActive ? "text-white" : "text-sidebar-fg"}>
+                    <span className={`transition-colors ${isActive ? "text-white" : "text-sidebar-fg"}`}>
                       {item.label}
                     </span>
                   </Link>
