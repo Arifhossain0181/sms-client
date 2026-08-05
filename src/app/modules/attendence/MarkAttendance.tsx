@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useClasses } from "../class/useClasses";
 import { useStudents } from "../student/useStudents";
 import { useAdmissions } from "../admission/useAdmission";
@@ -7,6 +7,7 @@ import { useTakeAttendance } from "./useAttendance";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useTeachers } from "../teachers/useTeachers";
+import api from "@/lib/axios";
 
 
 
@@ -19,10 +20,14 @@ interface StudentAttendance{
 export default function MarkAttendance() {
     const {data:classes} = useClasses();
     const {data:students} = useStudents();
-    const {data:admissions} = useAdmissions();
+    const {role, user} = useAuth();
+    const {data:admissions} = useAdmissions({}, role === "SCHOOL_ADMIN");
     const {mutate:submitAttendance,isPending} = useTakeAttendance();
-    const { role } = useAuth();
     const { data: teachers } = useTeachers();
+
+    const [assignedClassIds, setAssignedClassIds] = useState<Set<string>>(new Set());
+    const [assignedSectionIds, setAssignedSectionIds] = useState<Set<string>>(new Set());
+    const [classesLoaded, setClassesLoaded] = useState(false);
 
     const [classId,setClassId] = useState("");
     const [sectionId, setSectionId] = useState("");
@@ -31,32 +36,63 @@ export default function MarkAttendance() {
 
       const [attendanceList, setAttendanceList] = useState<StudentAttendance[]>([]);
 
+      useEffect(() => {
+        if (role !== "TEACHER" || !user?.id || classesLoaded) return;
+        const loadAssigned = async () => {
+          try {
+            const res = await api.get("/teachers/me");
+            const payload = res.data?.data ?? res.data;
+            const sectionTeacher = payload?.sectionTeacher as Array<{ id: string; class?: { id: string } }> | undefined;
+            const classIds = new Set<string>();
+            const sectionIds = new Set<string>();
+            sectionTeacher?.forEach((st) => {
+              if (st.class?.id) classIds.add(st.class.id);
+              if (st.id) sectionIds.add(st.id);
+            });
+            setAssignedClassIds(classIds);
+            setAssignedSectionIds(sectionIds);
+          } catch {
+            /* ignore */
+          } finally {
+            setClassesLoaded(true);
+          }
+        };
+        loadAssigned();
+      }, [role, user?.id, classesLoaded]);
+
+      const availableClasses = role === "TEACHER"
+        ? (Array.isArray(classes) ? classes : []).filter((c) => assignedClassIds.has(c.id))
+        : (Array.isArray(classes) ? classes : []);
+
+      const availableSections = role === "TEACHER"
+        ? (Array.isArray(classes) ? classes : []).find((cls) => cls.id === classId)?.sections?.filter((s) => assignedSectionIds.has(s.id)) ?? []
+        : (Array.isArray(classes) ? classes : []).find((cls) => cls.id === classId)?.sections ?? [];
+
       // class selected korle oi class er students attendance list load hobe
       const handleClassChange = (selectedClassId:string)=>{
         setClassId(selectedClassId);
-        const selectedClass = (Array.isArray(classes) ? classes : []).find((c) => c.id === selectedClassId);
-        const nextSectionId = selectedClass?.sections?.[0]?.id ?? "";
+        const nextSectionId = availableSections[0]?.id ?? "";
         setSectionId(nextSectionId);
 
         const studentList = Array.isArray(students) ? students : [];
         const admissionList = Array.isArray(admissions) ? admissions : [];
         
-        // Get approved admissions for this class and extract emails
-        const approvedEmails = new Set(
-          admissionList
-            .filter((a) => a.targetClassId === selectedClassId && a.status === "APPROVED" && a.studentEmail)
-            .map((a) => a.studentEmail.toLowerCase())
-        );
+        let classStudents = studentList.filter((s) => s.classId === selectedClassId);
 
-        // Filter students for the selected class and who have approved admissions
-        // Sort by rollNumber
-        const classStudents = studentList
-          .filter((s) => s.classId === selectedClassId && s.email && approvedEmails.has(s.email.toLowerCase()))
-          .sort((a, b) => {
-            const rollA = parseInt(a.rollNumber || "0", 10);
-            const rollB = parseInt(b.rollNumber || "0", 10);
-            return rollA - rollB;
-          });
+        if (role === "SCHOOL_ADMIN") {
+          const approvedEmails = new Set(
+            admissionList
+              .filter((a) => a.targetClassId === selectedClassId && a.status === "APPROVED" && a.studentEmail)
+              .map((a) => a.studentEmail.toLowerCase())
+          );
+          classStudents = classStudents.filter((s) => s.email && approvedEmails.has(s.email.toLowerCase()));
+        }
+
+        classStudents.sort((a, b) => {
+          const rollA = parseInt(a.rollNumber || "0", 10);
+          const rollB = parseInt(b.rollNumber || "0", 10);
+          return rollA - rollB;
+        });
 
         setAttendanceList(
              classStudents.map((s) => ({
@@ -122,7 +158,7 @@ export default function MarkAttendance() {
             className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 dark:text-white dark:border-slate-700"
           >
             <option value="">Class select করুন</option>
-            {(Array.isArray(classes) ? classes : []).map((cls) => (
+            {availableClasses.map((cls) => (
               <option key={cls.id} value={cls.id}>
                 {cls.name} — {(cls.sections ?? []).map((section) => section.name).join(", ")}
               </option>
@@ -138,12 +174,11 @@ export default function MarkAttendance() {
             className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 dark:text-white dark:border-slate-700"
           >
             <option value="">Section select করুন</option>
-            {(Array.isArray(classes) ? classes : [])
-              .find((cls) => cls.id === classId)?.sections?.map((section) => (
-                <option key={section.id} value={section.id}>
-                  {section.name} (max {section.maxCapacity})
-                </option>
-              ))}
+            {availableSections.map((section) => (
+              <option key={section.id} value={section.id}>
+                {section.name} (max {section.maxCapacity})
+              </option>
+            ))}
           </select>
         </div>
 
@@ -252,7 +287,12 @@ export default function MarkAttendance() {
       )}
 
       {/* No class selected */}
-      {!classId && (
+      {!classId && role === "TEACHER" && availableClasses.length === 0 && classesLoaded && (
+        <div className="text-center py-20 text-gray-400 dark:text-gray-500">
+          আপনার কোনো class assign করা নেই।
+        </div>
+      )}
+      {!classId && !(role === "TEACHER" && availableClasses.length === 0 && classesLoaded) && (
         <div className="text-center py-20 text-gray-400 dark:text-gray-500">
           Class select করুন
         </div>

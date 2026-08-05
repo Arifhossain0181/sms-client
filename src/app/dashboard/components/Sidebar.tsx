@@ -220,7 +220,7 @@ const getNavGroups = (role: Role | null): NavGroup[] => {
           groupLabel: "Academics",
           items: [
             { icon: ClipboardList, label: "Exams",            href: "/dashboard/exam" },
-            { icon: ClipboardEdit, label: "Mark Results",     href: "/dashboard/result" },
+            { icon: ClipboardEdit, label: "Mark Results",     href: "/dashboard/teacher/marks" },
             { icon: BookOpen,      label: "Subjects",         href: "/dashboard/subject" },
             { icon: BookMarked,    label: "Homework",         href: "/dashboard/teacher/homework" },
           ],

@@ -13,6 +13,7 @@ import {
   Phone,
   Mail,
   MapPin,
+  ExternalLink,
   Calendar,
   Users,
   ChevronLeft,
@@ -473,7 +474,7 @@ export default function TeacherStudentsPage() {
                     ? "border-border/60"
                     : "border-red-200 dark:border-red-800/30 opacity-70"
                 }`}
-                onClick={() => setSelected(student)}
+                onClick={() => router.push(`/dashboard/teacher/students/${student.id}`)}
               >
                 <div className="flex items-center gap-3 mb-3">
                   <Avatar photo={student.photo} name={student.name} />
@@ -528,11 +529,11 @@ export default function TeacherStudentsPage() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setSelected(student);
+                      router.push(`/dashboard/teacher/students/${student.id}`);
                     }}
                     className="flex items-center gap-1 text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity"
                   >
-                    <Eye className="w-3.5 h-3.5" /> View
+                    <ExternalLink className="w-3.5 h-3.5" /> Full Profile
                   </button>
                 </div>
               </motion.div>

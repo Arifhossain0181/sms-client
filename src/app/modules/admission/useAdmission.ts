@@ -14,11 +14,12 @@ function errorMessage(err: unknown, fallback: string): string {
 }
 
 // server-side pagination — never fetches the whole table
-export function useAdmissions(query: AdmissionQuery = {}) {
+export function useAdmissions(query: AdmissionQuery = {}, enabled: boolean = true) {
   return useQuery({
     queryKey: ["admissions", query],
     queryFn: () => admissionService.getAll(query),
     placeholderData: (prev) => prev,
+    enabled,
   });
 }
 

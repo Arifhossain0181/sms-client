@@ -15,6 +15,7 @@ import {
   Users,
   Filter,
   RefreshCw,
+  FileText,
 } from "lucide-react";
 import { useMonthlyReport, useYearlyReport } from "@/app/modules/attendence/useAttendance";
 import { useClasses } from "@/app/modules/class/useClasses";
@@ -127,6 +128,56 @@ export default function TeacherAttendanceReportsPage() {
     link.download = `attendance-${reportType}-${selectedClassName || "class"}-${selectedSectionName || "section"}-${year}.csv`;
     link.click();
     URL.revokeObjectURL(url);
+  };
+
+  const exportPDF = () => {
+    if (!reportData.length) return;
+    const title = `Attendance Report — ${selectedClassName} ${selectedSectionName ? `(${selectedSectionName})` : ""} | ${reportType === "monthly" ? `${MONTHS[month - 1]} ${year}` : year}`;
+    const rows = reportData
+      .map(
+        (r) =>
+          `<tr style="border-bottom:1px solid #e2e8f0">
+            <td style="padding:8px 12px;text-align:center;font-weight:600">${r.student.rollNumber}</td>
+            <td style="padding:8px 12px">${r.student.name}</td>
+            <td style="padding:8px 12px;text-align:center">${r.total}</td>
+            <td style="padding:8px 12px;text-align:center;color:#16a34a;font-weight:600">${r.present}</td>
+            <td style="padding:8px 12px;text-align:center;color:#dc2626;font-weight:600">${r.absent}</td>
+            <td style="padding:8px 12px;text-align:center;color:#d97706;font-weight:600">${r.late}</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:700;color:${r.belowThreshold ? "#dc2626" : "#16a34a"}">${r.percentage}%</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:600;color:${r.belowThreshold ? "#dc2626" : "#16a34a"}">${r.belowThreshold ? "⚠ Below 75%" : "✓ OK"}</td>
+          </tr>`
+      )
+      .join("");
+
+    const html = `<!DOCTYPE html><html><head><title>${title}</title>
+      <style>
+        body{font-family:sans-serif;padding:24px;color:#1e293b}
+        h2{margin:0 0 4px;font-size:18px;color:#312e81}
+        p{margin:0 0 20px;font-size:13px;color:#64748b}
+        table{width:100%;border-collapse:collapse;font-size:13px}
+        thead tr{background:#6366f1;color:#fff}
+        thead th{padding:10px 12px;text-align:left;font-weight:600}
+        tbody tr:nth-child(even){background:#f8fafc}
+        @media print{body{padding:0}}
+      </style></head><body>
+      <h2>${title}</h2>
+      <p>Generated: ${new Date().toLocaleDateString("en-GB", { day:"2-digit",month:"short",year:"numeric" })} &nbsp;|&nbsp; Total students: ${reportData.length}</p>
+      <table>
+        <thead><tr>
+          <th>Roll</th><th>Student Name</th><th>Total Days</th>
+          <th>Present</th><th>Absent</th><th>Late</th>
+          <th>Attendance %</th><th>Status</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </body></html>`;
+
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); win.close(); }, 400);
   };
 
   const handleRefresh = () => {
@@ -261,6 +312,13 @@ export default function TeacherAttendanceReportsPage() {
           className="flex items-center gap-2 text-sm px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold shadow-md hover:shadow-lg transition-all disabled:opacity-40"
         >
           <Download className="w-4 h-4" /> Export CSV
+        </button>
+        <button
+          onClick={exportPDF}
+          disabled={!reportData.length}
+          className="flex items-center gap-2 text-sm px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-indigo-500 text-white font-semibold shadow-md hover:shadow-lg transition-all disabled:opacity-40"
+        >
+          <FileText className="w-4 h-4" /> Export PDF
         </button>
       </motion.div>
 
