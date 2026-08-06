@@ -8,7 +8,7 @@ export const useStudents = () => {
     const { role } = useAuth();
     
     // Only fetch if user is ADMIN or TEACHER
-    const isAllowedRole = role === 'SCHOOL_ADMIN' || role === 'TEACHER' || role === 'HR';
+    const isAllowedRole = role === 'SCHOOL_ADMIN' || role === 'TEACHER' || role === 'HR' || role === 'SUPER_ADMIN';
     
     return useQuery({
         queryKey : ["students"],

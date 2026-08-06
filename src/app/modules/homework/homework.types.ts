@@ -49,3 +49,20 @@ export interface HomeworkListResponse {
   pageSize: number;
   totalPages: number;
 }
+
+export interface EvaluationDetails {
+  homework: Homework;
+  students: {
+    id: string;
+    name: string;
+    rollNumber: number;
+    hasViewed: boolean;
+    viewedAt: string | null;
+  }[];
+  stats: {
+    totalStudents: number;
+    viewedCount: number;
+    notViewedCount: number;
+    viewPercentage: number;
+  };
+}

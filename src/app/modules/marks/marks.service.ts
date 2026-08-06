@@ -1,40 +1,13 @@
 import api from "@/lib/axios";
-
-export type PendingMark = {
-  id: string;
-  examId: string;
-  studentId: string;
-  subjectId: string;
-  marksObtained: number;
-  status: string;
-  rejectReason?: string | null;
-  createdAt: string;
-  student: {
-    id: string;
-    studentId?: string;
-    name: string;
-    section: {
-      name: string;
-      class: {
-        id: string;
-        name: string;
-      };
-    };
-  };
-  subject: {
-    id: string;
-    name: string;
-    fullMarks: number;
-    passMarks: number;
-  };
-  teacher?: {
-    id: string;
-    name: string;
-  };
-};
+import {
+  MarkEntry,
+  TeacherExam,
+  TeacherMarksResponse,
+  SubmitExamMarksPayload,
+} from "./marks.types";
 
 export const marksService = {
-  listPending: async (examId: string, classId?: string, subjectId?: string): Promise<PendingMark[]> => {
+  listPending: async (examId: string, classId?: string, subjectId?: string): Promise<MarkEntry[]> => {
     const res = await api.get(`/exams/${examId}/marks/pending`, {
       params: {
         ...(classId && classId !== "all" ? { classId } : {}),
@@ -53,6 +26,21 @@ export const marksService = {
 
   reject: async (examId: string, entries: Array<{ studentId: string; subjectId: string }>, reason: string) => {
     const res = await api.post(`/exams/${examId}/marks/reject`, { entries, reason });
+    return res.data?.data ?? res.data;
+  },
+
+  getTeacherExams: async (): Promise<TeacherExam[]> => {
+    const res = await api.get("/exams/teacher/my-exams");
+    return res.data?.data ?? res.data;
+  },
+
+  getTeacherMarksForExam: async (examId: string): Promise<TeacherMarksResponse> => {
+    const res = await api.get(`/exams/${examId}/teacher/my-marks`);
+    return res.data?.data ?? res.data;
+  },
+
+  submitExamMarks: async (examId: string, payload: SubmitExamMarksPayload) => {
+    const res = await api.post(`/exams/${examId}/marks`, payload);
     return res.data?.data ?? res.data;
   },
 };

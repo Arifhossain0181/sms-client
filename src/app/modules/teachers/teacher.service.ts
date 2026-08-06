@@ -35,6 +35,11 @@ export const teacherService = {
     return res.data?.data ?? res.data;
   },
 
+  getMyProfile: async (): Promise<Teacher> => {
+    const res = await api.get("/teachers/me");
+    return res.data?.data ?? res.data;
+  },
+
   delete: async (id: string): Promise<void> => {
     await api.delete(`/teachers/${id}`);
   },

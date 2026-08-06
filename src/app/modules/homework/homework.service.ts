@@ -1,5 +1,5 @@
 import api from "@/lib/axios";
-import { CreateHomeworkPayload, Homework, HomeworkListResponse, UpdateHomeworkPayload } from "./homework.types";
+import { CreateHomeworkPayload, EvaluationDetails, Homework, HomeworkListResponse, UpdateHomeworkPayload } from "./homework.types";
 
 export const homeworkService = {
   listMine: async (params?: { sectionId?: string; subjectId?: string; status?: string; page?: number; pageSize?: number }): Promise<HomeworkListResponse> => {
@@ -35,6 +35,11 @@ export const homeworkService = {
 
   markReviewed: async (id: string): Promise<Homework> => {
     const res = await api.patch(`/homework/${id}/review`);
+    return res.data?.data ?? res.data;
+  },
+
+  getEvaluationDetails: async (homeworkId: string): Promise<EvaluationDetails> => {
+    const res = await api.get(`/homework/${homeworkId}/evaluate`);
     return res.data?.data ?? res.data;
   },
 

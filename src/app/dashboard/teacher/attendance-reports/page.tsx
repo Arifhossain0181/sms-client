@@ -1,429 +1,975 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useLenis } from "@/hooks/useLenis";
-import { useAuth } from "@/hooks/useAuth";
-import api from "@/lib/axios";
-import { motion } from "framer-motion";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
 import {
-  CalendarRange,
+  BarChart3,
+  CalendarDays,
+  ChevronDown,
+  FileDown,
   FileSpreadsheet,
-  Download,
-  AlertTriangle,
-  CheckCircle2,
-  Clock,
-  Users,
-  Filter,
+  Loader2,
   RefreshCw,
-  FileText,
+  Search,
+  Sparkles,
+  TrendingDown,
+  TrendingUp,
+  Trophy,
+  Users,
+  XCircle,
 } from "lucide-react";
-import { useMonthlyReport, useYearlyReport } from "@/app/modules/attendence/useAttendance";
+import { toast } from "sonner";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+
+import api from "@/lib/axios";
+import { useAuth } from "@/hooks/useAuth";
 import { useClasses } from "@/app/modules/class/useClasses";
+import { useTeachers } from "@/app/modules/teachers/useTeachers";
+import { attendanceService } from "@/app/modules/attendence/attendance.service";
+import {
+  AttendanceReportRow,
+  AttendanceStatus,
+} from "@/app/modules/attendence/attendance.types";
+import {
+  useMonthlyReport,
+  useYearlyReport,
+} from "@/app/modules/attendence/useAttendance";
 
-type ReportType = "monthly" | "yearly";
-
-type AssignedClass = {
+type TeacherProfile = {
   id: string;
-  name: string;
-  sections?: Array<{ id: string; name: string }>;
+  name?: string;
+  sectionTeacher?: Array<{
+    id: string;
+    class?: { id: string; name: string };
+  }>;
 };
 
-type ReportRow = {
-  student: { id: string; name: string; rollNumber: number };
-  present: number;
-  absent: number;
-  late: number;
-  total: number;
-  percentage: number;
-  belowThreshold: boolean;
-};
+type TabType = "monthly" | "yearly";
 
 const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
-export default function TeacherAttendanceReportsPage() {
-  useLenis();
-  const { user } = useAuth();
-  const { data: classes } = useClasses();
+const CURRENT_YEAR = new Date().getFullYear();
+const YEARS = Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - 2 + i);
 
-  const [assignedClasses, setAssignedClasses] = useState<AssignedClass[]>([]);
-  const [reportType, setReportType] = useState<ReportType>("monthly");
-  const [classId, setClassId] = useState("");
-  const [sectionId, setSectionId] = useState("");
-  const [month, setMonth] = useState(new Date().getMonth() + 1);
-  const [year, setYear] = useState(new Date().getFullYear());
-  const [loadingClasses, setLoadingClasses] = useState(true);
+const ATTENDANCE_THRESHOLD = 75;
 
-  useEffect(() => {
-    if (!user?.id) return;
-    const loadClasses = async () => {
-      try {
-        const res = await api.get("/teachers/me");
-        const payload = res.data?.data ?? res.data;
-        const sections = payload?.sectionTeacher as Array<{ class: AssignedClass }> | undefined;
-        const classMap = new Map<string, AssignedClass>();
-        sections?.forEach((st) => {
-          if (st.class?.id) {
-            const existing = classMap.get(st.class.id);
-            if (!existing) {
-              classMap.set(st.class.id, { id: st.class.id, name: st.class.name, sections: [] });
-            }
-          }
-        });
-        setAssignedClasses(Array.from(classMap.values()));
-      } catch {
-        /* ignore */
-      } finally {
-        setLoadingClasses(false);
-      }
-    };
-    loadClasses();
-  }, [user?.id]);
+function getPercentageColor(pct: number) {
+  if (pct >= ATTENDANCE_THRESHOLD) return "text-emerald-600 dark:text-emerald-300";
+  return "text-rose-600 dark:text-rose-300";
+}
 
-  const availableSections = useMemo(() => {
-    const cls = (Array.isArray(classes) ? classes : []).find((c) => c.id === classId);
-    return cls?.sections ?? [];
-  }, [classes, classId]);
+function getProgressColor(pct: number) {
+  if (pct >= ATTENDANCE_THRESHOLD) return "bg-emerald-500";
+  if (pct >= 50) return "bg-amber-500";
+  return "bg-rose-500";
+}
 
-  const { data: monthlyData, isLoading: monthlyLoading, refetch: refetchMonthly } = useMonthlyReport(
-    classId, sectionId, month, year
-  );
-  const { data: yearlyData, isLoading: yearlyLoading, refetch: refetchYearly } = useYearlyReport(
-    classId, sectionId, year
-  );
+function downloadCSV(rows: AttendanceReportRow[], filename: string) {
+  if (!rows.length) {
+    toast.error("No data to export");
+    return;
+  }
 
-  const reportData = useMemo<ReportRow[]>(() => {
-    if (reportType === "monthly") return (monthlyData as ReportRow[] | undefined) ?? [];
-    return (yearlyData as ReportRow[] | undefined) ?? [];
-  }, [reportType, monthlyData, yearlyData]);
-
-  const isLoading = reportType === "monthly" ? monthlyLoading : yearlyLoading;
-  const refetch = reportType === "monthly" ? refetchMonthly : refetchYearly;
-
-  const selectedClassName = useMemo(() => {
-    const fromAssigned = assignedClasses.find((c) => c.id === classId)?.name;
-    const fromAll = (Array.isArray(classes) ? classes : []).find((c) => c.id === classId)?.name;
-    return fromAssigned || fromAll || "";
-  }, [assignedClasses, classes, classId]);
-
-  const selectedSectionName = useMemo(() => {
-    return availableSections.find((s) => s.id === sectionId)?.name ?? "";
-  }, [availableSections, sectionId]);
-
-  const exportCSV = () => {
-    if (!reportData.length) return;
-    const header = "Roll No,Student Name,Total Days,Present,Absent,Late,Attendance %,Status\n";
-    const rows = reportData
-      .map(
-        (r) =>
-          `${r.student.rollNumber},"${r.student.name}",${r.total},${r.present},${r.absent},${r.late},${r.percentage}%,${r.belowThreshold ? "Below 75%" : "OK"}`
-      )
-      .join("\n");
-    const blob = new Blob([header + rows], { type: "text/csv;chars=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `attendance-${reportType}-${selectedClassName || "class"}-${selectedSectionName || "section"}-${year}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const exportPDF = () => {
-    if (!reportData.length) return;
-    const title = `Attendance Report — ${selectedClassName} ${selectedSectionName ? `(${selectedSectionName})` : ""} | ${reportType === "monthly" ? `${MONTHS[month - 1]} ${year}` : year}`;
-    const rows = reportData
-      .map(
-        (r) =>
-          `<tr style="border-bottom:1px solid #e2e8f0">
-            <td style="padding:8px 12px;text-align:center;font-weight:600">${r.student.rollNumber}</td>
-            <td style="padding:8px 12px">${r.student.name}</td>
-            <td style="padding:8px 12px;text-align:center">${r.total}</td>
-            <td style="padding:8px 12px;text-align:center;color:#16a34a;font-weight:600">${r.present}</td>
-            <td style="padding:8px 12px;text-align:center;color:#dc2626;font-weight:600">${r.absent}</td>
-            <td style="padding:8px 12px;text-align:center;color:#d97706;font-weight:600">${r.late}</td>
-            <td style="padding:8px 12px;text-align:center;font-weight:700;color:${r.belowThreshold ? "#dc2626" : "#16a34a"}">${r.percentage}%</td>
-            <td style="padding:8px 12px;text-align:center;font-weight:600;color:${r.belowThreshold ? "#dc2626" : "#16a34a"}">${r.belowThreshold ? "⚠ Below 75%" : "✓ OK"}</td>
-          </tr>`
-      )
-      .join("");
-
-    const html = `<!DOCTYPE html><html><head><title>${title}</title>
-      <style>
-        body{font-family:sans-serif;padding:24px;color:#1e293b}
-        h2{margin:0 0 4px;font-size:18px;color:#312e81}
-        p{margin:0 0 20px;font-size:13px;color:#64748b}
-        table{width:100%;border-collapse:collapse;font-size:13px}
-        thead tr{background:#6366f1;color:#fff}
-        thead th{padding:10px 12px;text-align:left;font-weight:600}
-        tbody tr:nth-child(even){background:#f8fafc}
-        @media print{body{padding:0}}
-      </style></head><body>
-      <h2>${title}</h2>
-      <p>Generated: ${new Date().toLocaleDateString("en-GB", { day:"2-digit",month:"short",year:"numeric" })} &nbsp;|&nbsp; Total students: ${reportData.length}</p>
-      <table>
-        <thead><tr>
-          <th>Roll</th><th>Student Name</th><th>Total Days</th>
-          <th>Present</th><th>Absent</th><th>Late</th>
-          <th>Attendance %</th><th>Status</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </body></html>`;
-
-    const win = window.open("", "_blank");
-    if (!win) return;
-    win.document.write(html);
-    win.document.close();
-    win.focus();
-    setTimeout(() => { win.print(); win.close(); }, 400);
-  };
-
-  const handleRefresh = () => {
-    if (classId && sectionId) refetch();
-  };
-
-  const tabs: { key: ReportType; label: string; icon: typeof CalendarRange }[] = [
-    { key: "monthly", label: "Monthly Report", icon: CalendarRange },
-    { key: "yearly", label: "Yearly Report", icon: FileSpreadsheet },
+  const headers = [
+    "Roll",
+    "Student Name",
+    "Present",
+    "Absent",
+    "Late",
+    "Total",
+    "Percentage",
+    "Status",
+  ];
+  const csvRows = [
+    headers.join(","),
+    ...rows.map((row) => {
+      const status =
+        row.percentage >= ATTENDANCE_THRESHOLD ? "Good" : "Below Threshold";
+      return [
+        row.student.rollNumber,
+        `"${row.student.name.replace(/"/g, '""')}"`,
+        row.present,
+        row.absent,
+        row.late,
+        row.total,
+        `${row.percentage}%`,
+        status,
+      ].join(",");
+    }),
   ];
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between flex-wrap gap-3"
-      >
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Attendance Reports</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Monthly and yearly attendance summaries for your assigned classes.
-          </p>
-        </div>
-        <button
-          onClick={handleRefresh}
-          disabled={!classId || !sectionId}
-          className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl border border-border hover:bg-secondary transition-colors disabled:opacity-40"
-        >
-          <RefreshCw className="w-4 h-4" /> Refresh
-        </button>
-      </motion.div>
+  const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+  toast.success("CSV exported successfully");
+}
 
-      {/* Tabs */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.05 }}
-        className="flex gap-1 bg-secondary/60 p-1 rounded-xl w-fit"
-      >
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = reportType === tab.key;
-          return (
-            <button
-              key={tab.key}
-              onClick={() => setReportType(tab.key)}
-              className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                isActive
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {isActive && (
-                <motion.div
-                  layoutId="report-tab-bg"
-                  className="absolute inset-0 rounded-lg bg-background shadow-sm"
-                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                />
-              )}
-              <span className="relative z-10 flex items-center gap-2">
-                <Icon className="h-4 w-4" />
-                {tab.label}
-              </span>
-            </button>
-          );
-        })}
-      </motion.div>
+function buildPDF(opts: {
+  rows: AttendanceReportRow[];
+  className: string;
+  sectionName: string;
+  tab: TabType;
+  month?: number;
+  year: number;
+  avg: number;
+  good: number;
+  below: number;
+  total: number;
+}) {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
 
-      {/* Filters */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.1 }}
-        className="flex flex-col sm:flex-row gap-3 flex-wrap"
-      >
-        <div className="flex items-center gap-2 min-w-[200px]">
-          <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
-          <select
-            value={classId}
-            onChange={(e) => { setClassId(e.target.value); setSectionId(""); }}
-            className="text-sm border border-border rounded-xl px-3 py-2.5 bg-background focus:outline-none focus:ring-2 focus:ring-ring flex-1"
-          >
-            <option value="">Select Class</option>
-            {(Array.isArray(assignedClasses) ? assignedClasses : []).map((cls) => (
-              <option key={cls.id} value={cls.id}>{cls.name}</option>
-            ))}
-            {!loadingClasses && assignedClasses.length === 0 && (
-              <option value="" disabled>No assigned classes</option>
-            )}
-          </select>
-        </div>
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.text("Attendance Report", pageWidth / 2, 16, { align: "center" });
 
-        <select
-          value={sectionId}
-          onChange={(e) => setSectionId(e.target.value)}
-          disabled={!classId}
-          className="text-sm border border-border rounded-xl px-3 py-2.5 bg-background focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 min-w-[180px]"
-        >
-          <option value="">Select Section</option>
-          {availableSections.map((sec) => (
-            <option key={sec.id} value={sec.id}>{sec.name}</option>
-          ))}
-        </select>
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text(
+    `${opts.className} | Section: ${opts.sectionName}`,
+    pageWidth / 2,
+    24,
+    { align: "center" }
+  );
+  doc.text(
+    opts.tab === "monthly"
+      ? `${MONTHS[opts.month ?? 0]} ${opts.year}`
+      : `Year ${opts.year}`,
+    pageWidth / 2,
+    30,
+    { align: "center" }
+  );
 
-        {reportType === "monthly" && (
-          <select
-            value={month}
-            onChange={(e) => setMonth(Number(e.target.value))}
-            className="text-sm border border-border rounded-xl px-3 py-2.5 bg-background focus:outline-none focus:ring-2 focus:ring-ring min-w-[160px]"
-          >
-            {MONTHS.map((m, i) => (
-              <option key={m} value={i + 1}>{m}</option>
-            ))}
-          </select>
-        )}
+  doc.text(
+    `Generated on ${new Date().toLocaleDateString()}`,
+    pageWidth / 2,
+    36,
+    { align: "center" }
+  );
 
-        <select
-          value={year}
-          onChange={(e) => setYear(Number(e.target.value))}
-          className="text-sm border border-border rounded-xl px-3 py-2.5 bg-background focus:outline-none focus:ring-2 focus:ring-ring min-w-[140px]"
-        >
-          {[year - 1, year, year + 1].map((y) => (
-            <option key={y} value={y}>{y}</option>
-          ))}
-        </select>
+  const tableBody = opts.rows.map((row) => [
+    String(row.student.rollNumber),
+    row.student.name,
+    String(row.present),
+    String(row.absent),
+    String(row.late),
+    String(row.total),
+    `${row.percentage}%`,
+    row.percentage >= ATTENDANCE_THRESHOLD ? "Good" : "Below Threshold",
+  ]);
 
-        <button
-          onClick={exportCSV}
-          disabled={!reportData.length}
-          className="flex items-center gap-2 text-sm px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold shadow-md hover:shadow-lg transition-all disabled:opacity-40"
-        >
-          <Download className="w-4 h-4" /> Export CSV
-        </button>
-        <button
-          onClick={exportPDF}
-          disabled={!reportData.length}
-          className="flex items-center gap-2 text-sm px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-indigo-500 text-white font-semibold shadow-md hover:shadow-lg transition-all disabled:opacity-40"
-        >
-          <FileText className="w-4 h-4" /> Export PDF
-        </button>
-      </motion.div>
+  autoTable(doc, {
+    startY: 44,
+    head: [
+      ["Roll", "Student Name", "Present", "Absent", "Late", "Total", "Percentage", "Status"],
+    ],
+    body: tableBody,
+    theme: "grid",
+    styles: { fontSize: 9, cellPadding: 4 },
+    headStyles: {
+      fillColor: [79, 70, 229],
+      textColor: 255,
+      fontSize: 9,
+      fontStyle: "bold",
+    },
+    alternateRowStyles: {
+      fillColor: [248, 250, 252],
+    },
+    columnStyles: {
+      6: { cellWidth: 22 },
+    },
+  });
 
-      {/* Report content */}
-      {!classId || !sectionId ? (
+  const finalY = (doc as any).lastAutoTable.finalY + 10;
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.text("Summary", 14, finalY);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text(`Average Attendance: ${opts.avg}%`, 14, finalY + 7);
+  doc.text(`Good Standing: ${opts.good}`, 14, finalY + 13);
+  doc.text(`Below Threshold: ${opts.below}`, 14, finalY + 19);
+  doc.text(`Total Students: ${opts.total}`, 14, finalY + 25);
+
+  const filename =
+    opts.tab === "monthly"
+      ? `attendance-${MONTHS[opts.month ?? 0].toLowerCase()}-${opts.year}.pdf`
+      : `attendance-yearly-${opts.year}.pdf`;
+  doc.save(filename);
+  toast.success("PDF exported successfully");
+}
+
+export default function Page() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const { role } = useAuth();
+  const { data: classes, isLoading: classesLoading } = useClasses();
+  const { data: teachers } = useTeachers();
+
+  const [profile, setProfile] = useState<TeacherProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<TabType>("monthly");
+
+  const [classId, setClassId] = useState("");
+  const [sectionId, setSectionId] = useState("");
+  const [month, setMonth] = useState<number>(new Date().getMonth());
+  const [year, setYear] = useState<number>(CURRENT_YEAR);
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    if (role && role !== "TEACHER" && role !== "SUPER_ADMIN" && role !== "SCHOOL_ADMIN") {
+      router.replace("/dashboard");
+    }
+  }, [role, router]);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        setProfileLoading(true);
+        const res = await api.get("/teachers/me");
+        const payload = res.data?.data ?? res.data;
+        setProfile(payload ?? null);
+      } catch {
+        setProfile(null);
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+
+    if (role === "TEACHER" || role === "SCHOOL_ADMIN" || role === "SUPER_ADMIN") {
+      loadProfile();
+    } else {
+      setProfileLoading(false);
+    }
+  }, [role]);
+
+  const assignedClassIds = useMemo(() => {
+    return new Set(profile?.sectionTeacher?.map((entry) => entry.class?.id).filter(Boolean) as string[]);
+  }, [profile]);
+
+  const availableClasses = useMemo(() => {
+    const list = Array.isArray(classes) ? classes : [];
+    if (role === "TEACHER") {
+      if (assignedClassIds.size > 0) {
+        return list.filter((cls) => assignedClassIds.has(cls.id));
+      }
+      return [];
+    }
+    return list;
+  }, [classes, assignedClassIds, role]);
+
+  const selectedClass = useMemo(
+    () => availableClasses.find((cls) => cls.id === classId),
+    [availableClasses, classId]
+  );
+
+  const availableSections = useMemo(() => {
+    const sections = selectedClass?.sections ?? [];
+    if (role === "TEACHER") {
+      const assignedSectionIds = new Set(
+        profile?.sectionTeacher?.map((entry) => entry.id).filter(Boolean) as string[]
+      );
+      if (assignedSectionIds.size > 0) {
+        return sections.filter((section) => assignedSectionIds.has(section.id));
+      }
+      return [];
+    }
+    return sections;
+  }, [profile, role, selectedClass]);
+
+  useEffect(() => {
+    if (!availableClasses.length) return;
+    if (!classId || !availableClasses.some((cls) => cls.id === classId)) {
+      setClassId(availableClasses[0].id);
+    }
+  }, [availableClasses, classId]);
+
+  useEffect(() => {
+    if (!availableSections.length) {
+      setSectionId("");
+      return;
+    }
+    if (!sectionId || !availableSections.some((section) => section.id === sectionId)) {
+      setSectionId(availableSections[0].id);
+    }
+  }, [availableSections, sectionId]);
+
+  const monthlyQuery = useMonthlyReport(classId, sectionId, month + 1, year);
+  const yearlyQuery = useYearlyReport(classId, sectionId, year);
+
+  const reportData = activeTab === "monthly" ? monthlyQuery.data : yearlyQuery.data;
+  const isLoading =
+    profileLoading ||
+    classesLoading ||
+    (activeTab === "monthly" ? monthlyQuery.isLoading : yearlyQuery.isLoading);
+
+  const filteredRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q || !reportData) return reportData ?? [];
+    return reportData.filter(
+      (row) =>
+        row.student.name.toLowerCase().includes(q) ||
+        String(row.student.rollNumber).includes(q)
+    );
+  }, [reportData, search]);
+
+  const summaryStats = useMemo(() => {
+    const rows = filteredRows;
+    if (!rows.length) return { avg: 0, good: 0, below: 0, total: 0 };
+    const total = rows.length;
+    const avg = Math.round(
+      rows.reduce((sum, r) => sum + r.percentage, 0) / total
+    );
+    const good = rows.filter((r) => r.percentage >= ATTENDANCE_THRESHOLD).length;
+    const below = total - good;
+    return { avg, good, below, total };
+  }, [filteredRows]);
+
+  const handleRefresh = () => {
+    if (activeTab === "monthly") {
+      queryClient.invalidateQueries({
+        queryKey: ["attendance-monthly-report", classId, sectionId, month + 1, year],
+      });
+    } else {
+      queryClient.invalidateQueries({
+        queryKey: ["attendance-yearly-report", classId, sectionId, year],
+      });
+    }
+    toast.success("Data refreshed");
+  };
+
+  const handleExport = () => {
+    const filename =
+      activeTab === "monthly"
+        ? `attendance-monthly-${MONTHS[month].toLowerCase()}-${year}.csv`
+        : `attendance-yearly-${year}.csv`;
+    downloadCSV(filteredRows, filename);
+  };
+
+  const handlePDF = () => {
+    if (!filteredRows.length) {
+      toast.error("No data to export");
+      return;
+    }
+    buildPDF({
+      rows: filteredRows,
+      className: selectedClass?.name ?? "Class",
+      sectionName: availableSections.find((s) => s.id === sectionId)?.name ?? "Section",
+      tab: activeTab,
+      month,
+      year,
+      avg: summaryStats.avg,
+      good: summaryStats.good,
+      below: summaryStats.below,
+      total: summaryStats.total,
+    });
+  };
+
+  const canFetch = Boolean(classId && sectionId);
+
+  if (isLoading && !reportData) {
+    return (
+      <div className="relative min-h-[80vh] flex items-center justify-center p-4 overflow-hidden bg-slate-50/50 dark:bg-slate-950 rounded-3xl">
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center py-20 rounded-2xl border border-border/60 bg-card/80"
-        >
-          <CalendarRange className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-          <p className="text-muted-foreground">Select a class and section to view attendance reports.</p>
-        </motion.div>
-      ) : isLoading ? (
-        <div className="rounded-2xl border border-border/60 bg-card/80 p-6">
-          <div className="space-y-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-10 rounded-xl bg-muted/60 animate-pulse" />
-            ))}
+          animate={{ x: [0, 40, 0], y: [0, -30, 0] }}
+          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-10 -left-32 w-[500px] h-[500px] bg-sky-300/20 dark:bg-sky-500/10 rounded-full blur-3xl pointer-events-none"
+        />
+        <motion.div
+          animate={{ x: [0, -30, 0], y: [0, 40, 0] }}
+          transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute bottom-10 -right-32 w-[600px] h-[600px] bg-violet-300/20 dark:bg-violet-500/10 rounded-full blur-3xl pointer-events-none"
+        />
+        <div className="relative w-full">
+          <div className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl p-8 space-y-4">
+            <div className="h-8 w-1/3 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse" />
+            <div className="h-4 w-1/2 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse" />
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-24 bg-slate-200/60 dark:bg-slate-700/40 rounded-2xl animate-pulse" />
+              ))}
+            </div>
+            <div className="space-y-3 mt-6">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-20 bg-slate-200/50 dark:bg-slate-700/30 rounded-2xl animate-pulse" />
+              ))}
+            </div>
           </div>
         </div>
-      ) : reportData.length === 0 ? (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center py-20 rounded-2xl border border-border/60 bg-card/80"
-        >
-          <Users className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-          <p className="text-muted-foreground">No attendance records found for this selection.</p>
-        </motion.div>
-      ) : (
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative min-h-[80vh] flex items-start sm:items-center p-4 sm:p-6 overflow-hidden bg-slate-50/50 dark:bg-slate-950 rounded-3xl">
+      {/* Animated background orbs */}
+      <motion.div
+        animate={{ x: [0, 40, 0], y: [0, -30, 0] }}
+        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-10 -left-32 w-[500px] h-[500px] bg-sky-300/20 dark:bg-sky-500/10 rounded-full blur-3xl pointer-events-none"
+      />
+      <motion.div
+        animate={{ x: [0, -30, 0], y: [0, 40, 0] }}
+        transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute bottom-10 -right-32 w-[600px] h-[600px] bg-violet-300/20 dark:bg-violet-500/10 rounded-full blur-3xl pointer-events-none"
+      />
+      <motion.div
+        animate={{ scale: [1, 1.2, 1] }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-indigo-300/10 dark:bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"
+      />
+
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 100, damping: 20 }}
+        className="relative w-full my-6"
+      >
+        <div className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl shadow-slate-200/40 dark:shadow-none overflow-hidden">
+          <div className="relative px-6 sm:px-8 py-6 bg-gradient-to-r from-sky-50 via-indigo-50 to-violet-50 dark:from-sky-500/10 dark:via-indigo-500/10 dark:to-violet-500/10 border-b border-white/40 dark:border-white/5 overflow-hidden">
+            <motion.div
+              animate={{ x: [0, 100, 0] }}
+              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent pointer-events-none"
+            />
+
+            <div className="relative flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <motion.div
+                  whileHover={{ scale: 1.08, rotate: 4 }}
+                  className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-400 via-indigo-400 to-violet-500 shadow-lg shadow-indigo-500/30 flex items-center justify-center cursor-pointer"
+                >
+                  <FileSpreadsheet className="w-6 h-6 text-white" />
+                  <motion.div
+                    className="absolute inset-0 rounded-2xl border-2 border-white/40 dark:border-white/20"
+                    animate={{ scale: [1, 1.12, 1], opacity: [0.6, 0, 0.6] }}
+                    transition={{ duration: 2.4, repeat: Infinity }}
+                  />
+                </motion.div>
+                <div>
+                  <h1 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                    Attendance Reports
+                    <Sparkles className="w-4 h-4 text-indigo-400" />
+                  </h1>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                    Monthly and yearly attendance summaries of your students.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4 sm:p-6 space-y-5">
+
+      {/* Filters Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+        className="rounded-3xl border border-white/40 dark:border-white/10 bg-white/65 dark:bg-white/5 backdrop-blur-sm p-4 sm:p-6 shadow-sm"
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+              Class
+            </label>
+            <div className="relative">
+              <select
+                value={classId}
+                onChange={(e) => {
+                  setClassId(e.target.value);
+                  const next = availableClasses.find((cls) => cls.id === e.target.value);
+                  setSectionId(next?.sections?.[0]?.id ?? "");
+                }}
+               className="w-full appearance-none rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-3 pr-10 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
+               >
+                 <option value="">Select class</option>
+                {availableClasses.map((cls) => (
+                  <option key={cls.id} value={cls.id}>
+                    {cls.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+              Section
+            </label>
+            <div className="relative">
+              <select
+                value={sectionId}
+                onChange={(e) => setSectionId(e.target.value)}
+               className="w-full appearance-none rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-3 pr-10 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
+               >
+                 <option value="">Select section</option>
+                {availableSections.map((section) => (
+                  <option key={section.id} value={section.id}>
+                    {section.name} {section.maxCapacity ? `(max ${section.maxCapacity})` : ""}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+              {activeTab === "monthly" ? "Month" : "Year"}
+            </label>
+            {activeTab === "monthly" ? (
+              <div className="relative">
+                <select
+                  value={month}
+                  onChange={(e) => setMonth(Number(e.target.value))}
+                 className="w-full appearance-none rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-3 pr-10 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
+                 >
+                   {MONTHS.map((m, idx) => (
+                    <option key={m} value={idx}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              </div>
+            ) : (
+              <div className="relative">
+                <select
+                  value={year}
+                  onChange={(e) => setYear(Number(e.target.value))}
+                 className="w-full appearance-none rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-3 pr-10 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
+                 >
+                   {YEARS.map((y) => (
+                    <option key={y} value={y}>
+                      {y}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+              Year
+            </label>
+            <div className="relative">
+              <select
+                value={year}
+                onChange={(e) => setYear(Number(e.target.value))}
+                 className="w-full appearance-none rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-3 pr-10 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
+              >
+                {YEARS.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            </div>
+          </div>
+        </div>
+
+        {/* Tabs & Actions */}
+        <div className="mt-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="inline-flex rounded-2xl border border-white/40 dark:border-white/10 bg-white/65 dark:bg-white/5 p-1">
+            {([
+              { key: "monthly" as TabType, label: "Monthly Report", icon: CalendarDays },
+              { key: "yearly" as TabType, label: "Yearly Report", icon: BarChart3 },
+            ]).map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`relative inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
+                    isActive
+                      ? "text-white"
+                      : "text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-white/5"
+                  }`}
+                >
+                  {isActive && (
+                    <motion.span
+                      layoutId="reportTab"
+                      className="absolute inset-0 rounded-xl bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 shadow-lg shadow-indigo-500/30"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  <span className="relative flex items-center gap-2">
+                    <Icon className="w-4 h-4" />
+                    {tab.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleRefresh}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-white/40 dark:border-white/10 bg-white/65 dark:bg-white/5 px-4 py-2.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-white/90 dark:hover:bg-white/10 transition-colors"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Refresh
+            </button>
+            <button
+              onClick={handleExport}
+              disabled={!filteredRows.length}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-white/40 dark:border-white/10 bg-white/65 dark:bg-white/5 px-4 py-2.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-white/90 dark:hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              Export CSV
+            </button>
+            <button
+              onClick={handlePDF}
+              disabled={!filteredRows.length}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-white/40 dark:border-white/10 bg-white/65 dark:bg-white/5 px-4 py-2.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-white/90 dark:hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <FileDown className="w-3.5 h-3.5" />
+              Export PDF
+            </button>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Stats Overview */}
+      {filteredRows.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl border border-border/60 bg-card/80 shadow-soft overflow-hidden"
-        >
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-secondary/40 border-b border-border/60">
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Roll No.</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Student Name</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wide">Total Days</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wide">Present</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wide">Absent</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wide">Late</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wide">Attendance %</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</th>
+          transition={{ delay: 0.1 }}
+         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+         >
+           {[
+             {
+               label: "Average Attendance",
+               value: `${summaryStats.avg}%`,
+               icon: TrendingUp,
+               tint: "from-sky-400 to-indigo-500",
+             },
+             {
+               label: "Good Standing",
+               value: `${summaryStats.good}`,
+               sub: `of ${summaryStats.total} students`,
+               icon: Trophy,
+               tint: "from-emerald-400 to-green-500",
+             },
+             {
+               label: "Below Threshold",
+               value: `${summaryStats.below}`,
+               sub: `< ${ATTENDANCE_THRESHOLD}%`,
+               icon: TrendingDown,
+               tint: "from-rose-400 to-red-500",
+             },
+             {
+               label: "Total Students",
+               value: `${summaryStats.total}`,
+               icon: Users,
+               tint: "from-violet-400 to-fuchsia-500",
+             },
+           ].map((stat) => {
+             const Icon = stat.icon;
+             return (
+               <motion.div
+                 key={stat.label}
+                 whileHover={{ y: -2, scale: 1.01 }}
+                 className="rounded-2xl border border-white/40 dark:border-white/10 bg-white/60 dark:bg-white/5 backdrop-blur-sm p-4 shadow-sm"
+               >
+                <div
+                  className={`w-11 h-11 rounded-2xl mb-3 flex items-center justify-center bg-gradient-to-br ${stat.tint} text-white shadow-lg`}
+                >
+                  <Icon className="w-5 h-5" />
+                </div>
+                <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">
+                  {stat.label}
+                </p>
+                <p className="mt-2 text-2xl font-bold text-slate-800 dark:text-white">
+                  {stat.value}
+                </p>
+                {stat.sub && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{stat.sub}</p>
+                )}
+              </motion.div>
+            );
+          })}
+        </motion.div>
+      )}
+
+      {/* Report Table */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+         className="rounded-3xl border border-white/40 dark:border-white/10 bg-white/65 dark:bg-white/5 backdrop-blur-sm shadow-sm overflow-hidden"
+      >
+        {/* Search bar */}
+         <div className="p-4 sm:p-5 border-b border-white/40 dark:border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 className="text-base sm:text-lg font-semibold text-slate-800 dark:text-white">
+              {activeTab === "monthly" ? "Monthly Attendance Report" : "Yearly Attendance Report"}
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+              {activeTab === "monthly"
+                ? `${MONTHS[month]} ${year} — attendance breakdown per student`
+                : `${year} — yearly attendance breakdown per student`}
+            </p>
+          </div>
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+             <input
+               value={search}
+               onChange={(e) => setSearch(e.target.value)}
+               placeholder="Search by name or roll"
+               className="w-full rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 pl-10 pr-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
+             />
+          </div>
+        </div>
+
+        {!canFetch ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <motion.div
+              animate={{ y: [0, -8, 0] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+               className="w-20 h-20 rounded-full bg-gradient-to-br from-sky-100 via-indigo-100 to-violet-100 dark:from-sky-500/20 dark:via-indigo-500/20 dark:to-violet-500/20 flex items-center justify-center mb-4 ring-1 ring-indigo-200/60 dark:ring-indigo-400/20"
+            >
+              <FileSpreadsheet className="w-10 h-10 text-indigo-600 dark:text-indigo-300" />
+            </motion.div>
+            <h3 className="text-base font-semibold text-slate-700 dark:text-slate-200">
+              Select a class and section
+            </h3>
+            <p className="mt-1 text-sm text-slate-400 dark:text-slate-500">
+              Choose filters above to load the attendance report.
+            </p>
+          </div>
+        ) : filteredRows.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <motion.div
+              animate={{ y: [0, -8, 0] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+               className="w-20 h-20 rounded-full bg-gradient-to-br from-sky-100 via-indigo-100 to-violet-100 dark:from-sky-500/20 dark:via-indigo-500/20 dark:to-violet-500/20 flex items-center justify-center mb-4 ring-1 ring-indigo-200/60 dark:ring-indigo-400/20"
+            >
+              <Users className="w-10 h-10 text-indigo-600 dark:text-indigo-300" />
+            </motion.div>
+            <h3 className="text-base font-semibold text-slate-700 dark:text-slate-200">
+              No records found
+            </h3>
+            <p className="mt-1 text-sm text-slate-400 dark:text-slate-500">
+              Try adjusting your filters or search query.
+            </p>
+          </div>
+        ) : (
+          <div className="w-full overflow-x-auto">
+            <table className="w-full min-w-[640px] text-left text-sm">
+               <thead>
+                 <tr className="border-b border-white/40 dark:border-white/10 bg-white/65 dark:bg-white/5">
+                  <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Student
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">
+                    Roll
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">
+                    Present
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">
+                    Absent
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">
+                    Late
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">
+                    Total
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Attendance %
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">
+                    Status
+                  </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/40">
-                {reportData.map((row, i) => (
-                  <motion.tr
-                    key={row.student.id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.02, duration: 0.2 }}
-                    className="hover:bg-secondary/20 transition-colors"
-                  >
-                    <td className="px-4 py-3 font-medium text-foreground">{row.student.rollNumber}</td>
-                    <td className="px-4 py-3 text-foreground">{row.student.name}</td>
-                    <td className="px-4 py-3 text-center text-muted-foreground">{row.total}</td>
-                    <td className="px-4 py-3 text-center">
-                      <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> {row.present}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span className="inline-flex items-center gap-1 text-red-600 dark:text-red-400 font-medium">
-                        {row.absent > 0 && <span className="w-2 h-2 rounded-full bg-red-500" />}
-                        {row.absent}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-medium">
-                        {row.late > 0 && <Clock className="w-3.5 h-3.5" />}
-                        {row.late}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
-                          row.belowThreshold
-                            ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                            : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+               <tbody className="divide-y divide-white/40 dark:divide-white/10">
+                <AnimatePresence mode="popLayout">
+                  {filteredRows.map((row, index) => {
+                    const pct = row.percentage;
+                    const pctColor = getPercentageColor(pct);
+                    const progressColor = getProgressColor(pct);
+                    const belowThreshold = pct < ATTENDANCE_THRESHOLD;
+                    return (
+                      <motion.tr
+                        key={row.student.id}
+                        layout
+                        initial={{ opacity: 0, y: 14 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, x: -30, scale: 0.98 }}
+                        transition={{
+                          delay: index * 0.02,
+                          type: "spring",
+                          stiffness: 120,
+                          damping: 18,
+                        }}
+                        className={`group transition-colors duration-200 ${
+                          belowThreshold
+                            ? "bg-rose-50/30 dark:bg-rose-500/5"
+                            : pct >= ATTENDANCE_THRESHOLD
+                               ? "bg-emerald-50/30 dark:bg-emerald-500/5"
+                              : "hover:bg-slate-50/60 dark:hover:bg-slate-800/30"
                         }`}
                       >
-                        {row.belowThreshold && <AlertTriangle className="w-3.5 h-3.5" />}
-                        {row.percentage}%
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      {row.belowThreshold ? (
-                        <span className="text-xs font-medium text-red-600 dark:text-red-400">Below 75%</span>
-                      ) : (
-                        <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">OK</span>
-                      )}
-                    </td>
-                  </motion.tr>
-                ))}
+                        <td className="px-4 sm:px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold ${
+                                belowThreshold
+                                  ? "bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-300"
+                                  : "bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300"
+                              }`}
+                            >
+                              {row.student.name
+                                .split(" ")
+                                .map((n) => n[0])
+                                .slice(0, 2)
+                                .join("")
+                                .toUpperCase()}
+                            </div>
+                            <span className="font-medium text-slate-800 dark:text-white truncate max-w-[200px]">
+                              {row.student.name}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-4 sm:px-6 py-4 text-center">
+                             <span className="inline-flex items-center rounded-full border border-white/40 dark:border-white/10 bg-white/70 dark:bg-white/5 px-2 py-0.5 text-xs font-bold text-slate-500 dark:text-slate-400">
+                            {row.student.rollNumber}
+                          </span>
+                        </td>
+                        <td className="px-4 sm:px-6 py-4 text-center">
+                          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200/70 dark:border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-300">
+                            {row.present}
+                          </span>
+                        </td>
+                        <td className="px-4 sm:px-6 py-4 text-center">
+                          <span className="inline-flex items-center gap-1 rounded-full border border-rose-200/70 dark:border-rose-500/20 bg-rose-500/10 px-2.5 py-1 text-xs font-bold text-rose-600 dark:text-rose-300">
+                            {row.absent}
+                          </span>
+                        </td>
+                        <td className="px-4 sm:px-6 py-4 text-center">
+                          <span className="inline-flex items-center gap-1 rounded-full border border-amber-200/70 dark:border-amber-500/20 bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-600 dark:text-amber-300">
+                            {row.late}
+                          </span>
+                        </td>
+                        <td className="px-4 sm:px-6 py-4 text-center">
+                          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                            {row.total}
+                          </span>
+                        </td>
+                        <td className="px-4 sm:px-6 py-4">
+                          <div className="flex flex-col gap-1.5">
+                            <span className={`text-sm font-bold ${pctColor}`}>
+                              {pct}%
+                            </span>
+                            <div className="w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${Math.min(pct, 100)}%` }}
+                                transition={{ duration: 0.8, ease: "easeOut" }}
+                                className={`h-full rounded-full ${progressColor}`}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 sm:px-6 py-4 text-center">
+                          {belowThreshold ? (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-rose-200/70 dark:border-rose-500/20 bg-rose-500/10 px-2.5 py-1 text-xs font-bold text-rose-600 dark:text-rose-300">
+                              <XCircle className="w-3 h-3" />
+                              Below Threshold
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200/70 dark:border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-300">
+                              <Sparkles className="w-3 h-3" />
+                              Good
+                            </span>
+                          )}
+                        </td>
+                      </motion.tr>
+                    );
+                  })}
+                </AnimatePresence>
               </tbody>
             </table>
           </div>
-        </motion.div>
-      )}
+        )}
+
+        {/* Footer info */}
+        {filteredRows.length > 0 && (
+           <div className="p-4 sm:p-5 border-t border-white/40 dark:border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Showing{" "}
+              <span className="font-semibold text-slate-700 dark:text-slate-300">
+                {filteredRows.length}
+              </span>{" "}
+              of{" "}
+              <span className="font-semibold text-slate-700 dark:text-slate-300">
+                {reportData?.length ?? 0}
+              </span>{" "}
+              students
+            </p>
+            <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                Present
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                Absent
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                Late
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-slate-400" />
+                Total
+              </span>
+            </div>
+          </div>
+        )}
+      </motion.div>
     </div>
+  </div>
+
+   <motion.p
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 0.4 }}
+      transition={{ delay: 1 }}
+      className="mt-6 text-center text-[10px] font-bold tracking-[0.3em] uppercase text-slate-400 dark:text-slate-600"
+    >
+      Attendance Reports
+    </motion.p>
+  </motion.div>
+  </div>
   );
 }

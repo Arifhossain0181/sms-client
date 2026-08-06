@@ -1,7 +1,32 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  BookMarked,
+  CalendarDays,
+  ChevronDown,
+  Clock3,
+  FileDown,
+  Loader2,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Search,
+  Sparkles,
+  Trash2,
+  Users,
+  XCircle,
+} from "lucide-react";
+import { toast } from "sonner";
+
+import api from "@/lib/axios";
+import { useAuth } from "@/hooks/useAuth";
+import { useClasses } from "@/app/modules/class/useClasses";
+import { useSubjects } from "@/app/modules/subject/useSubjects";
+import { useTeachers } from "@/app/modules/teachers/useTeachers";
 import {
   useMyHomework,
   useOverdueHomework,
@@ -10,743 +35,1035 @@ import {
   useMarkHomeworkReviewed,
   useDeleteHomework,
 } from "@/app/modules/homework/useHomework";
-import { useClasses } from "@/app/modules/class/useClasses";
-import { useSubjects } from "@/app/modules/subject/useSubjects";
-import { Homework, HomeworkStatusFilter } from "@/app/modules/homework/homework.types";
-import { useLenis } from "@/hooks/useLenis";
-import { toast } from "sonner";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
-  BookOpen,
-  Plus,
-  Clock,
-  Trash2,
-  Edit3,
-  CheckCircle2,
-  X,
-  AlertTriangle,
-  BookMarked,
-  CalendarDays,
-  Filter,
-  Eye,
-  ChevronRight,
-  Layers,
-  ClipboardList,
-} from "lucide-react";
+  Homework,
+  HomeworkStatusFilter,
+  CreateHomeworkPayload,
+} from "@/app/modules/homework/homework.types";
+import { formatDate } from "@/lib/utils";
 
-/* ─── animation variants ─────────────────────────────────── */
-const cardVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { delay: i * 0.07, duration: 0.4, ease: "easeOut" as const },
-  }),
+type TeacherProfile = {
+  id: string;
+  name?: string;
+  sectionTeacher?: Array<{
+    id: string;
+    class?: { id: string; name: string };
+  }>;
 };
 
-type Tab = "mine" | "overdue";
+type TabType = "list" | "overdue";
 
-/* ══════════════════════════════════════════════════════════
-   PAGE
-══════════════════════════════════════════════════════════ */
-export default function TeacherHomeworkPage() {
-  useLenis();
-  const [activeTab, setActiveTab] = useState<Tab>("mine");
-  const [showCreateForm, setShowCreateForm] = useState(false);
+const HOMEWORK_STATUSES: { key: HomeworkStatusFilter; label: string }[] = [
+  { key: "ALL", label: "All" },
+  { key: "PENDING", label: "Pending" },
+  { key: "REVIEWED", label: "Reviewed" },
+  { key: "OVERDUE", label: "Overdue" },
+];
 
-  const tabs: { key: Tab; label: string; icon: typeof BookOpen }[] = [
-    { key: "mine", label: "My Homework", icon: BookMarked },
-    { key: "overdue", label: "Overdue", icon: AlertTriangle },
-  ];
+const PAGE_SIZE = 10;
 
-  return (
-    <div className="relative min-h-screen flex items-start justify-center p-4 sm:p-6 overflow-hidden bg-slate-50/50 dark:bg-slate-950">
-      {/* Ambient blobs */}
-      <motion.div
-        animate={{ x: [0, 50, 0], y: [0, -30, 0] }}
-        transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute top-10 -left-32 w-[500px] h-[500px] bg-indigo-300/20 dark:bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"
-      />
-      <motion.div
-        animate={{ x: [0, -40, 0], y: [0, 50, 0] }}
-        transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute bottom-10 -right-32 w-[600px] h-[600px] bg-violet-300/20 dark:bg-violet-500/10 rounded-full blur-3xl pointer-events-none"
-      />
-
-      <div className="relative w-full max-w-5xl my-8 space-y-6">
-        {/* ── Glass card ── */}
-        <div className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl shadow-slate-200/40 dark:shadow-none overflow-hidden">
-          {/* Header */}
-          <div className="relative px-6 sm:px-8 py-6 bg-gradient-to-r from-indigo-50 via-violet-50 to-purple-50 dark:from-indigo-500/10 dark:via-violet-500/10 dark:to-purple-500/10 border-b border-white/40 dark:border-white/5 overflow-hidden">
-            <motion.div
-              animate={{ x: [0, 120, 0] }}
-              transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent pointer-events-none"
-            />
-            <div className="relative flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                  Homework
-                  <motion.span
-                    animate={{ rotate: [0, 8, -8, 0] }}
-                    transition={{ duration: 3, repeat: Infinity }}
-                    className="text-indigo-400"
-                  >
-                    <BookMarked className="w-5 h-5" />
-                  </motion.span>
-                </h1>
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-                  Create, manage, and review homework assignments for your classes.
-                </p>
-              </div>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setShowCreateForm(!showCreateForm)}
-                className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 text-white px-5 py-2.5 text-sm font-semibold shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-violet-500/40 transition-all"
-              >
-                {showCreateForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                {showCreateForm ? "Close" : "New Homework"}
-              </motion.button>
-            </div>
-          </div>
-
-          <div className="p-4 sm:p-6 space-y-6">
-            {/* Create Form */}
-            <AnimatePresence>
-              {showCreateForm && (
-                <CreateHomeworkForm onSuccess={() => setShowCreateForm(false)} />
-              )}
-            </AnimatePresence>
-
-            {/* Tabs */}
-            <div className="flex gap-1 bg-slate-100 dark:bg-slate-800/60 rounded-xl p-1">
-              {tabs.map((tab) => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.key;
-                return (
-                  <button
-                    key={tab.key}
-                    onClick={() => setActiveTab(tab.key)}
-                    className={`relative flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                      isActive
-                        ? "text-white shadow-md"
-                        : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                    }`}
-                  >
-                    {isActive && (
-                      <motion.div
-                        layoutId="hw-tab-bg"
-                        className="absolute inset-0 rounded-lg bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 shadow-lg shadow-indigo-500/30"
-                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                      />
-                    )}
-                    <span className="relative z-10 flex items-center gap-2">
-                      <Icon className="h-4 w-4" />
-                      {tab.label}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Tab content */}
-            <AnimatePresence mode="wait">
-              {activeTab === "mine" && (
-                <motion.div
-                  key="mine"
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -12 }}
-                  transition={{ duration: 0.25 }}
-                >
-                  <MyHomeworkTab onSwitchToCreate={() => setShowCreateForm(true)} />
-                </motion.div>
-              )}
-              {activeTab === "overdue" && (
-                <motion.div
-                  key="overdue"
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -12 }}
-                  transition={{ duration: 0.25 }}
-                >
-                  <OverdueTab />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ══════════════════════════════════════════════════════════
-   CREATE FORM (inline collapsible)
-══════════════════════════════════════════════════════════ */
-function CreateHomeworkForm({ onSuccess }: { onSuccess: () => void }) {
-  const { data: classes } = useClasses();
-  const { data: subjects } = useSubjects();
-  const { mutate: createHomework, isPending } = useCreateHomework();
-
-  const [selectedClassId, setSelectedClassId] = useState("");
-  const [sectionId, setSectionId] = useState("");
-  const [subjectId, setSubjectId] = useState("");
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [dueDate, setDueDate] = useState("");
-
-  const availableSections = useMemo(() => {
-    const cls = (Array.isArray(classes) ? classes : []).find((c) => c.id === selectedClassId);
-    return cls?.sections ?? [];
-  }, [classes, selectedClassId]);
-
-  const availableSubjects = useMemo(() => {
-    return (Array.isArray(subjects) ? subjects : []).filter((s) => s.classId === selectedClassId);
-  }, [subjects, selectedClassId]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!sectionId || !subjectId || !title || !description || !dueDate) {
-      toast.error("Please fill in all fields");
-      return;
-    }
-    createHomework(
-      { sectionId, subjectId, title, description, dueDate },
-      {
-        onSuccess: () => {
-          setSelectedClassId(""); setSectionId(""); setSubjectId("");
-          setTitle(""); setDescription(""); setDueDate("");
-          onSuccess();
-        },
-      }
-    );
+function getStatusMeta(status: string, isOverdue: boolean) {
+  if (status === "REVIEWED")
+    return {
+      label: "Reviewed",
+      badge: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300 border-emerald-200/70 dark:border-emerald-500/20",
+      dot: "bg-emerald-500",
+    };
+  if (isOverdue)
+    return {
+      label: "Overdue",
+      badge: "bg-rose-500/10 text-rose-600 dark:text-rose-300 border-rose-200/70 dark:border-rose-500/20",
+      dot: "bg-rose-500",
+    };
+  return {
+    label: "Pending",
+    badge: "bg-amber-500/10 text-amber-600 dark:text-amber-300 border-amber-200/70 dark:border-amber-500/20",
+    dot: "bg-amber-500",
   };
-
-  const inputCls =
-    "w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-white/5 px-3 py-2.5 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 transition";
-
-  return (
-    <motion.form
-      initial={{ opacity: 0, y: -16 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -16 }}
-      transition={{ duration: 0.3 }}
-      onSubmit={handleSubmit}
-      className="rounded-2xl border border-indigo-200/60 dark:border-indigo-500/20 bg-indigo-50/60 dark:bg-indigo-500/5 p-6 shadow-xl space-y-5"
-    >
-      <div className="flex items-center gap-2">
-        <BookOpen className="w-4 h-4 text-indigo-500" />
-        <h3 className="font-semibold text-slate-900 dark:text-white">Create New Homework</h3>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
-            Class <span className="text-red-400">*</span>
-          </label>
-          <select
-            value={selectedClassId}
-            onChange={(e) => { setSelectedClassId(e.target.value); setSectionId(""); setSubjectId(""); }}
-            className={inputCls}
-          >
-            <option value="">Select Class</option>
-            {(Array.isArray(classes) ? classes : []).map((cls) => (
-              <option key={cls.id} value={cls.id}>{cls.name}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
-            Section <span className="text-red-400">*</span>
-          </label>
-          <select
-            value={sectionId}
-            onChange={(e) => setSectionId(e.target.value)}
-            disabled={!selectedClassId}
-            className={`${inputCls} disabled:opacity-50`}
-          >
-            <option value="">Select Section</option>
-            {availableSections.map((sec) => (
-              <option key={sec.id} value={sec.id}>{sec.name}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
-            Subject <span className="text-red-400">*</span>
-          </label>
-          <select
-            value={subjectId}
-            onChange={(e) => setSubjectId(e.target.value)}
-            disabled={!selectedClassId}
-            className={`${inputCls} disabled:opacity-50`}
-          >
-            <option value="">Select Subject</option>
-            {availableSubjects.map((subj) => (
-              <option key={subj.id} value={subj.id}>{subj.name} ({subj.code})</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
-            Title <span className="text-red-400">*</span>
-          </label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. Chapter 5 – Exercise A"
-            className={inputCls}
-          />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
-            Due Date <span className="text-red-400">*</span>
-          </label>
-          <input
-            type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            className={inputCls}
-          />
-        </div>
-      </div>
-
-      <div>
-        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1.5">
-          Description <span className="text-red-400">*</span>
-        </label>
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          rows={3}
-          placeholder="Describe the homework task in detail…"
-          className={inputCls}
-        />
-      </div>
-
-      <div className="flex gap-3">
-        <motion.button
-          whileHover={{ scale: 1.04 }}
-          whileTap={{ scale: 0.96 }}
-          type="submit"
-          disabled={isPending}
-          className="rounded-xl bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 text-white px-5 py-2.5 text-sm font-semibold shadow-md shadow-indigo-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition"
-        >
-          {isPending ? "Creating…" : "Create Homework"}
-        </motion.button>
-        <motion.button
-          whileHover={{ scale: 1.04 }}
-          whileTap={{ scale: 0.96 }}
-          type="button"
-          onClick={onSuccess}
-          className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-white/5 px-5 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-white/80 dark:hover:bg-white/10 transition"
-        >
-          Cancel
-        </motion.button>
-      </div>
-    </motion.form>
-  );
 }
 
-/* ══════════════════════════════════════════════════════════
-   MY HOMEWORK TAB
-══════════════════════════════════════════════════════════ */
-function MyHomeworkTab({ onSwitchToCreate }: { onSwitchToCreate: () => void }) {
-  const { data: classes } = useClasses();
+export default function Page() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const { role } = useAuth();
+  const { data: classes, isLoading: classesLoading } = useClasses();
   const { data: subjects } = useSubjects();
-  const { data, isPending } = useMyHomework();
-  const { mutate: updateHomework, isPending: isUpdating } = useUpdateHomework();
-  const { mutate: markReviewed } = useMarkHomeworkReviewed();
-  const { mutate: deleteHomework } = useDeleteHomework();
+  const { data: teachers } = useTeachers();
 
+  const [profile, setProfile] = useState<TeacherProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<TabType>("list");
+  const [classId, setClassId] = useState("");
   const [sectionId, setSectionId] = useState("");
   const [subjectId, setSubjectId] = useState("");
   const [status, setStatus] = useState<HomeworkStatusFilter>("ALL");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editTitle, setEditTitle] = useState("");
-  const [editDescription, setEditDescription] = useState("");
-  const [editDueDate, setEditDueDate] = useState("");
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
 
-  const filteredData = useMemo(() => {
-    if (!data?.data) return [];
-    let result = data.data;
-    if (sectionId) result = result.filter((h) => h.section.id === sectionId);
-    if (subjectId) result = result.filter((h) => h.subject.id === subjectId);
-    if (status !== "ALL") result = result.filter((h) => {
-      if (status === "PENDING") return !h.isReviewed && !h.isOverdue;
-      if (status === "REVIEWED") return h.isReviewed;
-      if (status === "OVERDUE") return h.isOverdue && !h.isReviewed;
-      return true;
-    });
-    return result;
-  }, [data, sectionId, subjectId, status]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingHomework, setEditingHomework] = useState<Homework | null>(null);
+  const [formSectionId, setFormSectionId] = useState("");
+  const [formSubjectId, setFormSubjectId] = useState("");
+  const [formTitle, setFormTitle] = useState("");
+  const [formDescription, setFormDescription] = useState("");
+  const [formDueDate, setFormDueDate] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const startEdit = (hw: Homework) => {
-    setEditingId(hw.id);
-    setEditTitle(hw.title);
-    setEditDescription(hw.description);
-    setEditDueDate(hw.dueDate.split("T")[0]);
-  };
+  const createMutation = useCreateHomework();
+  const updateMutation = useUpdateHomework();
+  const markReviewedMutation = useMarkHomeworkReviewed();
+  const deleteMutation = useDeleteHomework();
 
-  const handleUpdate = (id: string) => {
-    updateHomework(
-      { id, data: { title: editTitle, description: editDescription, dueDate: editDueDate } },
-      { onSuccess: () => setEditingId(null) }
-    );
-  };
+  useEffect(() => {
+    if (role && role !== "TEACHER" && role !== "SUPER_ADMIN" && role !== "SCHOOL_ADMIN") {
+      router.replace("/dashboard");
+    }
+  }, [role, router]);
 
-  const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this homework?")) deleteHomework(id);
-  };
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        setProfileLoading(true);
+        const res = await api.get("/teachers/me");
+        const payload = res.data?.data ?? res.data;
+        setProfile(payload ?? null);
+      } catch {
+        setProfile(null);
+      } finally {
+        setProfileLoading(false);
+      }
+    };
 
-  const getStatusBadge = (hw: Homework) => {
-    if (hw.isReviewed)
-      return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-          <CheckCircle2 className="h-3 w-3" /> Reviewed
-        </span>
-      );
-    if (hw.isOverdue)
-      return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
-          <AlertTriangle className="h-3 w-3" /> Overdue
-        </span>
-      );
-    return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-        <Clock className="h-3 w-3" /> Pending
-      </span>
-    );
-  };
+    if (role === "TEACHER" || role === "SCHOOL_ADMIN" || role === "SUPER_ADMIN") {
+      loadProfile();
+    } else {
+      setProfileLoading(false);
+    }
+  }, [role]);
 
-  const inputCls =
-    "w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-white/5 px-3 py-1.5 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 transition";
+  const assignedClassIds = useMemo(() => {
+    return new Set(profile?.sectionTeacher?.map((entry) => entry.class?.id).filter(Boolean) as string[]);
+  }, [profile]);
 
-  if (isPending) return <HomeworkSkeleton />;
+  const availableClasses = useMemo(() => {
+    const list = Array.isArray(classes) ? classes : [];
+    if (role === "TEACHER") {
+      if (assignedClassIds.size > 0) {
+        return list.filter((cls) => assignedClassIds.has(cls.id));
+      }
+      return [];
+    }
+    return list;
+  }, [classes, assignedClassIds, role]);
 
-  return (
-    <div className="space-y-5">
-      {/* Filter bar */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 p-4 flex flex-wrap gap-4 items-end">
-        <Filter className="h-4 w-4 text-slate-400 mt-auto mb-1 shrink-0" />
-        <div className="flex-1 min-w-[180px]">
-          <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1">Section</label>
-          <select value={sectionId} onChange={(e) => setSectionId(e.target.value)} className={inputCls}>
-            <option value="">All Sections</option>
-            {(Array.isArray(classes) ? classes : []).map((cls) =>
-              (cls.sections ?? []).map((sec) => (
-                <option key={sec.id} value={sec.id}>{cls.name} – {sec.name}</option>
-              ))
-            )}
-          </select>
-        </div>
-        <div className="flex-1 min-w-[180px]">
-          <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1">Subject</label>
-          <select value={subjectId} onChange={(e) => setSubjectId(e.target.value)} className={inputCls}>
-            <option value="">All Subjects</option>
-            {(Array.isArray(subjects) ? subjects : []).map((subj) => (
-              <option key={subj.id} value={subj.id}>{subj.name} ({subj.code})</option>
-            ))}
-          </select>
-        </div>
-        <div className="flex-1 min-w-[140px]">
-          <label className="text-xs font-medium text-slate-500 dark:text-slate-400 block mb-1">Status</label>
-          <select value={status} onChange={(e) => setStatus(e.target.value as HomeworkStatusFilter)} className={inputCls}>
-            <option value="ALL">All</option>
-            <option value="PENDING">Pending</option>
-            <option value="REVIEWED">Reviewed</option>
-            <option value="OVERDUE">Overdue</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Summary strip */}
-      <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 px-1">
-        <Layers className="h-3.5 w-3.5" />
-        <span>
-          Showing <strong className="text-slate-700 dark:text-slate-200">{filteredData.length}</strong>
-          {" "}of{" "}
-          <strong className="text-slate-700 dark:text-slate-200">{data?.total ?? 0}</strong> assignments
-        </span>
-      </div>
-
-      {/* Cards */}
-      {filteredData.length === 0 ? (
-        <EmptyState
-          icon={<BookMarked className="w-10 h-10 text-indigo-400" />}
-          title="No homework found"
-          sub="Adjust your filters or create a new assignment."
-          action={{ label: "Create Homework", onClick: onSwitchToCreate }}
-        />
-      ) : (
-        <div className="space-y-3">
-          {filteredData.map((hw, idx) => (
-            <motion.div
-              key={hw.id}
-              custom={idx}
-              initial="hidden"
-              animate="visible"
-              variants={cardVariants}
-              className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-white/5 p-5 shadow-sm hover:shadow-md transition-shadow"
-            >
-              {editingId === hw.id ? (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs text-slate-500 dark:text-slate-400 block mb-1">Title</label>
-                      <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className={inputCls} />
-                    </div>
-                    <div>
-                      <label className="text-xs text-slate-500 dark:text-slate-400 block mb-1">Due Date</label>
-                      <input type="date" value={editDueDate} onChange={(e) => setEditDueDate(e.target.value)} className={inputCls} />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-xs text-slate-500 dark:text-slate-400 block mb-1">Description</label>
-                    <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={3} className={inputCls} />
-                  </div>
-                  <div className="flex gap-2">
-                    <motion.button
-                      whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
-                      onClick={() => handleUpdate(hw.id)} disabled={isUpdating}
-                      className="rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 text-white px-4 py-1.5 text-xs font-semibold shadow disabled:opacity-50"
-                    >
-                      {isUpdating ? "Saving…" : "Save"}
-                    </motion.button>
-                    <button
-                      onClick={() => setEditingId(null)}
-                      className="rounded-lg border border-slate-200 dark:border-slate-700 px-4 py-1.5 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-start gap-4">
-                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-400 via-violet-400 to-purple-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/30 shrink-0">
-                    <BookOpen className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div>
-                        <p className="font-semibold text-slate-900 dark:text-white truncate">{hw.title}</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                          {hw.subject.name} ({hw.subject.code}) · {hw.section.name}
-                        </p>
-                      </div>
-                      {getStatusBadge(hw)}
-                    </div>
-                    <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 line-clamp-2">
-                      {hw.description}
-                    </p>
-                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                      <span className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-                        <CalendarDays className="h-3.5 w-3.5" />
-                        Due: <strong className={hw.isOverdue ? "text-red-500 dark:text-red-400" : "text-slate-700 dark:text-slate-200"}>
-                          {new Date(hw.dueDate).toLocaleDateString("en-GB")}
-                        </strong>
-                      </span>
-                      {hw.viewedCount !== undefined && (
-                        <span className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-                          <Eye className="h-3.5 w-3.5" />
-                          {hw.viewedCount} / {hw.totalStudents ?? "?"} viewed
-                        </span>
-                      )}
-                      <div className="flex items-center gap-1 ml-auto">
-                        <motion.button
-                          whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }}
-                          onClick={() => startEdit(hw)} title="Edit"
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition"
-                        >
-                          <Edit3 className="h-4 w-4" />
-                        </motion.button>
-                        {!hw.isReviewed && (
-                          <motion.button
-                            whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }}
-                            onClick={() => markReviewed(hw.id)} title="Mark as Reviewed"
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition"
-                          >
-                            <CheckCircle2 className="h-4 w-4" />
-                          </motion.button>
-                        )}
-                        <motion.button
-                          whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }}
-                          onClick={() => handleDelete(hw.id)} title="Delete"
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </motion.button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          ))}
-        </div>
-      )}
-    </div>
+  const selectedClass = useMemo(
+    () => availableClasses.find((cls) => cls.id === classId),
+    [availableClasses, classId]
   );
-}
 
-/* ══════════════════════════════════════════════════════════
-   OVERDUE TAB
-══════════════════════════════════════════════════════════ */
-function OverdueTab() {
-  const { data: overdueList, isPending } = useOverdueHomework();
-  const { mutate: markReviewed } = useMarkHomeworkReviewed();
-  const { mutate: deleteHomework } = useDeleteHomework();
+  const availableSections = useMemo(() => {
+    const sections = selectedClass?.sections ?? [];
+    if (role === "TEACHER") {
+      const assignedSectionIds = new Set(
+        profile?.sectionTeacher?.map((entry) => entry.id).filter(Boolean) as string[]
+      );
+      if (assignedSectionIds.size > 0) {
+        return sections.filter((section) => assignedSectionIds.has(section.id));
+      }
+      return [];
+    }
+    return sections;
+  }, [profile, role, selectedClass]);
 
-  if (isPending) return <HomeworkSkeleton />;
+  const availableSubjects = useMemo(() => {
+    const allSubjects = Array.isArray(subjects) ? subjects : [];
+    if (!selectedClass) return allSubjects;
+    return allSubjects.filter((sub) => sub.classId === selectedClass.id);
+  }, [subjects, selectedClass]);
 
-  if (!overdueList || overdueList.length === 0) {
+  useEffect(() => {
+    if (!availableClasses.length) return;
+    if (!classId || !availableClasses.some((cls) => cls.id === classId)) {
+      setClassId(availableClasses[0].id);
+    }
+  }, [availableClasses, classId]);
+
+  useEffect(() => {
+    if (!availableSections.length) {
+      setSectionId("");
+      return;
+    }
+    if (!sectionId || !availableSections.some((section) => section.id === sectionId)) {
+      setSectionId(availableSections[0].id);
+    }
+  }, [availableSections, sectionId]);
+
+  const homeworkQuery = useMyHomework({
+    sectionId,
+    subjectId,
+    status: activeTab === "overdue" ? "OVERDUE" : status,
+    page,
+    pageSize: PAGE_SIZE,
+  });
+
+  const overdueQuery = useOverdueHomework();
+
+  const homeworkData = activeTab === "overdue" ? (overdueQuery.data ?? []) : homeworkQuery.data?.data ?? [];
+  const total = activeTab === "overdue" ? (overdueQuery.data?.length ?? 0) : homeworkQuery.data?.total ?? 0;
+  const totalPages = activeTab === "overdue" ? 1 : Math.ceil(total / PAGE_SIZE);
+  const isLoading =
+    profileLoading ||
+    classesLoading ||
+    (activeTab === "list" ? homeworkQuery.isLoading : overdueQuery.isLoading);
+
+  const filteredHomework = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return homeworkData;
+    return homeworkData.filter(
+      (hw) =>
+        hw.title.toLowerCase().includes(q) ||
+        hw.description.toLowerCase().includes(q) ||
+        hw.section.name.toLowerCase().includes(q) ||
+        hw.subject.name.toLowerCase().includes(q)
+    );
+  }, [homeworkData, search]);
+
+  const summaryStats = useMemo(() => {
+    const all = activeTab === "overdue" ? overdueQuery.data ?? [] : homeworkQuery.data?.data ?? [];
+    const totalCount = all.length;
+    const pending = all.filter((hw) => !hw.isReviewed && !hw.isOverdue).length;
+    const reviewed = all.filter((hw) => hw.isReviewed).length;
+    const overdue = all.filter((hw) => hw.isOverdue && !hw.isReviewed).length;
+    return { total: totalCount, pending, reviewed, overdue };
+  }, [activeTab, homeworkQuery.data, overdueQuery.data]);
+
+  const handleRefresh = () => {
+    if (activeTab === "list") {
+      queryClient.invalidateQueries({ queryKey: ["homework", "mine"] });
+    } else {
+      queryClient.invalidateQueries({ queryKey: ["homework", "overdue"] });
+    }
+    toast.success("Data refreshed");
+  };
+
+  const openCreateModal = () => {
+    setEditingHomework(null);
+    setFormSectionId(sectionId || availableSections[0]?.id || "");
+    setFormSubjectId("");
+    setFormTitle("");
+    setFormDescription("");
+    setFormDueDate(new Date().toISOString().split("T")[0]);
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (hw: Homework) => {
+    setEditingHomework(hw);
+    setFormSectionId(hw.section.id);
+    setFormSubjectId(hw.subject.id);
+    setFormTitle(hw.title);
+    setFormDescription(hw.description);
+    setFormDueDate(hw.dueDate.split("T")[0]);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setEditingHomework(null);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formSectionId || !formSubjectId || !formTitle || !formDueDate) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const payload: CreateHomeworkPayload = {
+        sectionId: formSectionId,
+        subjectId: formSubjectId,
+        title: formTitle,
+        description: formDescription,
+        dueDate: formDueDate,
+      };
+
+      if (editingHomework) {
+        await updateMutation.mutateAsync({ id: editingHomework.id, data: payload });
+      } else {
+        await createMutation.mutateAsync(payload);
+      }
+      closeModal();
+    } catch {
+      // error handled by mutation
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (hw: Homework) => {
+    if (!confirm(`Delete homework "${hw.title}"?`)) return;
+    try {
+      await deleteMutation.mutateAsync(hw.id);
+    } catch {
+      // error handled by mutation
+    }
+  };
+
+  const handleMarkReviewed = async (id: string) => {
+    try {
+      await markReviewedMutation.mutateAsync(id);
+    } catch {
+      // error handled by mutation
+    }
+  };
+
+  const formSelectedClass = availableClasses.find((cls) => cls.id === formSectionId);
+  const formAvailableSubjects = useMemo(() => {
+    const allSubjects = Array.isArray(subjects) ? subjects : [];
+    if (!formSelectedClass) return allSubjects;
+    return allSubjects.filter((sub) => sub.classId === formSelectedClass.id);
+  }, [subjects, formSelectedClass]);
+
+  if (isLoading && !homeworkData.length) {
     return (
-      <EmptyState
-        icon={<CheckCircle2 className="w-10 h-10 text-emerald-400" />}
-        title="No overdue homework!"
-        sub="Great work — all assignments are up to date."
-      />
+      <div className="relative min-h-[80vh] flex items-center justify-center p-4 overflow-hidden bg-slate-50/50 dark:bg-slate-950 rounded-3xl">
+        <motion.div
+          animate={{ x: [0, 40, 0], y: [0, -30, 0] }}
+          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-10 -left-32 w-[500px] h-[500px] bg-sky-300/20 dark:bg-sky-500/10 rounded-full blur-3xl pointer-events-none"
+        />
+        <motion.div
+          animate={{ x: [0, -30, 0], y: [0, 40, 0] }}
+          transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute bottom-10 -right-32 w-[600px] h-[600px] bg-violet-300/20 dark:bg-violet-500/10 rounded-full blur-3xl pointer-events-none"
+        />
+        <div className="relative w-full">
+          <div className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl p-8 space-y-4">
+            <div className="h-8 w-1/3 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse" />
+            <div className="h-4 w-1/2 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse" />
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-24 bg-slate-200/60 dark:bg-slate-700/40 rounded-2xl animate-pulse" />
+              ))}
+            </div>
+            <div className="space-y-3 mt-6">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-20 bg-slate-200/50 dark:bg-slate-700/30 rounded-2xl animate-pulse" />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2 px-1">
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-xs font-semibold">
-          <AlertTriangle className="h-3.5 w-3.5" />
-          {overdueList.length} overdue assignment{overdueList.length !== 1 ? "s" : ""}
-        </span>
-      </div>
+    <div className="relative min-h-[80vh] flex items-start sm:items-center p-4 sm:p-6 overflow-hidden bg-slate-50/50 dark:bg-slate-950 rounded-3xl">
+      {/* Animated background orbs */}
+      <motion.div
+        animate={{ x: [0, 40, 0], y: [0, -30, 0] }}
+        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-10 -left-32 w-[500px] h-[500px] bg-sky-300/20 dark:bg-sky-500/10 rounded-full blur-3xl pointer-events-none"
+      />
+      <motion.div
+        animate={{ x: [0, -30, 0], y: [0, 40, 0] }}
+        transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute bottom-10 -right-32 w-[600px] h-[600px] bg-violet-300/20 dark:bg-violet-500/10 rounded-full blur-3xl pointer-events-none"
+      />
+      <motion.div
+        animate={{ scale: [1, 1.2, 1] }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-indigo-300/10 dark:bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"
+      />
 
-      {overdueList.map((hw, idx) => (
-        <motion.div
-          key={hw.id}
-          custom={idx}
-          initial="hidden"
-          animate="visible"
-          variants={cardVariants}
-          className="rounded-2xl border border-red-200/60 dark:border-red-500/20 bg-red-50/40 dark:bg-red-500/5 p-5 shadow-sm hover:shadow-md transition-shadow"
-        >
-          <div className="flex items-start gap-4">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-red-400 to-rose-500 flex items-center justify-center text-white shadow-md shadow-red-400/30 shrink-0">
-              <AlertTriangle className="h-5 w-5" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-start justify-between gap-2">
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 100, damping: 20 }}
+        className="relative w-full my-6"
+      >
+        <div className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl shadow-slate-200/40 dark:shadow-none overflow-hidden">
+          {/* Gradient Header */}
+          <div className="relative px-6 sm:px-8 py-6 bg-gradient-to-r from-sky-50 via-indigo-50 to-violet-50 dark:from-sky-500/10 dark:via-indigo-500/10 dark:to-violet-500/10 border-b border-white/40 dark:border-white/5 overflow-hidden">
+            <motion.div
+              animate={{ x: [0, 100, 0] }}
+              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent pointer-events-none"
+            />
+
+            <div className="relative flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <motion.div
+                  whileHover={{ scale: 1.08, rotate: 4 }}
+                  className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-400 via-indigo-400 to-violet-500 shadow-lg shadow-indigo-500/30 flex items-center justify-center cursor-pointer"
+                >
+                  <BookMarked className="w-6 h-6 text-white" />
+                  <motion.div
+                    className="absolute inset-0 rounded-2xl border-2 border-white/40 dark:border-white/20"
+                    animate={{ scale: [1, 1.12, 1], opacity: [0.6, 0, 0.6] }}
+                    transition={{ duration: 2.4, repeat: Infinity }}
+                  />
+                </motion.div>
                 <div>
-                  <p className="font-semibold text-slate-900 dark:text-white">{hw.title}</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    {hw.subject.name} · {hw.section.name}
+                  <h1 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                    Homework
+                    <Sparkles className="w-4 h-4 text-indigo-400" />
+                  </h1>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                    Create, manage, and track homework assignments.
                   </p>
                 </div>
-                <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
-                  Overdue
-                </span>
               </div>
-              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 line-clamp-2">
-                {hw.description}
-              </p>
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                <span className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400 font-medium">
-                  <CalendarDays className="h-3.5 w-3.5" />
-                  Due: {new Date(hw.dueDate).toLocaleDateString("en-GB")}
-                </span>
-                <div className="flex items-center gap-1 ml-auto">
-                  <motion.button
-                    whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }}
-                    onClick={() => markReviewed(hw.id)} title="Mark as Reviewed"
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition"
-                  >
-                    <CheckCircle2 className="h-4 w-4" />
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }}
-                    onClick={() => { if (confirm("Delete this homework?")) deleteHomework(hw.id); }} title="Delete"
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </motion.button>
-                </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={openCreateModal}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 px-4 py-2.5 text-xs font-semibold text-white shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 transition-all"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Create Homework
+                </button>
               </div>
             </div>
           </div>
-        </motion.div>
-      ))}
-    </div>
-  );
-}
 
-/* ══════════════════════════════════════════════════════════
-   SHARED HELPERS
-══════════════════════════════════════════════════════════ */
-function HomeworkSkeleton() {
-  return (
-    <div className="space-y-3">
-      {Array.from({ length: 4 }).map((_, i) => (
-        <div
-          key={i}
-          className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-white/5 p-5 flex items-start gap-4"
-        >
-          <Skeleton className="w-11 h-11 rounded-xl shrink-0" />
-          <div className="flex-1 space-y-2">
-            <Skeleton className="h-4 w-48 rounded-md" />
-            <Skeleton className="h-3 w-32 rounded-md" />
-            <Skeleton className="h-3 w-full rounded-md" />
-            <Skeleton className="h-3 w-3/4 rounded-md" />
+          <div className="p-4 sm:p-6 space-y-5">
+            {/* Stats Overview */}
+            {(summaryStats.total > 0 || !isLoading) && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.05 }}
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+              >
+                {[
+                  {
+                    label: "Total",
+                    value: summaryStats.total,
+                    icon: BookMarked,
+                    tint: "from-sky-400 to-indigo-500",
+                  },
+                  {
+                    label: "Pending",
+                    value: summaryStats.pending,
+                    icon: Clock3,
+                    tint: "from-amber-400 to-orange-500",
+                  },
+                  {
+                    label: "Reviewed",
+                    value: summaryStats.reviewed,
+                    icon: Sparkles,
+                    tint: "from-emerald-400 to-green-500",
+                  },
+                  {
+                    label: "Overdue",
+                    value: summaryStats.overdue,
+                    icon: XCircle,
+                    tint: "from-rose-400 to-red-500",
+                  },
+                ].map((stat) => {
+                  const Icon = stat.icon;
+                  return (
+                    <motion.div
+                      key={stat.label}
+                      whileHover={{ y: -2, scale: 1.01 }}
+                      className="rounded-2xl border border-white/40 dark:border-white/10 bg-white/60 dark:bg-white/5 backdrop-blur-sm p-4 shadow-sm"
+                    >
+                      <div
+                        className={`w-11 h-11 rounded-2xl mb-3 flex items-center justify-center bg-gradient-to-br ${stat.tint} text-white shadow-lg`}
+                      >
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500">
+                        {stat.label}
+                      </p>
+                      <p className="mt-2 text-2xl font-bold text-slate-800 dark:text-white">
+                        {isLoading ? "..." : stat.value}
+                      </p>
+                    </motion.div>
+                  );
+                })}
+              </motion.div>
+            )}
+
+            {/* Filters Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="rounded-3xl border border-white/40 dark:border-white/10 bg-white/65 dark:bg-white/5 backdrop-blur-sm p-4 sm:p-6 shadow-sm"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+                    Class
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={classId}
+                      onChange={(e) => {
+                        setClassId(e.target.value);
+                        const next = availableClasses.find((cls) => cls.id === e.target.value);
+                        setSectionId(next?.sections?.[0]?.id ?? "");
+                      }}
+                      className="w-full appearance-none rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-3 pr-10 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
+                    >
+                      <option value="">Select class</option>
+                      {availableClasses.map((cls) => (
+                        <option key={cls.id} value={cls.id}>
+                          {cls.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+                    Section
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={sectionId}
+                      onChange={(e) => {
+                        setSectionId(e.target.value);
+                        setPage(1);
+                      }}
+                      className="w-full appearance-none rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-3 pr-10 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
+                    >
+                      <option value="">Select section</option>
+                      {availableSections.map((section) => (
+                        <option key={section.id} value={section.id}>
+                          {section.name} {section.maxCapacity ? `(max ${section.maxCapacity})` : ""}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+                    Subject
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={subjectId}
+                      onChange={(e) => {
+                        setSubjectId(e.target.value);
+                        setPage(1);
+                      }}
+                      className="w-full appearance-none rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-3 pr-10 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
+                    >
+                      <option value="">Select subject</option>
+                      {availableSubjects.map((sub) => (
+                        <option key={sub.id} value={sub.id}>
+                          {sub.name} ({sub.code})
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+                    Status
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={status}
+                      onChange={(e) => {
+                        setStatus(e.target.value as HomeworkStatusFilter);
+                        setPage(1);
+                      }}
+                      className="w-full appearance-none rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-3 pr-10 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
+                    >
+                      {HOMEWORK_STATUSES.map((s) => (
+                        <option key={s.key} value={s.key}>
+                          {s.label}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Tabs & Actions */}
+              <div className="mt-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="inline-flex rounded-2xl border border-white/40 dark:border-white/10 bg-white/65 dark:bg-white/5 p-1">
+                  {([
+                    { key: "list" as TabType, label: "All Homework", icon: BookMarked },
+                    { key: "overdue" as TabType, label: "Overdue", icon: Clock3 },
+                  ]).map((tab) => {
+                    const Icon = tab.icon;
+                    const isActive = activeTab === tab.key;
+                    return (
+                      <button
+                        key={tab.key}
+                        onClick={() => {
+                          setActiveTab(tab.key);
+                          setPage(1);
+                        }}
+                        className={`relative inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
+                          isActive
+                            ? "text-white"
+                            : "text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-white/5"
+                        }`}
+                      >
+                        {isActive && (
+                          <motion.span
+                            layoutId="homeworkTab"
+                            className="absolute inset-0 rounded-xl bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 shadow-lg shadow-indigo-500/30"
+                            transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                          />
+                        )}
+                        <span className="relative flex items-center gap-2">
+                          <Icon className="w-4 h-4" />
+                          {tab.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleRefresh}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-white/40 dark:border-white/10 bg-white/65 dark:bg-white/5 px-4 py-2.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-white/90 dark:hover:bg-white/10 transition-colors"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    Refresh
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Homework Table */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+              className="rounded-3xl border border-white/40 dark:border-white/10 bg-white/65 dark:bg-white/5 backdrop-blur-sm shadow-sm overflow-hidden"
+            >
+              {/* Search bar */}
+              <div className="p-4 sm:p-5 border-b border-white/40 dark:border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <h2 className="text-base sm:text-lg font-semibold text-slate-800 dark:text-white">
+                    {activeTab === "overdue" ? "Overdue Homework" : "My Homework"}
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                    {activeTab === "overdue"
+                      ? "Homework that is past due and not yet reviewed"
+                      : "Manage your homework assignments and track student views"}
+                  </p>
+                </div>
+                <div className="relative w-full sm:w-72">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search by title or subject..."
+                    className="w-full rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 pl-10 pr-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
+                  />
+                </div>
+              </div>
+
+              {!sectionId ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <motion.div
+                    animate={{ y: [0, -8, 0] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                    className="w-20 h-20 rounded-full bg-gradient-to-br from-sky-100 via-indigo-100 to-violet-100 dark:from-sky-500/20 dark:via-indigo-500/20 dark:to-violet-500/20 flex items-center justify-center mb-4 ring-1 ring-indigo-200/60 dark:ring-indigo-400/20"
+                  >
+                    <BookMarked className="w-10 h-10 text-indigo-600 dark:text-indigo-300" />
+                  </motion.div>
+                  <h3 className="text-base font-semibold text-slate-700 dark:text-slate-200">
+                    Select a section
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-400 dark:text-slate-500">
+                    Choose a class and section above to view homework.
+                  </p>
+                </div>
+              ) : filteredHomework.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <motion.div
+                    animate={{ y: [0, -8, 0] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                    className="w-20 h-20 rounded-full bg-gradient-to-br from-sky-100 via-indigo-100 to-violet-100 dark:from-sky-500/20 dark:via-indigo-500/20 dark:to-violet-500/20 flex items-center justify-center mb-4 ring-1 ring-indigo-200/60 dark:ring-indigo-400/20"
+                  >
+                    <BookMarked className="w-10 h-10 text-indigo-600 dark:text-indigo-300" />
+                  </motion.div>
+                  <h3 className="text-base font-semibold text-slate-700 dark:text-slate-200">
+                    No homework found
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-400 dark:text-slate-500">
+                    {activeTab === "overdue"
+                      ? "No overdue homework. Great job!"
+                      : "Create your first homework assignment to get started."}
+                  </p>
+                </div>
+              ) : (
+                <div className="w-full overflow-x-auto">
+                  <table className="w-full min-w-[640px] text-left text-sm">
+                    <thead>
+                      <tr className="border-b border-white/40 dark:border-white/10 bg-white/65 dark:bg-white/5">
+                        <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                          Title
+                        </th>
+                        <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                          Section
+                        </th>
+                        <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                          Subject
+                        </th>
+                        <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">
+                          Due Date
+                        </th>
+                        <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">
+                          Status
+                        </th>
+                        <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">
+                          Views
+                        </th>
+                        <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/40 dark:divide-white/10">
+                      <AnimatePresence mode="popLayout">
+                        {filteredHomework.map((hw, index) => {
+                          const statusMeta = getStatusMeta(hw.isReviewed ? "REVIEWED" : hw.isOverdue ? "OVERDUE" : "PENDING", hw.isOverdue);
+                          const viewProgress = hw.totalStudents
+                            ? Math.round(((hw.viewedCount ?? 0) / hw.totalStudents) * 100)
+                            : 0;
+                          return (
+                            <motion.tr
+                              key={hw.id}
+                              layout
+                              initial={{ opacity: 0, y: 14 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, x: -30, scale: 0.98 }}
+                              transition={{
+                                delay: index * 0.02,
+                                type: "spring",
+                                stiffness: 120,
+                                damping: 18,
+                              }}
+                              className={`group transition-colors duration-200 ${
+                                hw.isOverdue && !hw.isReviewed
+                                  ? "bg-rose-50/30 dark:bg-rose-500/5"
+                                  : hw.isReviewed
+                                    ? "bg-emerald-50/20 dark:bg-emerald-500/5"
+                                    : "hover:bg-white/60 dark:hover:bg-white/5"
+                              }`}
+                            >
+                              <td className="px-4 sm:px-6 py-4">
+                                <div className="flex items-center gap-3">
+                                  <div
+                                    className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold ${
+                                      hw.isOverdue && !hw.isReviewed
+                                        ? "bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-300"
+                                        : hw.isReviewed
+                                          ? "bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"
+                                          : "bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-300"
+                                    }`}
+                                  >
+                                    {hw.title.charAt(0).toUpperCase()}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <span className="font-medium text-slate-800 dark:text-white truncate block max-w-[200px]">
+                                      {hw.title}
+                                    </span>
+                                    <p className="text-xs text-slate-400 dark:text-slate-500 truncate max-w-[200px]">
+                                      {hw.description}
+                                    </p>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-4 sm:px-6 py-4">
+                                <span className="text-sm text-slate-700 dark:text-slate-300">
+                                  {hw.section.name}
+                                </span>
+                              </td>
+                              <td className="px-4 sm:px-6 py-4">
+                                <span className="text-sm text-slate-700 dark:text-slate-300">
+                                  {hw.subject.name}
+                                </span>
+                                <span className="text-xs text-slate-400 dark:text-slate-500 ml-1">
+                                  ({hw.subject.code})
+                                </span>
+                              </td>
+                              <td className="px-4 sm:px-6 py-4 text-center">
+                                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                                  {formatDate(hw.dueDate)}
+                                </span>
+                              </td>
+                              <td className="px-4 sm:px-6 py-4 text-center">
+                                <span
+                                  className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold ${statusMeta.badge}`}
+                                >
+                                  <span className={`w-2 h-2 rounded-full ${statusMeta.dot}`} />
+                                  {statusMeta.label}
+                                </span>
+                              </td>
+                              <td className="px-4 sm:px-6 py-4 text-center">
+                                <div className="flex flex-col items-center gap-1">
+                                  <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                                    {hw.viewedCount ?? 0}/{hw.totalStudents ?? 0}
+                                  </span>
+                                  {hw.totalStudents ? (
+                                    <div className="w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                                      <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${Math.min(viewProgress, 100)}%` }}
+                                        transition={{ duration: 0.6, ease: "easeOut" }}
+                                        className={`h-full rounded-full ${
+                                          viewProgress >= 75
+                                            ? "bg-emerald-500"
+                                            : viewProgress >= 50
+                                              ? "bg-amber-500"
+                                              : "bg-rose-500"
+                                        }`}
+                                      />
+                                    </div>
+                                  ) : null}
+                                </div>
+                              </td>
+                              <td className="px-4 sm:px-6 py-4 text-center">
+                                <div className="flex items-center justify-center gap-1">
+                                  <button
+                                    onClick={() => openEditModal(hw)}
+                                    className="p-2 rounded-xl border border-white/40 dark:border-white/10 bg-white/70 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:bg-white/90 dark:hover:bg-white/10 transition-colors"
+                                    title="Edit"
+                                  >
+                                    <Pencil className="w-3.5 h-3.5" />
+                                  </button>
+                                  {!hw.isReviewed && (
+                                    <button
+                                      onClick={() => handleMarkReviewed(hw.id)}
+                                      disabled={markReviewedMutation.isPending}
+                                      className="p-2 rounded-xl border border-emerald-200/70 dark:border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300 hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
+                                      title="Mark as reviewed"
+                                    >
+                                      <Sparkles className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => handleDelete(hw)}
+                                    disabled={deleteMutation.isPending}
+                                    className="p-2 rounded-xl border border-rose-200/70 dark:border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-300 hover:bg-rose-500/20 transition-colors disabled:opacity-50"
+                                    title="Delete"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </td>
+                            </motion.tr>
+                          );
+                        })}
+                      </AnimatePresence>
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Footer / Pagination */}
+              {filteredHomework.length > 0 && activeTab === "list" && (
+                <div className="p-4 sm:p-5 border-t border-white/40 dark:border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Showing{" "}
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">
+                      {(page - 1) * PAGE_SIZE + 1}
+                    </span>{" "}
+                    to{" "}
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">
+                      {Math.min(page * PAGE_SIZE, total)}
+                    </span>{" "}
+                    of{" "}
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">
+                      {total}
+                    </span>{" "}
+                    homework items
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={page <= 1}
+                      className="px-4 py-2 rounded-xl border border-white/40 dark:border-white/10 bg-white/65 dark:bg-white/5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-white/90 dark:hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Previous
+                    </button>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                      Page {page} of {totalPages || 1}
+                    </span>
+                    <button
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={page >= totalPages}
+                      className="px-4 py-2 rounded-xl border border-white/40 dark:border-white/10 bg-white/65 dark:bg-white/5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-white/90 dark:hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+
+            {/* Create/Edit Modal */}
+            <AnimatePresence>
+              {isModalOpen && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+                  onClick={closeModal}
+                >
+                  <motion.div
+                    initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 30, scale: 0.95 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    className="relative w-full max-w-lg bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl rounded-3xl border border-white/40 dark:border-white/10 shadow-2xl overflow-hidden"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="relative px-6 sm:px-8 py-6 bg-gradient-to-r from-sky-50 via-indigo-50 to-violet-50 dark:from-sky-500/10 dark:via-indigo-500/10 dark:to-violet-500/10 border-b border-white/40 dark:border-white/5">
+                      <h2 className="text-lg font-bold text-slate-800 dark:text-white">
+                        {editingHomework ? "Edit Homework" : "Create Homework"}
+                      </h2>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        {editingHomework
+                          ? "Update the homework assignment details."
+                          : "Assign new homework to your students."}
+                      </p>
+                    </div>
+
+                    <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+                          Section <span className="text-rose-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <select
+                            value={formSectionId}
+                            onChange={(e) => {
+                              setFormSectionId(e.target.value);
+                              setFormSubjectId("");
+                            }}
+                            className="w-full appearance-none rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-3 pr-10 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
+                          >
+                            <option value="">Select section</option>
+                            {availableSections.map((section) => (
+                              <option key={section.id} value={section.id}>
+                                {section.name} {section.maxCapacity ? `(max ${section.maxCapacity})` : ""}
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+                          Subject <span className="text-rose-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <select
+                            value={formSubjectId}
+                            onChange={(e) => setFormSubjectId(e.target.value)}
+                            className="w-full appearance-none rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-3 pr-10 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
+                          >
+                            <option value="">Select subject</option>
+                            {formAvailableSubjects.map((sub) => (
+                              <option key={sub.id} value={sub.id}>
+                                {sub.name} ({sub.code})
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+                          Title <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={formTitle}
+                          onChange={(e) => setFormTitle(e.target.value)}
+                          placeholder="Enter homework title"
+                          className="w-full rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+                          Description
+                        </label>
+                        <textarea
+                          value={formDescription}
+                          onChange={(e) => setFormDescription(e.target.value)}
+                          placeholder="Enter homework description..."
+                          rows={3}
+                          className="w-full rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30 resize-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+                          Due Date <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          type="date"
+                          value={formDueDate}
+                          onChange={(e) => setFormDueDate(e.target.value)}
+                          className="w-full rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-end gap-3 pt-2">
+                        <button
+                          type="button"
+                          onClick={closeModal}
+                          className="px-5 py-2.5 rounded-xl border border-white/40 dark:border-white/10 bg-white/65 dark:bg-white/5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-white/90 dark:hover:bg-white/10 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={isSubmitting}
+                          className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+                        >
+                          {isSubmitting ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <BookMarked className="w-4 h-4" />
+                          )}
+                          {editingHomework ? "Update" : "Create"}
+                        </button>
+                      </div>
+                    </form>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
-      ))}
+
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.4 }}
+          transition={{ delay: 1 }}
+          className="mt-6 text-center text-[10px] font-bold tracking-[0.3em] uppercase text-slate-400 dark:text-slate-600"
+        >
+          Homework
+        </motion.p>
+      </motion.div>
     </div>
   );
 }
-
-function EmptyState({
-  icon,
-  title,
-  sub,
-  action,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  sub: string;
-  action?: { label: string; onClick: () => void };
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.92 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="flex flex-col items-center justify-center py-20 text-center"
-    >
-      <motion.div
-        animate={{ y: [0, -8, 0] }}
-        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-        className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-100 via-violet-100 to-purple-100 dark:from-indigo-500/10 dark:via-violet-500/10 dark:to-purple-500/10 flex items-center justify-center mb-4 ring-1 ring-indigo-200/60 dark:ring-indigo-400/20"
-      >
-        {icon}
-      </motion.div>
-      <h3 className="text-base font-semibold text-slate-700 dark:text-slate-200">{title}</h3>
-      <p className="mt-1 text-sm text-slate-400 dark:text-slate-500">{sub}</p>
-      {action && (
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={action.onClick}
-          className="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 text-white px-5 py-2.5 text-sm font-semibold shadow-lg shadow-indigo-500/30"
-        >
-          <Plus className="h-4 w-4" />
-          {action.label}
-          <ChevronRight className="h-4 w-4" />
-        </motion.button>
-      )}
-    </motion.div>
-  );
-}
-
-// Keep ClipboardList in scope (imported at top, used by old OverdueTab — keep import clean)
-void ClipboardList;

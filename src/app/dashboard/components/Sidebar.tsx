@@ -208,28 +208,40 @@ const getNavGroups = (role: Role | null): NavGroup[] => {
       return [
         { items: commonTop },
         {
-          groupLabel: "My Classes",
+          groupLabel: "Academics & Routine",
           items: [
-            { icon: GraduationCap, label: "My Students",      href: "/dashboard/teacher/students" },
-            { icon: CalendarDays,  label: "Timetable",        href: "/dashboard/timetable" },
-            { icon: CalendarCheck, label: "Attendance",       href: "/dashboard/attendances" },
-            { icon: FileSpreadsheet, label: "Attendance Reports", href: "/dashboard/teacher/attendance-reports" },
+            { icon: BookOpen,      label: "My Classes & Subjects", href: "/dashboard/teacher/subjects" },
+            { icon: CalendarDays,  label: "Class Timetable",       href: "/dashboard/teacher/timetable" },
+            { icon: GraduationCap, label: "My Students",           href: "/dashboard/teacher/students" },
           ],
         },
         {
-          groupLabel: "Academics",
+          groupLabel: "Student Attendance",
           items: [
-            { icon: ClipboardList, label: "Exams",            href: "/dashboard/exam" },
-            { icon: ClipboardEdit, label: "Mark Results",     href: "/dashboard/teacher/marks" },
-            { icon: BookOpen,      label: "Subjects",         href: "/dashboard/subject" },
-            { icon: BookMarked,    label: "Homework",         href: "/dashboard/teacher/homework" },
+            { icon: CalendarCheck, label: "Mark Attendance",       href: "/dashboard/teacher/attendance" },
+            { icon: FileSpreadsheet, label: "Attendance Reports",  href: "/dashboard/teacher/attendance-reports" },
           ],
         },
         {
-          groupLabel: "Communication",
+          groupLabel: "Homework & Assignments",
           items: [
-            { icon: Megaphone,     label: "Notices",          href: "/dashboard/notices" },
-            { icon: MessageSquare, label: "My Profile",       href: "/dashboard/teacher/profile" },
+            { icon: BookMarked,    label: "Homework",              href: "/dashboard/teacher/homework" },
+            { icon: CheckSquare,   label: "Evaluate Submissions",  href: "/dashboard/teacher/homework/evaluate" },
+          ],
+        },
+        {
+          groupLabel: "Examinations",
+          items: [
+            { icon: ClipboardEdit, label: "Enter Marks",           href: "/dashboard/teacher/marks" },
+          ],
+        },
+        {
+          groupLabel: "HR & Personal",
+          items: [
+            { icon: TimerReset,    label: "My Leave & Attendance", href: "/dashboard/teacher/hr/leave" },
+            { icon: Receipt,       label: "Payslips",              href: "/dashboard/teacher/hr/payslips" },
+            { icon: Award,         label: "Performance",           href: "/dashboard/teacher/hr/performance" },
+            { icon: MessageSquare, label: "My Profile",            href: "/dashboard/teacher/profile" },
           ],
         },
       ];

@@ -1,22 +1,30 @@
 export interface Teacher {
   id: string;
+  userId: string;
+  employeeId: string;
   name: string;
   email: string;
-  phone: string;
-  address: string;
-  gender: "MALE" | "FEMALE" | string;
-  dateOfBirth: string;
-  subject?: string;
-  subjectId: string;
-  createdAt: string;
+  phone?: string;
+  gender?: "MALE" | "FEMALE" | "OTHER" | string;
+  dateOfBirth?: string;
+  subjectSpecialization?: string;
   joiningDate?: string;
-  role?: string;
-  classes?: string[];
-  department?: string;
   designation?: string;
+  department?: string;
+  qualification?: string;
+  experience?: number;
+  address?: string;
+  bloodGroup?: string;
+  salary?: number;
   isActive?: boolean;
+  createdAt: string;
+  updatedAt: string;
   subjectAssignments?: { id: string; subjectId: string; subject: { id: string; name: string } }[];
   sectionTeacher?: { id: string; class: { id: string; name: string } }[];
+  classes?: string[];
+  subject?: string;
+  subjectId?: string;
+  role?: string;
 }
 
 export interface CreateTeacherPayload {

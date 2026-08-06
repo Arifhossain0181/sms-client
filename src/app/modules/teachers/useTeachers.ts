@@ -66,3 +66,10 @@ export const useDeleteTeacher = () => {
     },
   });
 };
+
+export const useMyProfile = () => {
+  return useQuery({
+    queryKey: ["my-teacher-profile"],
+    queryFn: teacherService.getMyProfile,
+  });
+};

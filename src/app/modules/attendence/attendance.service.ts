@@ -3,7 +3,7 @@ import { Attendance, TakeAttendancePayload, AttendanceReportRow } from "./attend
 
 export const attendanceService = {
   getByClassAndDate: async (classId: string, sectionId: string, date: string): Promise<Attendance[]> => {
-    const res = await api.get(`/attendance?classId=${classId}&sectionId=${sectionId}&date=${date}`);
+    const res = await api.get("/attendance/by-date", { params: { classId, sectionId, date } });
     return res.data?.data ?? res.data;
   },
 
@@ -13,7 +13,7 @@ export const attendanceService = {
   },
 
   takeAttendance: async (data: TakeAttendancePayload): Promise<Attendance[]> => {
-    const res = await api.post("/attendance", data);
+    const res = await api.post("/attendance/take", data);
     return res.data?.data ?? res.data;
   },
 
