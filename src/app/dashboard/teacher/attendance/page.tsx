@@ -33,15 +33,8 @@ import { useTeachers } from "@/app/modules/teachers/useTeachers";
 import { attendanceService } from "@/app/modules/attendence/attendance.service";
 import { Attendance, AttendanceStatus, TakeAttendancePayload } from "@/app/modules/attendence/attendance.types";
 import { useAttendancesByClassAndDate, useTakeAttendance } from "@/app/modules/attendence/useAttendance";
-
-type TeacherProfile = {
-  id: string;
-  name?: string;
-  sectionTeacher?: Array<{
-    id: string;
-    class?: { id: string; name: string };
-  }>;
-};
+import { useTimetableByTeacher } from "@/app/modules/timetable/useTimetable";
+import type { Timetable } from "@/app/modules/timetable/timetable.types";
 
 type StudentLike = {
   id: string;
@@ -363,13 +356,19 @@ export default function Page() {
   const { data: students, isLoading: studentsLoading } = useStudents();
   const { data: teachers } = useTeachers();
   const takeAttendance = useTakeAttendance();
+  const { data: profile, isLoading: profileLoading } = useQuery({
+    queryKey: ["teachers", "me"],
+    queryFn: async () => {
+      const res = await api.get("/teachers/me");
+      return res.data?.data ?? res.data ?? null;
+    },
+    enabled: role === "TEACHER" || role === "SCHOOL_ADMIN" || role === "SUPER_ADMIN",
+  });
 
   const [classId, setClassId] = useState("");
   const [sectionId, setSectionId] = useState("");
-  const [teacherId, setTeacherId] = useState("");
+  const [selectedTeacherId, setSelectedTeacherId] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
-  const [profile, setProfile] = useState<TeacherProfile | null>(null);
-  const [profileLoading, setProfileLoading] = useState(true);
 
   useEffect(() => {
     if (role && role !== "TEACHER" && role !== "SUPER_ADMIN" && role !== "SCHOOL_ADMIN") {
@@ -377,41 +376,32 @@ export default function Page() {
     }
   }, [role, router]);
 
-  useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        setProfileLoading(true);
-        const res = await api.get("/teachers/me");
-        const payload = res.data?.data ?? res.data;
-        setProfile(payload ?? null);
-        if ((payload as TeacherProfile | null)?.id && role === "TEACHER") {
-          setTeacherId((payload as TeacherProfile).id);
-        }
-      } catch {
-        setProfile(null);
-      } finally {
-        setProfileLoading(false);
-      }
-    };
+  const teacherProfileId = role === "TEACHER" ? profile?.id ?? "" : "";
+  const effectiveTeacherId =
+    role === "TEACHER"
+      ? teacherProfileId
+      : selectedTeacherId || (Array.isArray(teachers) ? teachers[0]?.id ?? "" : "");
 
-    if (role === "TEACHER" || role === "SCHOOL_ADMIN" || role === "SUPER_ADMIN") {
-      loadProfile();
-    } else {
-      setProfileLoading(false);
-    }
-  }, [role]);
+  const { data: timetable = [], isLoading: timetableLoading } = useTimetableByTeacher(effectiveTeacherId, role === "TEACHER" && !!effectiveTeacherId);
 
   const assignedClassIds = useMemo(() => {
-    return new Set((profile?.sectionTeacher ?? []).map((entry) => entry.class?.id).filter(Boolean) as string[]);
-  }, [profile]);
+    const ids = new Set((profile?.sectionTeacher ?? []).map((entry) => entry.class?.id).filter(Boolean) as string[]);
+    if (Array.isArray(timetable)) {
+      timetable.forEach((slot: Timetable) => {
+        if (slot.classId) ids.add(slot.classId);
+      });
+    }
+    return ids;
+  }, [profile, timetable]);
 
   const availableClasses = useMemo(() => {
     const list = Array.isArray(classes) ? classes : [];
     if (role === "TEACHER") {
       if (assignedClassIds.size > 0) {
-        return list.filter((cls) => assignedClassIds.has(cls.id));
+        const assigned = list.filter((cls) => assignedClassIds.has(cls.id));
+        if (assigned.length > 0) return assigned;
       }
-      return [];
+      return list;
     }
     return list;
   }, [assignedClassIds, classes, role]);
@@ -424,18 +414,42 @@ export default function Page() {
 
   const availableSections = useMemo(() => {
     const sections = selectedClass?.sections ?? [];
+    const timetableSections = selectedClass
+      ? Array.from(
+          new Map(
+            timetable
+              .filter((slot) => slot.classId === selectedClass.id)
+              .map((slot) => [
+                slot.section?.id ?? slot.id,
+                {
+                  id: slot.section?.id ?? slot.id,
+                  name: slot.section?.name ?? "Section",
+                  maxCapacity: slot.section?.maxCapacity ?? undefined,
+                },
+              ])
+          ).values()
+        )
+      : [];
+
     if (role === "TEACHER") {
       const assignedSectionIds = new Set((profile?.sectionTeacher ?? []).map((entry) => entry.id).filter(Boolean) as string[]);
-      if (assignedSectionIds.size > 0) {
-        return sections.filter((section) => assignedSectionIds.has(section.id));
+      if (Array.isArray(timetable)) {
+        timetable.forEach((slot: Timetable) => {
+          if (slot.sectionId) assignedSectionIds.add(slot.sectionId);
+        });
       }
-      return [];
+      const sourceSections = sections.length > 0 ? sections : timetableSections;
+      if (assignedSectionIds.size > 0 && sourceSections.length > 0) {
+        const assignedSections = sourceSections.filter((section) => assignedSectionIds.has(section.id));
+        if (assignedSections.length > 0) return assignedSections;
+      }
+      if (sourceSections.length > 0) return sourceSections;
+      return sections;
     }
-    return sections;
-  }, [profile, role, selectedClass]);
+    return sections.length > 0 ? sections : timetableSections;
+  }, [profile, role, selectedClass, timetable]);
 
   const effectiveSectionId = sectionId || availableSections[0]?.id || "";
-  const effectiveTeacherId = teacherId || (Array.isArray(teachers) ? teachers[0]?.id ?? "" : "");
 
   const attendanceQuery = useAttendancesByClassAndDate(effectiveClassId, effectiveSectionId, date);
 
@@ -509,7 +523,7 @@ export default function Page() {
           studentId: entry.studentId,
           status: entry.status,
         })),
-        ...(role === "TEACHER" && profile?.id ? { teacherId: profile.id } : {}),
+        ...(role === "TEACHER" && teacherProfileId ? { teacherId: teacherProfileId } : {}),
         ...(role === "SCHOOL_ADMIN" && effectiveTeacherId ? { teacherId: effectiveTeacherId } : {}),
       };
 
@@ -531,6 +545,7 @@ export default function Page() {
     classesLoading ||
     studentsLoading ||
     profileLoading ||
+    timetableLoading ||
     attendanceQuery.isLoading ||
     takeAttendance.isPending;
 
@@ -671,7 +686,10 @@ export default function Page() {
                     <div className="relative">
                       <select
                         value={classId || effectiveClassId}
-                        onChange={(e) => setClassId(e.target.value)}
+                        onChange={(e) => {
+                          setClassId(e.target.value);
+                          setSectionId("");
+                        }}
                         className="w-full appearance-none rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-3 pr-10 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
                       >
                         <option value="">Select class</option>
@@ -709,8 +727,8 @@ export default function Page() {
                       <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Teacher</label>
                       <div className="relative">
                         <select
-                          value={teacherId || effectiveTeacherId}
-                          onChange={(e) => setTeacherId(e.target.value)}
+                        value={selectedTeacherId || effectiveTeacherId}
+                        onChange={(e) => setSelectedTeacherId(e.target.value)}
                           className="w-full appearance-none rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-3 pr-10 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
                         >
                           <option value="">Select teacher</option>

@@ -31,4 +31,9 @@ export const subjectService = {
   delete: async (id: string): Promise<void> => {
     await api.delete(`/subjects/${id}`);
   },
+
+  getMySubjects: async (): Promise<Subject[]> => {
+    const res = await api.get("/subjects/teacher/my-subjects");
+    return unwrap<Subject[]>(res);
+  },
 };

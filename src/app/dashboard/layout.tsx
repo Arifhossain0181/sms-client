@@ -109,8 +109,31 @@ export default function DashboardLayout({
     }
   }, [role, pathname, router]);
 
+  const [roleLoaded, setRoleLoaded] = useState(false);
+
+  useEffect(() => {
+    if (role) {
+      setRoleLoaded(true);
+    }
+  }, [role]);
+
   if (!role) {
-    return null;
+    return (
+      <ThemeProvider>
+        <div className="min-h-screen bg-background text-foreground flex">
+          <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          <div className="flex-1 min-w-0 flex flex-col">
+            <Topbar onToggleSidebar={() => setSidebarOpen((prev) => !prev)} />
+            <main className="flex-1 px-6 lg:px-10 py-8 flex items-center justify-center">
+              <div className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl p-8 text-center">
+                <div className="h-8 w-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                <p className="text-sm text-slate-600 dark:text-slate-300">Loading dashboard...</p>
+              </div>
+            </main>
+          </div>
+        </div>
+      </ThemeProvider>
+    );
   }
 
   return (

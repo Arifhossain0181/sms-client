@@ -25,7 +25,11 @@ import {
   BookOpen,
   AlertCircle,
   RefreshCw,
+  Plus,
 } from "lucide-react";
+import { toast } from "sonner";
+import { admissionService } from "@/app/modules/admission/admission.service";
+import { AdmissionClassOption, CreateAdmissionPayload, Gender, BloodGroup } from "@/app/modules/admission/admission.types";
 
 // ─── Types 
 
@@ -348,6 +352,23 @@ export default function AdminAdmissionsPage() {
   const [selected, setSelected] = useState<Admission | null>(null);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
+  // Create admission
+  const [createOpen, setCreateOpen] = useState(false);
+  const [classes, setClasses] = useState<AdmissionClassOption[]>([]);
+  const [classesLoading, setClassesLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [form, setForm] = useState<CreateAdmissionPayload>({
+    applicantName: "",
+    studentEmail: "",
+    guardianName: "",
+    guardianEmail: "",
+    guardianPhone: "",
+    address: "",
+    gender: "MALE",
+    dob: "",
+    targetClassId: "",
+  });
+
   // Filters
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<AdmissionStatus | "ALL">("ALL");
@@ -358,6 +379,52 @@ export default function AdminAdmissionsPage() {
   const showToast = (msg: string, ok = true) => {
     setToast({ msg, ok });
     setTimeout(() => setToast(null), 3500);
+  };
+
+  const loadClasses = async () => {
+    setClassesLoading(true);
+    try {
+      const data = await admissionService.getPublicClasses();
+      setClasses(data);
+    } catch {
+      showToast("Failed to load classes", false);
+    } finally {
+      setClassesLoading(false);
+    }
+  };
+
+  const openCreateModal = async () => {
+    setCreateOpen(true);
+    if (classes.length === 0) {
+      await loadClasses();
+    }
+  };
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setSubmitting(true);
+      await admissionService.create(form);
+      showToast("Admission created ✓");
+      setCreateOpen(false);
+      setForm({
+        applicantName: "",
+        studentEmail: "",
+        guardianName: "",
+        guardianEmail: "",
+        guardianPhone: "",
+        address: "",
+        gender: "MALE",
+        dob: "",
+        targetClassId: "",
+      });
+      fetchData();
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? "Failed to create admission";
+      showToast(msg, false);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // ── Fetch 
@@ -480,10 +547,16 @@ export default function AdminAdmissionsPage() {
             Review, approve, or reject student admission applications.
           </p>
         </div>
-        <button onClick={fetchData}
-          className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl border border-border hover:bg-secondary transition-colors">
-          <RefreshCw className="w-4 h-4" /> Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={openCreateModal}
+            className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+            <Plus className="w-4 h-4" /> New Admission
+          </button>
+          <button onClick={fetchData}
+            className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl border border-border hover:bg-secondary transition-colors">
+            <RefreshCw className="w-4 h-4" /> Refresh
+          </button>
+        </div>
       </motion.div>
 
       {/* Stat strip */}
@@ -646,6 +719,209 @@ export default function AdminAdmissionsPage() {
             onConvert={handleConvert}
             actionLoading={actionLoading}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Create Admission Modal */}
+      <AnimatePresence>
+        {createOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          >
+            <motion.button
+              type="button"
+              aria-label="Close create admission"
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => setCreateOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 12 }}
+              transition={{ type: "spring", stiffness: 120, damping: 16 }}
+              className="relative w-full max-w-2xl overflow-hidden rounded-[2rem] border border-white/40 bg-white/85 shadow-[0_24px_90px_-40px_rgba(15,23,42,0.5)] backdrop-blur-2xl"
+            >
+              <div className="bg-gradient-to-r from-sky-50 via-indigo-50 to-violet-50 px-6 py-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900">New Admission</h3>
+                    <p className="text-sm text-slate-500">Create a new student admission application.</p>
+                  </div>
+                  <button
+                    onClick={() => setCreateOpen(false)}
+                    className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+
+              <form onSubmit={handleCreate} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Applicant Name *</label>
+                    <input
+                      value={form.applicantName}
+                      onChange={(e) => setForm({ ...form, applicantName: e.target.value })}
+                      required
+                      className="w-full rounded-2xl border border-white/40 bg-white/80 px-4 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400/30"
+                      placeholder="Student full name"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Student Email *</label>
+                    <input
+                      value={form.studentEmail}
+                      onChange={(e) => setForm({ ...form, studentEmail: e.target.value })}
+                      type="email"
+                      required
+                      className="w-full rounded-2xl border border-white/40 bg-white/80 px-4 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400/30"
+                      placeholder="student@example.com"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Date of Birth *</label>
+                    <input
+                      value={form.dob}
+                      onChange={(e) => setForm({ ...form, dob: e.target.value })}
+                      type="date"
+                      required
+                      className="w-full rounded-2xl border border-white/40 bg-white/80 px-4 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400/30"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Gender *</label>
+                    <select
+                      value={form.gender}
+                      onChange={(e) => setForm({ ...form, gender: e.target.value as Gender })}
+                      className="w-full rounded-2xl border border-white/40 bg-white/80 px-4 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400/30"
+                    >
+                      <option value="MALE">Male</option>
+                      <option value="FEMALE">Female</option>
+                      <option value="OTHER">Other</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Address *</label>
+                    <textarea
+                      value={form.address}
+                      onChange={(e) => setForm({ ...form, address: e.target.value })}
+                      required
+                      rows={2}
+                      className="w-full rounded-2xl border border-white/40 bg-white/80 px-4 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400/30 resize-none"
+                      placeholder="Full address"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Guardian Name *</label>
+                    <input
+                      value={form.guardianName}
+                      onChange={(e) => setForm({ ...form, guardianName: e.target.value })}
+                      required
+                      className="w-full rounded-2xl border border-white/40 bg-white/80 px-4 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400/30"
+                      placeholder="Guardian full name"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Guardian Email *</label>
+                    <input
+                      value={form.guardianEmail}
+                      onChange={(e) => setForm({ ...form, guardianEmail: e.target.value })}
+                      type="email"
+                      required
+                      className="w-full rounded-2xl border border-white/40 bg-white/80 px-4 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400/30"
+                      placeholder="guardian@example.com"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Guardian Phone *</label>
+                    <input
+                      value={form.guardianPhone}
+                      onChange={(e) => setForm({ ...form, guardianPhone: e.target.value })}
+                      required
+                      className="w-full rounded-2xl border border-white/40 bg-white/80 px-4 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400/30"
+                      placeholder="01XXXXXXXXX"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Target Class *</label>
+                    <select
+                      value={form.targetClassId}
+                      onChange={(e) => setForm({ ...form, targetClassId: e.target.value })}
+                      required
+                      disabled={classesLoading}
+                      className="w-full rounded-2xl border border-white/40 bg-white/80 px-4 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400/30 disabled:opacity-60"
+                    >
+                      <option value="">Select class</option>
+                      {classes.map((cls) => (
+                        <option key={cls.id} value={cls.id}>
+                          {cls.name} {cls.numericLevel ? `(Class ${cls.numericLevel})` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Blood Group</label>
+                    <select
+                      value={form.bloodGroup ?? ""}
+                      onChange={(e) => setForm({ ...form, bloodGroup: e.target.value ? (e.target.value as BloodGroup) : undefined })}
+                      className="w-full rounded-2xl border border-white/40 bg-white/80 px-4 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400/30"
+                    >
+                      <option value="">Select</option>
+                      <option value="A_POS">A+</option>
+                      <option value="A_NEG">A-</option>
+                      <option value="B_POS">B+</option>
+                      <option value="B_NEG">B-</option>
+                      <option value="O_POS">O+</option>
+                      <option value="O_NEG">O-</option>
+                      <option value="AB_POS">AB+</option>
+                      <option value="AB_NEG">AB-</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Religion</label>
+                    <input
+                      value={form.religion ?? ""}
+                      onChange={(e) => setForm({ ...form, religion: e.target.value })}
+                      className="w-full rounded-2xl border border-white/40 bg-white/80 px-4 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-indigo-400/30"
+                      placeholder="Optional"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setCreateOpen(false)}
+                    className="px-5 py-2.5 rounded-xl border border-border text-sm font-semibold text-slate-600 hover:bg-secondary transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 text-white text-sm font-semibold shadow-lg shadow-indigo-500/20 hover:shadow-xl hover:shadow-indigo-500/40 disabled:opacity-60 transition-all"
+                  >
+                    {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                    {submitting ? "Creating..." : "Create Admission"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

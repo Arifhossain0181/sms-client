@@ -10,11 +10,14 @@ import { motion } from "framer-motion";
 import api from "@/lib/axios";
 import { StatCard } from "../components/StatCard";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useMyProfile } from "@/app/modules/teachers/useTeachers";
 
 export default function TeacherDashboard() {
   useLenis();
   const router = useRouter();
-  const { role, user } = useAuth();
+  const { role } = useAuth();
+  const { data: profile, isLoading: profileLoading } = useMyProfile(role === "TEACHER");
+  const teacherId = profile?.id ?? "";
   const [stats, setStats] = useState({
     totalStudents: 0,
     totalClasses: 0,
@@ -24,6 +27,7 @@ export default function TeacherDashboard() {
   const [schedule, setSchedule] = useState<Array<{ id: string; title: string; time: string; sectionId: string; classId: string }>>([]);
   const [attendanceStatus, setAttendanceStatus] = useState<Array<{ id: string; label: string; status: string }>>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (role && role !== "TEACHER") {
@@ -50,15 +54,14 @@ export default function TeacherDashboard() {
     const loadTeacherDashboard = async () => {
       try {
         setLoading(true);
+        setError(null);
 
-        if (!user?.id) {
+        if (!teacherId) {
           setSchedule([]);
           setAttendanceStatus([]);
           setStats({ totalStudents: 0, totalClasses: 0, totalSubjects: 0, upcomingExams: 0 });
           return;
         }
-
-        const teacherId = user.id;
 
         const [statsRes, scheduleRes] = await Promise.all([
           api.get(`/teachers/${teacherId}/dashboard`),
@@ -105,13 +108,14 @@ export default function TeacherDashboard() {
         setAttendanceStatus(attendanceChecks);
       } catch (error) {
         console.error("Failed to load teacher dashboard", error);
+        setError("We could not load your dashboard right now.");
       } finally {
         setLoading(false);
       }
     };
 
     loadTeacherDashboard();
-  }, [todayKey, user]);
+  }, [todayKey, teacherId]);
 
   const container = {
     hidden: { opacity: 0 },
@@ -122,6 +126,45 @@ export default function TeacherDashboard() {
     hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0 },
   };
+
+  if (role === "TEACHER" && profileLoading) {
+    return (
+      <div className="relative min-h-[80vh] flex items-center justify-center p-4 overflow-hidden bg-slate-50/50 dark:bg-slate-950 rounded-3xl">
+        <div className="relative w-full">
+          <div className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl p-8 space-y-4">
+            <div className="h-8 w-1/3 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse" />
+            <div className="h-4 w-1/2 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse" />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-24 bg-slate-200/60 dark:bg-slate-700/40 rounded-2xl animate-pulse" />
+              ))}
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
+              {[...Array(2)].map((_, i) => (
+                <div key={i} className="h-72 bg-slate-200/50 dark:bg-slate-700/30 rounded-3xl animate-pulse" />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (role === "TEACHER" && !teacherId && !profileLoading) {
+    return (
+      <div className="relative min-h-[80vh] flex items-center justify-center p-4 overflow-hidden bg-slate-50/50 dark:bg-slate-950 rounded-3xl">
+        <div className="relative w-full max-w-2xl">
+          <div className="rounded-3xl border border-white/30 dark:border-white/10 bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl shadow-2xl p-8 text-center">
+            <UserCheck className="mx-auto h-10 w-10 text-indigo-500" />
+            <h1 className="mt-4 text-xl font-bold text-slate-800 dark:text-white">Teacher dashboard is not ready yet</h1>
+            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+              We could not resolve your teacher profile, so the dashboard cannot load your classes and schedule.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-[80vh] flex items-start sm:items-center p-4 sm:p-6 overflow-hidden bg-slate-50/50 dark:bg-slate-950 rounded-3xl">
@@ -191,6 +234,11 @@ export default function TeacherDashboard() {
           </div>
 
           <div className="p-4 sm:p-6 space-y-5">
+            {error && (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                {error}
+              </div>
+            )}
             {/* Stats */}
             <motion.div
               variants={container}

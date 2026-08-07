@@ -19,7 +19,7 @@ export interface Teacher {
   isActive?: boolean;
   createdAt: string;
   updatedAt: string;
-  subjectAssignments?: { id: string; subjectId: string; subject: { id: string; name: string } }[];
+  subjectAssignments?: { id: string; subjectId: string; subject: { id: string; name: string; code: string; fullMarks: number; passMarks: number; isCompulsory: boolean; class: { id: string; name: string } } }[];
   sectionTeacher?: { id: string; class: { id: string; name: string } }[];
   classes?: string[];
   subject?: string;

@@ -17,6 +17,7 @@ import type { Timetable } from "@/app/modules/timetable/timetable.types";
 import { useRouter } from "next/navigation";
 import {
   Calendar,
+  ChevronDown,
   Clock,
   GraduationCap,
   Search,
@@ -247,7 +248,7 @@ export default function RoutinePage() {
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-indigo-300/10 dark:bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"
       />
 
-      <div className="relative w-full max-w-6xl my-8 space-y-6">
+      <div className="relative w-full my-8 space-y-6">
         <div className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl shadow-slate-200/40 dark:shadow-none overflow-hidden">
 
           {/* Header */}
@@ -298,16 +299,19 @@ export default function RoutinePage() {
           <div className="p-4 sm:p-6 space-y-5">
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex-1 min-w-[200px]">
-                <select
-                  value={selectedClassId}
-                  onChange={(e) => { setSelectedClassId(e.target.value); setSearch(""); }}
-                  className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-white/5 px-3 py-2 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
-                >
-                  <option value="">Select Class</option>
-                  {classes.map((c: any) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    value={selectedClassId}
+                    onChange={(e) => { setSelectedClassId(e.target.value); setSearch(""); }}
+                    className="w-full appearance-none rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-3 pr-10 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
+                  >
+                    <option value="">Select Class</option>
+                    {classes.map((c: any) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                </div>
               </div>
 
               {selectedClassId && (
@@ -318,7 +322,7 @@ export default function RoutinePage() {
                     placeholder="Search subject, teacher, time..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-white/5 pl-9 pr-4 py-2 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
+                    className="w-full rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 pl-9 pr-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
                   />
                 </div>
               )}
@@ -377,32 +381,32 @@ export default function RoutinePage() {
                         ({slots.length} slot{slots.length !== 1 ? "s" : ""})
                       </span>
                     </div>
-                    <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+                    <div className="overflow-x-auto rounded-2xl border border-white/40 dark:border-white/10">
                       <table className="w-full text-sm">
                         <thead>
-                          <tr className="border-b border-slate-200 dark:border-slate-700 text-left text-xs uppercase text-slate-500 dark:text-slate-400 bg-slate-50/60 dark:bg-slate-800/40">
-                            <th className="pb-3 pt-3 font-medium pl-4">Subject</th>
-                            <th className="pb-3 pt-3 font-medium">Teacher</th>
-                            <th className="pb-3 pt-3 font-medium">Time</th>
-                            {canManage && <th className="pb-3 pt-3 font-medium pr-4 text-right">Actions</th>}
+                          <tr className="border-b border-white/40 dark:border-white/10 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 bg-white/65 dark:bg-white/5">
+                            <th className="px-4 sm:px-6 py-3">Subject</th>
+                            <th className="px-4 sm:px-6 py-3">Teacher</th>
+                            <th className="px-4 sm:px-6 py-3">Time</th>
+                            {canManage && <th className="px-4 sm:px-6 py-3 text-right">Actions</th>}
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                        <tbody className="divide-y divide-white/40 dark:divide-white/10">
                           {slots.map((slot, idx) => (
                             <motion.tr
                               key={slot.id}
                               initial={{ opacity: 0, x: -10 }}
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ delay: gIdx * 0.05 + idx * 0.02 }}
-                              className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors group"
+                              className="group transition-colors duration-200 hover:bg-white/60 dark:hover:bg-white/5"
                             >
-                              <td className="py-3.5 pl-4 font-medium text-slate-900 dark:text-white">
+                              <td className="px-4 sm:px-6 py-3.5 pl-4 font-medium text-slate-800 dark:text-white">
                                 <span className="inline-flex items-center gap-2">
                                   <span className="w-2 h-2 rounded-full bg-indigo-400 flex-shrink-0" />
                                   {slot.subject?.name ?? "—"}
                                 </span>
                               </td>
-                              <td className="py-3.5 text-slate-600 dark:text-slate-300">
+                              <td className="px-4 sm:px-6 py-3.5 text-slate-600 dark:text-slate-300">
                                 {slot.teacher?.user?.name ? (
                                   <span className="inline-flex items-center gap-1.5">
                                     <span className="w-6 h-6 rounded-full bg-gradient-to-br from-fuchsia-500 to-indigo-500 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
@@ -414,14 +418,14 @@ export default function RoutinePage() {
                                   <span className="text-slate-400 italic text-xs">Not assigned</span>
                                 )}
                               </td>
-                              <td className="py-3.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                              <td className="px-4 sm:px-6 py-3.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">
                                 <span className="inline-flex items-center gap-1 px-2 py-1 bg-indigo-50 dark:bg-indigo-500/10 rounded-lg text-indigo-600 dark:text-indigo-400">
                                   <Clock className="h-3 w-3" />
                                   {slot.startTime} - {slot.endTime}
                                 </span>
                               </td>
                               {canManage && (
-                                <td className="py-3.5 pr-4 text-right">
+                                <td className="px-4 sm:px-6 py-3.5 pr-4 text-right">
                                   <div className="inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <motion.button
                                       whileHover={{ scale: 1.1 }}
@@ -529,61 +533,70 @@ export default function RoutinePage() {
 
                 {/* Day of Week */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5 text-indigo-500" />
                     Day of Week
                   </label>
-                  <select
-                    value={formDay}
-                    onChange={(e) => setFormDay(e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-white/50 dark:bg-white/[0.03] px-3.5 py-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400/50 transition-all"
-                  >
-                    {DAYS.map((d) => (
-                      <option key={d} value={d}>{DAY_LABEL[d]}</option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={formDay}
+                      onChange={(e) => setFormDay(e.target.value)}
+                      className="w-full appearance-none rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-3 pr-10 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
+                    >
+                      {DAYS.map((d) => (
+                        <option key={d} value={d}>{DAY_LABEL[d]}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  </div>
                 </div>
 
                 {/* Subject */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] flex items-center gap-1.5">
                     <BookOpen className="w-3.5 h-3.5 text-fuchsia-500" />
                     Subject
                   </label>
-                  <select
-                    value={formSubjectId}
-                    onChange={(e) => setFormSubjectId(e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-white/50 dark:bg-white/[0.03] px-3.5 py-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400/50 transition-all"
-                  >
-                    <option value="">— Select Subject —</option>
-                    {subjects.map((sub: any) => (
-                      <option key={sub.id} value={sub.id}>{sub.name}</option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={formSubjectId}
+                      onChange={(e) => setFormSubjectId(e.target.value)}
+                      className="w-full appearance-none rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-3 pr-10 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
+                    >
+                      <option value="">— Select Subject —</option>
+                      {subjects.map((sub: any) => (
+                        <option key={sub.id} value={sub.id}>{sub.name}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  </div>
                 </div>
 
                 {/* Teacher */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] flex items-center gap-1.5">
                     <GraduationCap className="w-3.5 h-3.5 text-sky-500" />
                     Assign Teacher
                   </label>
-                  <select
-                    value={formTeacherId}
-                    onChange={(e) => setFormTeacherId(e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-white/50 dark:bg-white/[0.03] px-3.5 py-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400/50 transition-all"
-                  >
-                    <option value="">— Select Teacher —</option>
-                    {teachers.map((t: any) => (
-                      <option key={t.id} value={t.id}>{t.name}</option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={formTeacherId}
+                      onChange={(e) => setFormTeacherId(e.target.value)}
+                      className="w-full appearance-none rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-3 pr-10 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
+                    >
+                      <option value="">— Select Teacher —</option>
+                      {teachers.map((t: any) => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  </div>
                 </div>
 
                 {/* Time */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5 text-indigo-500" />
                       Start Time
                     </label>
@@ -591,11 +604,11 @@ export default function RoutinePage() {
                       type="time"
                       value={formStartTime}
                       onChange={(e) => setFormStartTime(e.target.value)}
-                      className="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-white/50 dark:bg-white/[0.03] px-3.5 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400/50 transition-all"
+                      className="w-full rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5 text-pink-500" />
                       End Time
                     </label>
@@ -603,7 +616,7 @@ export default function RoutinePage() {
                       type="time"
                       value={formEndTime}
                       onChange={(e) => setFormEndTime(e.target.value)}
-                      className="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-white/50 dark:bg-white/[0.03] px-3.5 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400/50 transition-all"
+                      className="w-full rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
                     />
                   </div>
                 </div>
@@ -616,7 +629,7 @@ export default function RoutinePage() {
                     whileHover={{ scale: isMutating ? 1 : 1.02 }}
                     whileTap={{ scale: isMutating ? 1 : 0.97 }}
                     onClick={() => setIsModalOpen(false)}
-                    className="flex-1 px-5 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/[0.02] hover:bg-gray-50 dark:hover:bg-white/[0.05] text-sm font-medium text-gray-700 dark:text-gray-200 cursor-pointer disabled:opacity-50 transition-all"
+                    className="flex-1 px-5 py-3 rounded-xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-white/5 hover:bg-white/90 dark:hover:bg-white/10 text-sm font-medium text-slate-700 dark:text-slate-200 cursor-pointer disabled:opacity-50 transition-all"
                   >
                     Cancel
                   </motion.button>

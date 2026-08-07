@@ -69,3 +69,10 @@ export const useDeleteSubject = () => {
     },
   });
 };
+
+export const useMySubjects = () => {
+  return useQuery<Subject[]>({
+    queryKey: ["subjects", "mine"],
+    queryFn: () => subjectService.getMySubjects(),
+  });
+};

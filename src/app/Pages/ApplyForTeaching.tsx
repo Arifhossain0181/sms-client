@@ -76,9 +76,9 @@ export default function ApplyForTeaching() {
       setSubmitting(true);
       await api.post("/teaching/apply", data);
 
-      if (user && jobId) {
+      if (jobId) {
         try {
-          await api.post("/recruitment/applicants", {
+          await api.post("/recruitment/applicants/public", {
             jobPostingId: jobId,
             name: data.name,
             email: data.email,

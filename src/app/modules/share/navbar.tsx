@@ -23,6 +23,8 @@ export default function Navbar() {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const [userOpen, setUserOpen] = useState(false);
   const [latestJobId, setLatestJobId] = useState<string | null>(null);
+  const [openJobs, setOpenJobs] = useState<{ id: string; title: string; designation: string; department?: { name: string } }[]>([]);
+  const [jobsLoading, setJobsLoading] = useState(true);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const { user, isAuthenticated, logout, role } = useAuth();
 
@@ -72,23 +74,36 @@ export default function Navbar() {
 
   useEffect(() => {
     let cancelled = false;
-    const loadLatestJob = async () => {
+    const loadOpenJobs = async () => {
+      setJobsLoading(true);
       try {
-        const res = await api.get("/recruitment/jobs?status=OPEN&limit=1");
+        const res = await api.get("/recruitment/jobs/public");
         const payload = res.data?.data ?? res.data;
         const postings = payload.postings ?? [];
-        if (!cancelled && postings.length > 0) {
-          setLatestJobId(postings[0].id);
+        if (!cancelled) {
+          setOpenJobs(
+            postings.map((p: any) => ({
+              id: p.id,
+              title: p.title,
+              designation: p.designation,
+              department: p.department,
+            }))
+          );
+          if (postings.length > 0) {
+            setLatestJobId(postings[0].id);
+          }
         }
       } catch {
-        // silently ignore - apply button will still show as generic link
+        if (!cancelled) {
+          setOpenJobs([]);
+        }
+      } finally {
+        if (!cancelled) setJobsLoading(false);
       }
     };
-    if (isAuthenticated) {
-      loadLatestJob();
-    }
+    loadOpenJobs();
     return () => { cancelled = true; };
-  }, [isAuthenticated]);
+  }, []);
 
   return (
     <motion.header
@@ -146,18 +161,59 @@ export default function Navbar() {
               )}
               <span className="relative z-10">{link.name}</span>
             </Link>
-          ))}
-          {latestJobId && (
-            <Link
-              href={teachingHref}
-              onMouseEnter={() => setHoveredIdx(navLinks.length - 1)}
-              className="relative inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-semibold text-white bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 rounded-full shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/30 transition-all"
-            >
-              <Briefcase className="h-3.5 w-3.5" />
-              <span className="relative z-10">Apply Now</span>
-            </Link>
-          )}
+          )          )}
+          <Link
+            href={teachingHref}
+            onMouseEnter={() => setHoveredIdx(navLinks.length - 1)}
+            className="relative inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-semibold text-white bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 rounded-full shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/30 transition-all"
+          >
+            <Briefcase className="h-3.5 w-3.5" />
+            <span className="relative z-10">Apply Now</span>
+          </Link>
         </div>
+
+        {/* Open Jobs Dropdown */}
+        {openJobs.length > 0 && (
+          <div className="hidden lg:block ml-2">
+            <div className="group relative">
+              <button className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-semibold text-slate-700 bg-white/70 border border-slate-200 rounded-full hover:border-indigo-300 transition">
+                <Briefcase className="h-3.5 w-3.5 text-indigo-500" />
+                Open Positions ({openJobs.length})
+              </button>
+              <div className="absolute right-0 top-full mt-2 w-80 rounded-2xl border border-slate-200 bg-white shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden">
+                <div className="px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-sky-50 via-indigo-50 to-violet-50">
+                  <p className="text-xs font-semibold text-slate-700 uppercase tracking-wide">Open Positions</p>
+                </div>
+                <div className="max-h-72 overflow-y-auto py-1">
+                  {jobsLoading ? (
+                    <div className="px-4 py-3 text-xs text-slate-500">Loading positions...</div>
+                  ) : (
+                    openJobs.map((job) => (
+                      <Link
+                        key={job.id}
+                        href={`/apply-for-Teaching?jobId=${job.id}`}
+                        className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-gradient-to-r hover:from-sky-50 hover:to-indigo-50 transition group/item"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-slate-800 truncate group-hover/item:text-indigo-700 transition-colors">{job.title}</p>
+                          <p className="text-xs text-slate-500 truncate">{job.designation}{job.department?.name ? ` · ${job.department.name}` : ''}</p>
+                        </div>
+                        <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 text-white px-2.5 py-1 text-xs font-semibold shadow-sm group-hover/item:shadow-md transition-all">
+                          Apply
+                        </span>
+                      </Link>
+                    ))
+                  )}
+                </div>
+                <div className="px-4 py-2 border-t border-slate-100 bg-slate-50/60">
+                  <Link href="/careers" className="text-xs font-medium text-indigo-600 hover:text-indigo-700 transition">
+                    View all careers →
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* CTA */}
         <div className="hidden md:flex items-center gap-2">
@@ -268,23 +324,47 @@ export default function Navbar() {
                     {link.name}
                   </Link>
                 </motion.div>
-              ))}
-              {latestJobId && (
+              )              )}
+              {openJobs.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: navLinks.length * 0.05 }}
+                  transition={{ delay: navLinks.length * 0.05 + 0.05 }}
+                  className="space-y-1"
                 >
-                  <Link
-                    href={teachingHref}
-                    onClick={() => setMobileOpen(false)}
-                    className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 text-white font-semibold shadow-lg shadow-indigo-500/20"
-                  >
-                    <Briefcase className="h-4 w-4" />
-                    Apply for Teaching
-                  </Link>
+                  <p className="px-4 pt-2 pb-1 text-xs font-semibold text-slate-500 uppercase tracking-wide">Open Positions</p>
+                  {openJobs.map((job) => (
+                    <Link
+                      key={job.id}
+                      href={`/apply-for-Teaching?jobId=${job.id}`}
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-sky-50 to-indigo-50 border border-indigo-100"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-slate-800 truncate">{job.title}</p>
+                        <p className="text-xs text-slate-500 truncate">{job.designation}{job.department?.name ? ` · ${job.department.name}` : ''}</p>
+                      </div>
+                      <span className="shrink-0 inline-flex items-center rounded-full bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 text-white px-2.5 py-1 text-xs font-semibold">
+                        Apply
+                      </span>
+                    </Link>
+                  ))}
                 </motion.div>
               )}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: navLinks.length * 0.05 }}
+              >
+                <Link
+                  href={teachingHref}
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 text-white font-semibold shadow-lg shadow-indigo-500/20"
+                >
+                  <Briefcase className="h-4 w-4" />
+                  Apply for Teaching
+                </Link>
+              </motion.div>
               <div className="pt-3 border-t border-slate-100 mt-3">
                 {!isAuthenticated ? (
                   <div className="flex flex-col gap-2">
