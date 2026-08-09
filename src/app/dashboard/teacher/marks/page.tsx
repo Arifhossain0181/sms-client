@@ -26,6 +26,7 @@ import { useClasses } from "@/app/modules/class/useClasses";
 import { useSubjects } from "@/app/modules/subject/useSubjects";
 import {
   useTeacherExams,
+  useStudentsForExam,
   useTeacherMarksForExam,
   useSubmitExamMarks,
 } from "@/app/modules/marks/useMarks";
@@ -110,6 +111,7 @@ export default function Page() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const examsQuery = useTeacherExams();
+  const studentsQuery = useStudentsForExam(selectedExam?.id);
   const marksQuery = useTeacherMarksForExam(selectedExam?.id);
   const submitMutation = useSubmitExamMarks();
 
@@ -184,8 +186,29 @@ export default function Page() {
     return exams;
   }, [examsQuery.data, classId, subjectId, examType]);
 
+  const studentsData = studentsQuery.data;
   const marksData = marksQuery.data;
+
   const markRows = useMemo(() => {
+    if (!studentsData?.students) return [];
+    const rows: MarkRow[] = studentsData.students.map((s) => {
+      const marksMap: MarkRow["marks"] = {};
+      for (const m of s.subjectMarks) {
+        marksMap[m.subjectId] = m;
+      }
+      return {
+        studentId: s.student.id,
+        studentName: s.student.name,
+        rollNumber: String(s.student.rollNumber ?? ""),
+        sectionName: s.student.section.name,
+        className: s.student.section.class.name,
+        marks: marksMap,
+      };
+    });
+    return rows;
+  }, [studentsData]);
+
+  const historyRows = useMemo(() => {
     if (!marksData?.students) return [];
     const rows: MarkRow[] = marksData.students.map((s) => {
       const marksMap: MarkRow["marks"] = {};
@@ -204,7 +227,17 @@ export default function Page() {
     return rows;
   }, [marksData]);
 
-  const stats = useMemo(() => {
+  const entryStats = useMemo(() => {
+    if (!studentsData?.students) return { total: 0, submitted: 0, pending: 0 };
+    const allMarks = studentsData.students.flatMap((s) => s.subjectMarks);
+    return {
+      total: studentsData.totalStudents,
+      submitted: allMarks.filter((m) => m.status === "SUBMITTED" || m.status === "APPROVED" || m.status === "REJECTED").length,
+      pending: allMarks.filter((m) => m.status !== "SUBMITTED" && m.status !== "APPROVED" && m.status !== "REJECTED").length,
+    };
+  }, [studentsData]);
+
+  const historyStats = useMemo(() => {
     if (!marksData?.students) return { total: 0, submitted: 0, approved: 0, rejected: 0 };
     const allMarks = marksData.students.flatMap((s) => s.subjectMarks);
     return {
@@ -217,18 +250,22 @@ export default function Page() {
 
   const filteredMarkRows = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return markRows;
-    return markRows.filter(
+    const source = activeTab === "entry" ? markRows : historyRows;
+    if (!q) return source;
+    return source.filter(
       (r) =>
         r.studentName.toLowerCase().includes(q) ||
         r.rollNumber.includes(q) ||
         r.sectionName.toLowerCase().includes(q)
     );
-  }, [markRows, search]);
+  }, [markRows, historyRows, search, activeTab]);
 
   const handleRefresh = () => {
     if (activeTab === "entry") {
       queryClient.invalidateQueries({ queryKey: ["teacher-exams"] });
+      if (selectedExam?.id) {
+        queryClient.invalidateQueries({ queryKey: ["teacher-students-for-exam", selectedExam.id] });
+      }
     } else {
       if (selectedExam?.id) {
         queryClient.invalidateQueries({ queryKey: ["teacher-marks", selectedExam.id] });
@@ -240,7 +277,7 @@ export default function Page() {
   const handleSaveMarks = async () => {
     if (!selectedExam) return;
     const entries: SubmitExamMarksPayload["entries"] = [];
-    for (const row of filteredMarkRows) {
+    for (const row of markRows) {
       for (const [subjectId, mark] of Object.entries(row.marks)) {
         entries.push({
           studentId: row.studentId,
@@ -256,6 +293,8 @@ export default function Page() {
     setIsSubmitting(true);
     try {
       await submitMutation.mutateAsync({ examId: selectedExam.id, payload: { entries } });
+      queryClient.invalidateQueries({ queryKey: ["teacher-students-for-exam", selectedExam.id] });
+      queryClient.invalidateQueries({ queryKey: ["teacher-marks", selectedExam.id] });
     } catch {
       // error handled by mutation
     } finally {
@@ -264,9 +303,9 @@ export default function Page() {
   };
 
   const handleMarkChange = (studentId: string, subjectId: string, value: number, fullMarks: number) => {
-    if (!marksData) return;
-    const newMarks = { ...marksData };
-    for (const student of newMarks.students) {
+    if (!studentsData) return;
+    const newStudents = { ...studentsData };
+    for (const student of newStudents.students) {
       if (student.student.id === studentId) {
         for (const mark of student.subjectMarks) {
           if (mark.subjectId === subjectId) {
@@ -277,7 +316,14 @@ export default function Page() {
         break;
       }
     }
-    marksQuery.refetch();
+    studentsQuery.refetch();
+  };
+
+  const handleExamSelect = (exam: TeacherExam | null) => {
+    setSelectedExam(exam);
+    if (exam) {
+      setActiveTab("entry");
+    }
   };
 
   const isLoading = profileLoading || classesLoading || examsQuery.isLoading;
@@ -317,7 +363,6 @@ export default function Page() {
 
   return (
     <div className="relative min-h-[80vh] flex items-start sm:items-center p-4 sm:p-6 overflow-hidden bg-slate-50/50 dark:bg-slate-950 rounded-3xl">
-      {/* Animated background orbs */}
       <motion.div
         animate={{ x: [0, 40, 0], y: [0, -30, 0] }}
         transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
@@ -341,7 +386,6 @@ export default function Page() {
         className="relative w-full my-6"
       >
         <div className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl shadow-slate-200/40 dark:shadow-none overflow-hidden">
-          {/* Gradient Header */}
           <div className="relative px-6 sm:px-8 py-6 bg-gradient-to-r from-sky-50 via-indigo-50 to-violet-50 dark:from-sky-500/10 dark:via-indigo-500/10 dark:to-violet-500/10 border-b border-white/40 dark:border-white/5 overflow-hidden">
             <motion.div
               animate={{ x: [0, 100, 0] }}
@@ -506,7 +550,7 @@ export default function Page() {
                 </div>
               ) : (
                 <div className="flex items-center gap-3">
-                  <div className="flex-1">
+                  <div className="relative w-full sm:w-72">
                     <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
                       Select Exam
                     </label>
@@ -515,7 +559,7 @@ export default function Page() {
                         value={selectedExam?.id || ""}
                         onChange={(e) => {
                           const exam = filteredExams.find((ex) => ex.id === e.target.value);
-                          setSelectedExam(exam || null);
+                          handleExamSelect(exam || null);
                         }}
                         className="w-full appearance-none rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-3 pr-10 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
                       >
@@ -530,13 +574,18 @@ export default function Page() {
                     </div>
                   </div>
                   <div className="relative w-full sm:w-72">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      placeholder="Search students..."
-                      className="w-full rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 pl-10 pr-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
-                    />
+                    <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+                      Search
+                    </label>
+                    <div className="relative mt-1.5">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <input
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Search students..."
+                        className="w-full rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 pl-10 pr-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
@@ -611,12 +660,12 @@ export default function Page() {
                             </td>
                             <td className="px-4 sm:px-6 py-4">
                               <span className="text-sm text-slate-700 dark:text-slate-300">
-                                {exam.schedules.map((s) => s.class.name).join(", ")}
+                                {exam.schedules.map((s) => s.className).join(", ")}
                               </span>
                             </td>
                             <td className="px-4 sm:px-6 py-4">
                               <span className="text-sm text-slate-700 dark:text-slate-300">
-                                {exam.schedules.map((s) => s.subject.name).join(", ")}
+                                {exam.schedules.map((s) => s.subjectName).join(", ")}
                               </span>
                             </td>
                             <td className="px-4 sm:px-6 py-4">
@@ -626,10 +675,7 @@ export default function Page() {
                             </td>
                             <td className="px-4 sm:px-6 py-4 text-center">
                               <button
-                                onClick={() => {
-                                  setSelectedExam(exam);
-                                  setActiveTab("entry");
-                                }}
+                                onClick={() => handleExamSelect(exam)}
                                 className="inline-flex items-center gap-1.5 rounded-xl border border-white/40 dark:border-white/10 bg-white/65 dark:bg-white/5 px-3 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-white/90 dark:hover:bg-white/10 transition-colors"
                               >
                                 <Plus className="w-3.5 h-3.5" />
@@ -645,7 +691,7 @@ export default function Page() {
               </motion.div>
             )}
 
-            {/* Marks Entry / History Table */}
+            {/* Marks Entry Table */}
             {activeTab === "entry" && selectedExam && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
@@ -664,22 +710,31 @@ export default function Page() {
                         {selectedExam.type.replace("_", " ")} • {selectedExam.schedules.map((s) => s.className).join(", ")}
                       </p>
                     </div>
-                    <button
-                      onClick={handleSaveMarks}
-                      disabled={isSubmitting || submitMutation.isPending}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 px-4 py-2.5 text-xs font-semibold text-white shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
-                    >
-                      {isSubmitting || submitMutation.isPending ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <Save className="w-3.5 h-3.5" />
-                      )}
-                      Save Marks
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleRefresh}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-white/40 dark:border-white/10 bg-white/65 dark:bg-white/5 px-3 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-white/90 dark:hover:bg-white/10 transition-colors"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        Refresh
+                      </button>
+                      <button
+                        onClick={handleSaveMarks}
+                        disabled={isSubmitting || submitMutation.isPending || studentsQuery.isLoading}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 px-4 py-2.5 text-xs font-semibold text-white shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+                      >
+                        {isSubmitting || submitMutation.isPending ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Save className="w-3.5 h-3.5" />
+                        )}
+                        Save Marks
+                      </button>
+                    </div>
                   </div>
                 </div>
 
-                {marksQuery.isLoading ? (
+                {studentsQuery.isLoading ? (
                   <div className="p-8 space-y-3">
                     {[...Array(5)].map((_, i) => (
                       <div key={i} className="h-16 bg-slate-200/50 dark:bg-slate-700/30 rounded-2xl animate-pulse" />
@@ -695,92 +750,114 @@ export default function Page() {
                       <ClipboardEdit className="w-10 h-10 text-indigo-600 dark:text-indigo-300" />
                     </motion.div>
                     <h3 className="text-base font-semibold text-slate-700 dark:text-slate-200">
-                      No marks found
+                      No students found
                     </h3>
                     <p className="mt-1 text-sm text-slate-400 dark:text-slate-500">
-                      Enter marks for students in the selected exam.
+                      {studentsQuery.isLoading ? "Loading students..." : "No students found for this exam. Make sure you are assigned to teach subjects for this exam."}
                     </p>
                   </div>
                 ) : (
-                  <div className="w-full overflow-x-auto">
-                    <table className="w-full min-w-[640px] text-left text-sm">
-                      <thead>
-                        <tr className="border-b border-white/40 dark:border-white/10 bg-white/65 dark:bg-white/5">
-                          <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                            Student
-                          </th>
-                          <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">
-                            Roll
-                          </th>
-                          {selectedExam.schedules.map((sched) => (
-                            <th key={sched.subjectId} className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">
-                              {sched.subjectName}
+                  <>
+                    {/* Stats */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 sm:p-5">
+                      {[
+                        { label: "Total Students", value: entryStats.total, icon: Users, tint: "from-sky-400 to-indigo-500" },
+                        { label: "Marks Entered", value: entryStats.submitted, icon: BookMarked, tint: "from-emerald-400 to-green-500" },
+                        { label: "Pending", value: entryStats.pending, icon: ClipboardEdit, tint: "from-amber-400 to-orange-500" },
+                      ].map((stat) => {
+                        const Icon = stat.icon;
+                        return (
+                          <div key={stat.label} className="rounded-2xl border border-white/40 dark:border-white/10 bg-white/60 dark:bg-white/5 backdrop-blur-sm p-4 shadow-sm">
+                            <div className={`w-10 h-10 rounded-xl mb-2 flex items-center justify-center bg-gradient-to-br ${stat.tint} text-white shadow-md`}>
+                              <Icon className="w-5 h-5" />
+                            </div>
+                            <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">{stat.label}</p>
+                            <p className="mt-1 text-xl font-bold text-slate-800 dark:text-white">{stat.value}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="w-full overflow-x-auto">
+                      <table className="w-full min-w-[640px] text-left text-sm">
+                        <thead>
+                          <tr className="border-b border-white/40 dark:border-white/10 bg-white/65 dark:bg-white/5">
+                            <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                              Student
                             </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-white/40 dark:divide-white/10">
-                        <AnimatePresence mode="popLayout">
-                          {filteredMarkRows.map((row, index) => (
-                            <motion.tr
-                              key={row.studentId}
-                              layout
-                              initial={{ opacity: 0, y: 14 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, x: -30, scale: 0.98 }}
-                              transition={{ delay: index * 0.02, type: "spring", stiffness: 120, damping: 18 }}
-                              className="group transition-colors duration-200 hover:bg-white/60 dark:hover:bg-white/5"
-                            >
-                              <td className="px-4 sm:px-6 py-4">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300">
-                                    {row.studentName.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()}
-                                  </div>
-                                  <span className="font-medium text-slate-800 dark:text-white truncate max-w-[200px]">
-                                    {row.studentName}
-                                  </span>
-                                </div>
-                              </td>
-                              <td className="px-4 sm:px-6 py-4 text-center">
-                                <span className="inline-flex items-center rounded-full border border-white/40 dark:border-white/10 bg-white/70 dark:bg-white/5 px-2 py-0.5 text-xs font-bold text-slate-500 dark:text-slate-400">
-                                  {row.rollNumber}
-                                </span>
-                              </td>
-                              {selectedExam.schedules.map((sched) => {
-                                const mark = row.marks[sched.subjectId];
-                                const fullMarks = mark?.fullMarks ?? sched.totalMarks ?? 100;
-                                const passMarks = mark?.passMarks ?? 40;
-                                const value = mark?.marksObtained ?? 0;
-                                const percentage = fullMarks > 0 ? Math.round((value / fullMarks) * 100) : 0;
-                                const isPass = value >= passMarks;
-                                return (
-                                  <td key={sched.subjectId} className="px-4 sm:px-6 py-4 text-center">
-                                    <div className="flex flex-col items-center gap-1">
-                                      <input
-                                        type="number"
-                                        min={0}
-                                        max={fullMarks}
-                                        value={value}
-                                        onChange={(e) => handleMarkChange(row.studentId, sched.subjectId, Number(e.target.value), fullMarks)}
-                                        className={`w-20 rounded-xl border px-3 py-2 text-center text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-400/30 ${
-                                          isPass
-                                            ? "border-emerald-200/70 dark:border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                                            : "border-rose-200/70 dark:border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-300"
-                                        }`}
-                                      />
-                                      <span className="text-[10px] text-slate-400 dark:text-slate-500">
-                                        / {fullMarks} ({percentage}%)
-                                      </span>
+                            <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">
+                              Roll
+                            </th>
+                            {selectedExam.schedules.map((sched) => (
+                              <th key={sched.subjectId} className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">
+                                {sched.subjectName}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/40 dark:divide-white/10">
+                          <AnimatePresence mode="popLayout">
+                            {filteredMarkRows.map((row, index) => (
+                              <motion.tr
+                                key={row.studentId}
+                                layout
+                                initial={{ opacity: 0, y: 14 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, x: -30, scale: 0.98 }}
+                                transition={{ delay: index * 0.02, type: "spring", stiffness: 120, damping: 18 }}
+                                className="group transition-colors duration-200 hover:bg-white/60 dark:hover:bg-white/5"
+                              >
+                                <td className="px-4 sm:px-6 py-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300">
+                                      {row.studentName.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()}
                                     </div>
-                                  </td>
-                                );
-                              })}
-                            </motion.tr>
-                          ))}
-                        </AnimatePresence>
-                      </tbody>
-                    </table>
-                  </div>
+                                    <span className="font-medium text-slate-800 dark:text-white truncate max-w-[200px]">
+                                      {row.studentName}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="px-4 sm:px-6 py-4 text-center">
+                                  <span className="inline-flex items-center rounded-full border border-white/40 dark:border-white/10 bg-white/70 dark:bg-white/5 px-2 py-0.5 text-xs font-bold text-slate-500 dark:text-slate-400">
+                                    {row.rollNumber}
+                                  </span>
+                                </td>
+                                {selectedExam.schedules.map((sched) => {
+                                  const mark = row.marks[sched.subjectId];
+                                  const fullMarks = mark?.fullMarks ?? selectedExam.totalMarks ?? 100;
+                                  const passMarks = mark?.passMarks ?? 40;
+                                  const value = mark?.marksObtained ?? 0;
+                                  const percentage = fullMarks > 0 ? Math.round((value / fullMarks) * 100) : 0;
+                                  const isPass = value >= passMarks;
+                                  return (
+                                    <td key={sched.subjectId} className="px-4 sm:px-6 py-4 text-center">
+                                      <div className="flex flex-col items-center gap-1">
+                                        <input
+                                          type="number"
+                                          min={0}
+                                          max={fullMarks}
+                                          value={value}
+                                          onChange={(e) => handleMarkChange(row.studentId, sched.subjectId, Number(e.target.value), fullMarks)}
+                                          className={`w-20 rounded-xl border px-3 py-2 text-center text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-400/30 ${
+                                            isPass
+                                              ? "border-emerald-200/70 dark:border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                                              : "border-rose-200/70 dark:border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-300"
+                                          }`}
+                                        />
+                                        <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                                          / {fullMarks} ({percentage}%)
+                                        </span>
+                                      </div>
+                                    </td>
+                                  );
+                                })}
+                              </motion.tr>
+                            ))}
+                          </AnimatePresence>
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
                 )}
 
                 {/* Footer */}
@@ -793,7 +870,7 @@ export default function Page() {
                       </span>{" "}
                       of{" "}
                       <span className="font-semibold text-slate-700 dark:text-slate-300">
-                        {stats.total}
+                        {entryStats.total}
                       </span>{" "}
                       students
                     </p>
@@ -832,7 +909,7 @@ export default function Page() {
                       <div key={i} className="h-16 bg-slate-200/50 dark:bg-slate-700/30 rounded-2xl animate-pulse" />
                     ))}
                   </div>
-                ) : markRows.length === 0 ? (
+                ) : historyRows.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 text-center">
                     <motion.div
                       animate={{ y: [0, -8, 0] }}
@@ -849,108 +926,131 @@ export default function Page() {
                     </p>
                   </div>
                 ) : (
-                  <div className="w-full overflow-x-auto">
-                    <table className="w-full min-w-[640px] text-left text-sm">
-                      <thead>
-                        <tr className="border-b border-white/40 dark:border-white/10 bg-white/65 dark:bg-white/5">
-                          <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                            Student
-                          </th>
-                          <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">
-                            Roll
-                          </th>
-                          {selectedExam.schedules.map((sched) => (
-                            <th key={sched.subjectId} className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">
-                              {sched.subjectName}
+                  <>
+                    {/* Stats */}
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 p-4 sm:p-5">
+                      {[
+                        { label: "Total Students", value: historyStats.total, icon: Users, tint: "from-sky-400 to-indigo-500" },
+                        { label: "Submitted", value: historyStats.submitted, icon: ClipboardEdit, tint: "from-amber-400 to-orange-500" },
+                        { label: "Approved", value: historyStats.approved, icon: Sparkles, tint: "from-emerald-400 to-green-500" },
+                        { label: "Rejected", value: historyStats.rejected, icon: XCircle, tint: "from-rose-400 to-red-500" },
+                      ].map((stat) => {
+                        const Icon = stat.icon;
+                        return (
+                          <div key={stat.label} className="rounded-2xl border border-white/40 dark:border-white/10 bg-white/60 dark:bg-white/5 backdrop-blur-sm p-4 shadow-sm">
+                            <div className={`w-10 h-10 rounded-xl mb-2 flex items-center justify-center bg-gradient-to-br ${stat.tint} text-white shadow-md`}>
+                              <Icon className="w-5 h-5" />
+                            </div>
+                            <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">{stat.label}</p>
+                            <p className="mt-1 text-xl font-bold text-slate-800 dark:text-white">{stat.value}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="w-full overflow-x-auto">
+                      <table className="w-full min-w-[640px] text-left text-sm">
+                        <thead>
+                          <tr className="border-b border-white/40 dark:border-white/10 bg-white/65 dark:bg-white/5">
+                            <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                              Student
                             </th>
-                          ))}
-                          <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">
-                            Status
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-white/40 dark:divide-white/10">
-                        <AnimatePresence mode="popLayout">
-                          {filteredMarkRows.map((row, index) => {
-                            const allApproved = Object.values(row.marks).every((m) => m.status === "APPROVED");
-                            const anyRejected = Object.values(row.marks).some((m) => m.status === "REJECTED");
-                            const rowStatus = allApproved ? "APPROVED" : anyRejected ? "REJECTED" : "SUBMITTED";
-                            const statusMeta = getStatusMeta(rowStatus);
-                            return (
-                              <motion.tr
-                                key={row.studentId}
-                                layout
-                                initial={{ opacity: 0, y: 14 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, x: -30, scale: 0.98 }}
-                                transition={{ delay: index * 0.02, type: "spring", stiffness: 120, damping: 18 }}
-                                className={`group transition-colors duration-200 ${
-                                  rowStatus === "APPROVED"
-                                    ? "bg-emerald-50/30 dark:bg-emerald-500/5"
-                                    : rowStatus === "REJECTED"
-                                      ? "bg-rose-50/30 dark:bg-rose-500/5"
-                                      : "hover:bg-white/60 dark:hover:bg-white/5"
-                                }`}
-                              >
-                                <td className="px-4 sm:px-6 py-4">
-                                  <div className="flex items-center gap-3">
-                                    <div
-                                      className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold ${
-                                        rowStatus === "APPROVED"
-                                          ? "bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"
-                                          : rowStatus === "REJECTED"
-                                            ? "bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-300"
-                                            : "bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-300"
-                                      }`}
-                                    >
-                                      {row.studentName.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()}
-                                    </div>
-                                    <span className="font-medium text-slate-800 dark:text-white truncate max-w-[200px]">
-                                      {row.studentName}
-                                    </span>
-                                  </div>
-                                </td>
-                                <td className="px-4 sm:px-6 py-4 text-center">
-                                  <span className="inline-flex items-center rounded-full border border-white/40 dark:border-white/10 bg-white/70 dark:bg-white/5 px-2 py-0.5 text-xs font-bold text-slate-500 dark:text-slate-400">
-                                    {row.rollNumber}
-                                  </span>
-                                </td>
-                                {selectedExam.schedules.map((sched) => {
-                                  const mark = row.marks[sched.subjectId];
-                                  const fullMarks = mark?.fullMarks ?? sched.totalMarks ?? 100;
-                                  const value = mark?.marksObtained ?? 0;
-                                  const percentage = fullMarks > 0 ? Math.round((value / fullMarks) * 100) : 0;
-                                  const isPass = value >= (mark?.passMarks ?? 40);
-                                  return (
-                                    <td key={sched.subjectId} className="px-4 sm:px-6 py-4 text-center">
-                                      <div className="flex flex-col items-center gap-1">
-                                        <span className={`text-sm font-bold ${isPass ? "text-emerald-600 dark:text-emerald-300" : "text-rose-600 dark:text-rose-300"}`}>
-                                          {value} / {fullMarks}
-                                        </span>
-                                        <span className="text-[10px] text-slate-400 dark:text-slate-500">
-                                          {percentage}% • {mark?.grade || "—"}
-                                        </span>
+                            <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">
+                              Roll
+                            </th>
+                            {selectedExam.schedules.map((sched) => (
+                              <th key={sched.subjectId} className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">
+                                {sched.subjectName}
+                              </th>
+                            ))}
+                            <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">
+                              Status
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/40 dark:divide-white/10">
+                          <AnimatePresence mode="popLayout">
+                            {filteredMarkRows.map((row, index) => {
+                              const allApproved = Object.values(row.marks).every((m) => m.status === "APPROVED");
+                              const anyRejected = Object.values(row.marks).some((m) => m.status === "REJECTED");
+                              const rowStatus = allApproved ? "APPROVED" : anyRejected ? "REJECTED" : "SUBMITTED";
+                              const statusMeta = getStatusMeta(rowStatus);
+                              return (
+                                <motion.tr
+                                  key={row.studentId}
+                                  layout
+                                  initial={{ opacity: 0, y: 14 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, x: -30, scale: 0.98 }}
+                                  transition={{ delay: index * 0.02, type: "spring", stiffness: 120, damping: 18 }}
+                                  className={`group transition-colors duration-200 ${
+                                    rowStatus === "APPROVED"
+                                      ? "bg-emerald-50/30 dark:bg-emerald-500/5"
+                                      : rowStatus === "REJECTED"
+                                        ? "bg-rose-50/30 dark:bg-rose-500/5"
+                                        : "hover:bg-white/60 dark:hover:bg-white/5"
+                                  }`}
+                                >
+                                  <td className="px-4 sm:px-6 py-4">
+                                    <div className="flex items-center gap-3">
+                                      <div
+                                        className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold ${
+                                          rowStatus === "APPROVED"
+                                            ? "bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"
+                                            : rowStatus === "REJECTED"
+                                              ? "bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-300"
+                                              : "bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-300"
+                                        }`}
+                                      >
+                                        {row.studentName.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()}
                                       </div>
-                                    </td>
-                                  );
-                                })}
-                                <td className="px-4 sm:px-6 py-4 text-center">
-                                  <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold ${statusMeta.badge}`}>
-                                    <span className={`w-2 h-2 rounded-full ${statusMeta.dot}`} />
-                                    {statusMeta.label}
-                                  </span>
-                                </td>
-                              </motion.tr>
-                            );
-                          })}
-                        </AnimatePresence>
-                      </tbody>
-                    </table>
-                  </div>
+                                      <span className="font-medium text-slate-800 dark:text-white truncate max-w-[200px]">
+                                        {row.studentName}
+                                      </span>
+                                    </div>
+                                  </td>
+                                  <td className="px-4 sm:px-6 py-4 text-center">
+                                    <span className="inline-flex items-center rounded-full border border-white/40 dark:border-white/10 bg-white/70 dark:bg-white/5 px-2 py-0.5 text-xs font-bold text-slate-500 dark:text-slate-400">
+                                      {row.rollNumber}
+                                    </span>
+                                  </td>
+                                  {selectedExam.schedules.map((sched) => {
+                                    const mark = row.marks[sched.subjectId];
+                                    const fullMarks = mark?.fullMarks ?? selectedExam.totalMarks ?? 100;
+                                    const value = mark?.marksObtained ?? 0;
+                                    const percentage = fullMarks > 0 ? Math.round((value / fullMarks) * 100) : 0;
+                                    const isPass = value >= (mark?.passMarks ?? 40);
+                                    return (
+                                      <td key={sched.subjectId} className="px-4 sm:px-6 py-4 text-center">
+                                        <div className="flex flex-col items-center gap-1">
+                                          <span className={`text-sm font-bold ${isPass ? "text-emerald-600 dark:text-emerald-300" : "text-rose-600 dark:text-rose-300"}`}>
+                                            {value} / {fullMarks}
+                                          </span>
+                                          <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                                            {percentage}% • {mark?.grade || "—"}
+                                          </span>
+                                        </div>
+                                      </td>
+                                    );
+                                  })}
+                                  <td className="px-4 sm:px-6 py-4 text-center">
+                                    <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold ${statusMeta.badge}`}>
+                                      <span className={`w-2 h-2 rounded-full ${statusMeta.dot}`} />
+                                      {statusMeta.label}
+                                    </span>
+                                  </td>
+                                </motion.tr>
+                              );
+                            })}
+                          </AnimatePresence>
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
                 )}
 
                 {/* Footer */}
-                {markRows.length > 0 && (
+                {historyRows.length > 0 && (
                   <div className="p-4 sm:p-5 border-t border-white/40 dark:border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <p className="text-xs text-slate-500 dark:text-slate-400">
                       Showing{" "}
@@ -959,7 +1059,7 @@ export default function Page() {
                       </span>{" "}
                       of{" "}
                       <span className="font-semibold text-slate-700 dark:text-slate-300">
-                        {stats.total}
+                        {historyStats.total}
                       </span>{" "}
                       students
                     </p>

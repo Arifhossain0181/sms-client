@@ -39,6 +39,11 @@ export const marksService = {
     return res.data?.data ?? res.data;
   },
 
+  getStudentsForExam: async (examId: string): Promise<TeacherMarksResponse> => {
+    const res = await api.get(`/exams/${examId}/teacher/students`);
+    return res.data?.data ?? res.data;
+  },
+
   submitExamMarks: async (examId: string, payload: SubmitExamMarksPayload) => {
     const res = await api.post(`/exams/${examId}/marks`, payload);
     return res.data?.data ?? res.data;

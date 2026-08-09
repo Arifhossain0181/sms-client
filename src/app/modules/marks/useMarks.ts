@@ -27,6 +27,14 @@ export const useTeacherMarksForExam = (examId: string | undefined) => {
   });
 };
 
+export const useStudentsForExam = (examId: string | undefined) => {
+  return useQuery<TeacherMarksResponse>({
+    queryKey: ["teacher-students-for-exam", examId],
+    queryFn: () => marksService.getStudentsForExam(examId!),
+    enabled: !!examId,
+  });
+};
+
 export const useSubmitExamMarks = () => {
   const queryClient = useQueryClient();
   return useMutation({

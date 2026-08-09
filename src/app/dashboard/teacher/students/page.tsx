@@ -32,6 +32,7 @@ import { useClasses } from "@/app/modules/class/useClasses";
 
 type Student = {
   id: string;
+  studentId?: string;
   name: string;
   email?: string;
   guardianEmail?: string;
@@ -39,6 +40,8 @@ type Student = {
   address?: string;
   gender?: "MALE" | "FEMALE" | "OTHER" | string;
   dateOfBirth?: string;
+  bloodGroup?: string;
+  religion?: string;
   rollNumber?: string | number;
   section?: {
     id: string;
@@ -54,6 +57,7 @@ type Student = {
     name?: string;
     phone?: string;
     relation?: string;
+    email?: string;
   };
 };
 
@@ -137,10 +141,10 @@ export default function Page() {
   const effectiveClassId = classId || (classes[0]?.id ?? "");
   const effectiveSectionId = sectionId || availableSections[0]?.id || "";
 
-  const { data: students = [], isLoading, meta, error, refetch } = useQuery({
+  const { data: response = { list: [], meta: { total: 0, page: 1, limit: LIMIT, totalPages: 1 } }, isLoading, error, refetch } = useQuery({
     queryKey: ["teacher-students", teacherId, effectiveClassId, effectiveSectionId, search, genderFilter, page],
     queryFn: async () => {
-      if (!teacherId) return { data: [], meta: { total: 0, page: 1, limit: LIMIT, totalPages: 1 } };
+      if (!teacherId) return { list: [], meta: { total: 0, page: 1, limit: LIMIT, totalPages: 1 } };
       const params: Record<string, string> = {
         page: String(page),
         limit: String(LIMIT),
@@ -158,11 +162,14 @@ export default function Page() {
         limit: LIMIT,
         totalPages: Math.max(1, Math.ceil((list.length || 1) / LIMIT)),
       };
-      return { data: list, meta: metaData };
+      return { list, meta: metaData };
     },
     enabled: canLoad,
     retry: false,
   });
+
+  const students = response.list;
+  const meta = response.meta;
 
   const studentList = useMemo(() => {
     const list = Array.isArray(students) ? students : [];
@@ -528,7 +535,7 @@ export default function Page() {
                             </span>
                           </div>
                           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                            {student.class?.name ?? "Class"} • {student.section?.name ?? "Section"} • Student ID {student.id}
+                            {student.class?.name ?? "Class"} • {student.section?.name ?? "Section"} • {student.studentId ? `ID ${student.studentId}` : `Student ${student.id.slice(0, 8)}`}
                           </p>
                         </div>
                       </div>
@@ -657,6 +664,8 @@ export default function Page() {
                     <DetailLine label="Section" value={selected.section?.name ?? "—"} />
                     <DetailLine label="Roll" value={selected.rollNumber ?? "—"} />
                     <DetailLine label="Gender" value={genderLabel(selected.gender)} />
+                    <DetailLine label="Blood Group" value={selected.bloodGroup ? selected.bloodGroup.replace(/_/g, " ") : "—"} />
+                    <DetailLine label="Religion" value={selected.religion ?? "—"} />
                   </div>
                 </div>
 
@@ -685,7 +694,7 @@ export default function Page() {
                   <div className="mt-3 space-y-2 text-xs text-slate-700">
                     <DetailLine label="Status" value={selected.isActive === false ? "Inactive" : "Active"} />
                     <DetailLine label="Joined" value={fmtDate(selected.createdAt)} />
-                    <DetailLine label="Student ID" value={selected.id} />
+                    <DetailLine label="Student ID" value={selected.studentId ?? selected.id} />
                   </div>
                 </div>
               </div>

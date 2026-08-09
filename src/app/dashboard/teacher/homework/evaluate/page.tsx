@@ -24,7 +24,8 @@ import api from "@/lib/axios";
 import { useAuth } from "@/hooks/useAuth";
 import { useClasses } from "@/app/modules/class/useClasses";
 import { useMarkHomeworkReviewed } from "@/app/modules/homework/useHomework";
-import { Homework } from "@/app/modules/homework/homework.types";
+import { homeworkService } from "@/app/modules/homework/homework.service";
+import { Homework, EvaluationDetails } from "@/app/modules/homework/homework.types";
 import { formatDate } from "@/lib/utils";
 
 type TeacherProfile = {
@@ -44,15 +45,8 @@ type StudentViewStatus = {
   viewedAt: string | null;
 };
 
-type EvaluationDetails = {
-  homework: Homework;
+type EvaluationDetailsExt = EvaluationDetails & {
   students: StudentViewStatus[];
-  stats: {
-    totalStudents: number;
-    viewedCount: number;
-    notViewedCount: number;
-    viewPercentage: number;
-  };
 };
 
 const PAGE_SIZE = 20;
@@ -71,7 +65,16 @@ export default function Page() {
   const [search, setSearch] = useState("");
   const [viewFilter, setViewFilter] = useState<"ALL" | "VIEWED" | "NOT_VIEWED">("ALL");
 
+  const urlHomeworkId = searchParams.get("homeworkId");
+  const [selectedHomeworkId, setSelectedHomeworkId] = useState<string | null>(urlHomeworkId);
+
   const markReviewedMutation = useMarkHomeworkReviewed();
+
+  useEffect(() => {
+    if (urlHomeworkId !== selectedHomeworkId) {
+      setSelectedHomeworkId(urlHomeworkId);
+    }
+  }, [urlHomeworkId, selectedHomeworkId]);
 
   useEffect(() => {
     if (role && role !== "TEACHER" && role !== "SUPER_ADMIN" && role !== "SCHOOL_ADMIN") {
@@ -139,16 +142,46 @@ export default function Page() {
     [availableSections, sectionId]
   );
 
-  const { data: evaluationData, isLoading: evaluationLoading, refetch } = useQuery<EvaluationDetails>({
-    queryKey: ["homework-evaluation", sectionId],
+  const { data: homeworkList, isLoading: homeworkListLoading } = useQuery<Homework[]>({
+    queryKey: ["homework", "evaluate-list", classId, sectionId],
     queryFn: async () => {
-      const res = await api.get(`/homework/evaluate?sectionId=${sectionId}`);
-      return res.data?.data ?? res.data;
+      const params: Record<string, string> = {};
+      if (sectionId) params.sectionId = sectionId;
+      if (classId) params.classId = classId;
+      const res = await api.get(`/homework/my`, { params });
+      const payload = res.data?.data ?? res.data;
+      return Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
     },
-    enabled: !!sectionId,
+    enabled: !!sectionId && !selectedHomeworkId,
   });
 
-  const isLoading = profileLoading || classesLoading || evaluationLoading;
+  const { data: evaluationData, isLoading: evaluationLoading, refetch } = useQuery<EvaluationDetailsExt>({
+    queryKey: ["homework-evaluation", selectedHomeworkId],
+    queryFn: async () => {
+      if (!selectedHomeworkId) throw new Error("No homework selected");
+      const res = await homeworkService.getEvaluationDetails(selectedHomeworkId);
+      return res as EvaluationDetailsExt;
+    },
+    enabled: !!selectedHomeworkId,
+  });
+
+  const isLoading = profileLoading || classesLoading || evaluationLoading || homeworkListLoading;
+
+  const homeworkOptions = useMemo(() => {
+    if (!homeworkList) return [];
+    return homeworkList;
+  }, [homeworkList]);
+
+  const handleHomeworkChange = (id: string) => {
+    setSelectedHomeworkId(id);
+    const newUrl = new URL(window.location.href);
+    if (id) {
+      newUrl.searchParams.set("homeworkId", id);
+    } else {
+      newUrl.searchParams.delete("homeworkId");
+    }
+    router.replace(newUrl.pathname + newUrl.search);
+  };
 
   const filteredStudents = useMemo(() => {
     if (!evaluationData?.students) return [];
@@ -173,6 +206,7 @@ export default function Page() {
 
   const handleRefresh = () => {
     refetch();
+    queryClient.invalidateQueries({ queryKey: ["homework", "evaluate-list"] });
     toast.success("Data refreshed");
   };
 
@@ -187,7 +221,24 @@ export default function Page() {
     }
   };
 
-  if (isLoading && !evaluationData) {
+  useEffect(() => {
+    if (!availableClasses.length) return;
+    if (!classId || !availableClasses.some((cls) => cls.id === classId)) {
+      setClassId(availableClasses[0].id);
+    }
+  }, [availableClasses, classId]);
+
+  useEffect(() => {
+    if (!availableSections.length) {
+      setSectionId("");
+      return;
+    }
+    if (!sectionId || !availableSections.some((section) => section.id === sectionId)) {
+      setSectionId(availableSections[0].id);
+    }
+  }, [availableSections, sectionId]);
+
+  if (isLoading && !evaluationData && !homeworkList) {
     return (
       <div className="relative min-h-[80vh] flex items-center justify-center p-4 overflow-hidden bg-slate-50/50 dark:bg-slate-950 rounded-3xl">
         <motion.div
@@ -222,7 +273,6 @@ export default function Page() {
 
   return (
     <div className="relative min-h-[80vh] flex items-start sm:items-center p-4 sm:p-6 overflow-hidden bg-slate-50/50 dark:bg-slate-950 rounded-3xl">
-      {/* Animated background orbs */}
       <motion.div
         animate={{ x: [0, 40, 0], y: [0, -30, 0] }}
         transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
@@ -246,7 +296,6 @@ export default function Page() {
         className="relative w-full my-6"
       >
         <div className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl shadow-slate-200/40 dark:shadow-none overflow-hidden">
-          {/* Gradient Header */}
           <div className="relative px-6 sm:px-8 py-6 bg-gradient-to-r from-sky-50 via-indigo-50 to-violet-50 dark:from-sky-500/10 dark:via-indigo-500/10 dark:to-violet-500/10 border-b border-white/40 dark:border-white/5 overflow-hidden">
             <motion.div
               animate={{ x: [0, 100, 0] }}
@@ -324,6 +373,8 @@ export default function Page() {
                         setClassId(e.target.value);
                         const next = availableClasses.find((cls) => cls.id === e.target.value);
                         setSectionId(next?.sections?.[0]?.id ?? "");
+                        setSelectedHomeworkId(null);
+                        router.replace(window.location.pathname);
                       }}
                       className="w-full appearance-none rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-3 pr-10 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
                     >
@@ -345,7 +396,11 @@ export default function Page() {
                   <div className="relative">
                     <select
                       value={sectionId}
-                      onChange={(e) => setSectionId(e.target.value)}
+                      onChange={(e) => {
+                        setSectionId(e.target.value);
+                        setSelectedHomeworkId(null);
+                        router.replace(window.location.pathname);
+                      }}
                       className="w-full appearance-none rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-3 pr-10 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
                     >
                       <option value="">Select section</option>
@@ -359,300 +414,336 @@ export default function Page() {
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 sm:col-span-2">
                   <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
-                    View Status
+                    Select Homework to Evaluate
                   </label>
                   <div className="relative">
                     <select
-                      value={viewFilter}
-                      onChange={(e) => setViewFilter(e.target.value as typeof viewFilter)}
-                      className="w-full appearance-none rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-3 pr-10 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
+                      value={selectedHomeworkId ?? ""}
+                      onChange={(e) => handleHomeworkChange(e.target.value)}
+                      disabled={!sectionId || homeworkListLoading}
+                      className="w-full appearance-none rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-3 pr-10 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30 disabled:opacity-60"
                     >
-                      <option value="ALL">All Students</option>
-                      <option value="VIEWED">Viewed</option>
-                      <option value="NOT_VIEWED">Not Viewed</option>
+                      <option value="">{sectionId ? "Select homework..." : "Select a section first"}</option>
+                      {homeworkOptions.map((hw) => (
+                        <option key={hw.id} value={hw.id}>
+                          {hw.title} - {hw.subject.name} ({hw.subject.code}) - Due: {formatDate(hw.dueDate)}
+                        </option>
+                      ))}
                     </select>
                     <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
-                    Search
-                  </label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      placeholder="Search by name or roll..."
-                      className="w-full rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 pl-10 pr-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
-                    />
                   </div>
                 </div>
               </div>
             </motion.div>
 
-            {/* Stats Overview */}
-            {sectionId && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
-              >
-                {[
-                  {
-                    label: "Total Students",
-                    value: stats.totalStudents,
-                    icon: Users,
-                    tint: "from-sky-400 to-indigo-500",
-                  },
-                  {
-                    label: "Viewed",
-                    value: stats.viewedCount,
-                    icon: Eye,
-                    tint: "from-emerald-400 to-green-500",
-                  },
-                  {
-                    label: "Not Viewed",
-                    value: stats.notViewedCount,
-                    icon: EyeOff,
-                    tint: "from-rose-400 to-red-500",
-                  },
-                  {
-                    label: "View %",
-                    value: `${stats.viewPercentage}%`,
-                    icon: Clock3,
-                    tint: "from-amber-400 to-orange-500",
-                  },
-                ].map((stat) => {
-                  const Icon = stat.icon;
-                  return (
-                    <motion.div
-                      key={stat.label}
-                      whileHover={{ y: -2, scale: 1.01 }}
-                      className="rounded-2xl border border-white/40 dark:border-white/10 bg-white/60 dark:bg-white/5 backdrop-blur-sm p-4 shadow-sm"
-                    >
-                      <div
-                        className={`w-11 h-11 rounded-2xl mb-3 flex items-center justify-center bg-gradient-to-br ${stat.tint} text-white shadow-lg`}
+            {!selectedHomeworkId ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <motion.div
+                  animate={{ y: [0, -8, 0] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                  className="w-20 h-20 rounded-full bg-gradient-to-br from-sky-100 via-indigo-100 to-violet-100 dark:from-sky-500/20 dark:via-indigo-500/20 dark:to-violet-500/20 flex items-center justify-center mb-4 ring-1 ring-indigo-200/60 dark:ring-indigo-400/20"
+                >
+                  <BookMarked className="w-10 h-10 text-indigo-600 dark:text-indigo-300" />
+                </motion.div>
+                <h3 className="text-base font-semibold text-slate-700 dark:text-slate-200">
+                  Select a homework to evaluate
+                </h3>
+                <p className="mt-1 text-sm text-slate-400 dark:text-slate-500">
+                  Choose a class, section, and homework above to start evaluation.
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Stats Overview */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+                >
+                  {[
+                    {
+                      label: "Total Students",
+                      value: stats.totalStudents,
+                      icon: Users,
+                      tint: "from-sky-400 to-indigo-500",
+                    },
+                    {
+                      label: "Viewed",
+                      value: stats.viewedCount,
+                      icon: Eye,
+                      tint: "from-emerald-400 to-green-500",
+                    },
+                    {
+                      label: "Not Viewed",
+                      value: stats.notViewedCount,
+                      icon: EyeOff,
+                      tint: "from-rose-400 to-red-500",
+                    },
+                    {
+                      label: "View %",
+                      value: `${stats.viewPercentage}%`,
+                      icon: Clock3,
+                      tint: "from-amber-400 to-orange-500",
+                    },
+                  ].map((stat) => {
+                    const Icon = stat.icon;
+                    return (
+                      <motion.div
+                        key={stat.label}
+                        whileHover={{ y: -2, scale: 1.01 }}
+                        className="rounded-2xl border border-white/40 dark:border-white/10 bg-white/60 dark:bg-white/5 backdrop-blur-sm p-4 shadow-sm"
                       >
-                        <Icon className="w-5 h-5" />
-                      </div>
-                      <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500">
-                        {stat.label}
-                      </p>
-                      <p className="mt-2 text-2xl font-bold text-slate-800 dark:text-white">
-                        {isLoading ? "..." : stat.value}
-                      </p>
-                    </motion.div>
-                  );
-                })}
-              </motion.div>
-            )}
+                        <div
+                          className={`w-11 h-11 rounded-2xl mb-3 flex items-center justify-center bg-gradient-to-br ${stat.tint} text-white shadow-lg`}
+                        >
+                          <Icon className="w-5 h-5" />
+                        </div>
+                        <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500">
+                          {stat.label}
+                        </p>
+                        <p className="mt-2 text-2xl font-bold text-slate-800 dark:text-white">
+                          {isLoading ? "..." : stat.value}
+                        </p>
+                      </motion.div>
+                    );
+                  })}
+                </motion.div>
 
-            {/* Students Table */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 }}
-              className="rounded-3xl border border-white/40 dark:border-white/10 bg-white/65 dark:bg-white/5 backdrop-blur-sm shadow-sm overflow-hidden"
-            >
-              {/* Homework Info Bar */}
-              {evaluationData?.homework && (
-                <div className="p-4 sm:p-5 border-b border-white/40 dark:border-white/10 bg-white/65 dark:bg-white/5">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <div>
-                      <h2 className="text-base sm:text-lg font-semibold text-slate-800 dark:text-white">
-                        {evaluationData.homework.title}
-                      </h2>
-                      <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                        {evaluationData.homework.subject.name} ({evaluationData.homework.subject.code}) • {selectedSection?.name} • Due: {formatDate(evaluationData.homework.dueDate)}
-                        {evaluationData.homework.isReviewed && (
-                          <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-emerald-200/70 dark:border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-300">
-                            <CheckCircle2 className="w-3 h-3" />
-                            Reviewed
-                          </span>
-                        )}
+                {/* Filters Card */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15 }}
+                  className="rounded-3xl border border-white/40 dark:border-white/10 bg-white/65 dark:bg-white/5 backdrop-blur-sm p-4 sm:p-6 shadow-sm"
+                >
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+                        View Status
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={viewFilter}
+                          onChange={(e) => setViewFilter(e.target.value as typeof viewFilter)}
+                          className="w-full appearance-none rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-3 pr-10 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
+                        >
+                          <option value="ALL">All Students</option>
+                          <option value="VIEWED">Viewed</option>
+                          <option value="NOT_VIEWED">Not Viewed</option>
+                        </select>
+                        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+                        Search
+                      </label>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                          value={search}
+                          onChange={(e) => setSearch(e.target.value)}
+                          placeholder="Search by name or roll..."
+                          className="w-full rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 pl-10 pr-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Students Table */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="rounded-3xl border border-white/40 dark:border-white/10 bg-white/65 dark:bg-white/5 backdrop-blur-sm shadow-sm overflow-hidden"
+                >
+                  {/* Homework Info Bar */}
+                  {evaluationData?.homework && (
+                    <div className="p-4 sm:p-5 border-b border-white/40 dark:border-white/10 bg-white/65 dark:bg-white/5">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div>
+                          <h2 className="text-base sm:text-lg font-semibold text-slate-800 dark:text-white">
+                            {evaluationData.homework.title}
+                          </h2>
+                          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                            {evaluationData.homework.subject.name} ({evaluationData.homework.subject.code}) • Due: {formatDate(evaluationData.homework.dueDate)}
+                            {evaluationData.homework.isReviewed && (
+                              <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-emerald-200/70 dark:border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-300">
+                                <CheckCircle2 className="w-3 h-3" />
+                                Reviewed
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-24 h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${stats.viewPercentage}%` }}
+                                transition={{ duration: 0.8, ease: "easeOut" }}
+                                className={`h-full rounded-full ${
+                                  stats.viewPercentage >= 75
+                                    ? "bg-emerald-500"
+                                    : stats.viewPercentage >= 50
+                                      ? "bg-amber-500"
+                                      : "bg-rose-500"
+                                }`}
+                              />
+                            </div>
+                            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                              {stats.viewPercentage}%
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {filteredStudents.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 text-center">
+                      <motion.div
+                        animate={{ y: [0, -8, 0] }}
+                        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                        className="w-20 h-20 rounded-full bg-gradient-to-br from-sky-100 via-indigo-100 to-violet-100 dark:from-sky-500/20 dark:via-indigo-500/20 dark:to-violet-500/20 flex items-center justify-center mb-4 ring-1 ring-indigo-200/60 dark:ring-indigo-400/20"
+                      >
+                        <Users className="w-10 h-10 text-indigo-600 dark:text-indigo-300" />
+                      </motion.div>
+                      <h3 className="text-base font-semibold text-slate-700 dark:text-slate-200">
+                        {!selectedHomeworkId ? "No homework selected" : "No students found"}
+                      </h3>
+                      <p className="mt-1 text-sm text-slate-400 dark:text-slate-500">
+                        {!selectedHomeworkId
+                          ? "Select a homework above to start evaluation."
+                          : "Try adjusting your filters or search query."}
                       </p>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-24 h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${stats.viewPercentage}%` }}
-                            transition={{ duration: 0.8, ease: "easeOut" }}
-                            className={`h-full rounded-full ${
-                              stats.viewPercentage >= 75
-                                ? "bg-emerald-500"
-                                : stats.viewPercentage >= 50
-                                  ? "bg-amber-500"
-                                  : "bg-rose-500"
-                            }`}
-                          />
-                        </div>
-                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                          {stats.viewPercentage}%
+                  ) : (
+                    <div className="w-full overflow-x-auto">
+                      <table className="w-full min-w-[640px] text-left text-sm">
+                        <thead>
+                          <tr className="border-b border-white/40 dark:border-white/10 bg-white/65 dark:bg-white/5">
+                            <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                              Student
+                            </th>
+                            <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">
+                              Roll
+                            </th>
+                            <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">
+                              Status
+                            </th>
+                            <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                              Viewed At
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/40 dark:divide-white/10">
+                          <AnimatePresence mode="popLayout">
+                            {filteredStudents.map((student, index) => (
+                              <motion.tr
+                                key={student.id}
+                                layout
+                                initial={{ opacity: 0, y: 14 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, x: -30, scale: 0.98 }}
+                                transition={{
+                                  delay: index * 0.02,
+                                  type: "spring",
+                                  stiffness: 120,
+                                  damping: 18,
+                                }}
+                                className={`group transition-colors duration-200 ${
+                                  student.hasViewed
+                                    ? "bg-emerald-50/30 dark:bg-emerald-500/5"
+                                    : "bg-rose-50/30 dark:bg-rose-500/5"
+                                }`}
+                              >
+                                <td className="px-4 sm:px-6 py-4">
+                                  <div className="flex items-center gap-3">
+                                    <div
+                                      className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold ${
+                                        student.hasViewed
+                                          ? "bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"
+                                          : "bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-300"
+                                      }`}
+                                    >
+                                      {student.name
+                                        .split(" ")
+                                        .map((n) => n[0])
+                                        .slice(0, 2)
+                                        .join("")
+                                        .toUpperCase()}
+                                    </div>
+                                    <span className="font-medium text-slate-800 dark:text-white truncate max-w-[200px]">
+                                      {student.name}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="px-4 sm:px-6 py-4 text-center">
+                                  <span className="inline-flex items-center rounded-full border border-white/40 dark:border-white/10 bg-white/70 dark:bg-white/5 px-2 py-0.5 text-xs font-bold text-slate-500 dark:text-slate-400">
+                                    {student.rollNumber}
+                                  </span>
+                                </td>
+                                <td className="px-4 sm:px-6 py-4 text-center">
+                                  {student.hasViewed ? (
+                                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200/70 dark:border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-300">
+                                      <Eye className="w-3 h-3" />
+                                      Viewed
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 rounded-full border border-rose-200/70 dark:border-rose-500/20 bg-rose-500/10 px-2.5 py-1 text-xs font-bold text-rose-600 dark:text-rose-300">
+                                      <EyeOff className="w-3 h-3" />
+                                      Not Viewed
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-4 sm:px-6 py-4">
+                                  <span className="text-sm text-slate-600 dark:text-slate-300">
+                                    {student.viewedAt ? new Date(student.viewedAt).toLocaleString() : "—"}
+                                  </span>
+                                </td>
+                              </motion.tr>
+                            ))}
+                          </AnimatePresence>
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* Footer info */}
+                  {filteredStudents.length > 0 && (
+                    <div className="p-4 sm:p-5 border-t border-white/40 dark:border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Showing{" "}
+                        <span className="font-semibold text-slate-700 dark:text-slate-300">
+                          {filteredStudents.length}
+                        </span>{" "}
+                        of{" "}
+                        <span className="font-semibold text-slate-700 dark:text-slate-300">
+                          {stats.totalStudents}
+                        </span>{" "}
+                        students
+                      </p>
+                      <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                          Viewed
+                        </span>
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                          Not Viewed
                         </span>
                       </div>
                     </div>
-                  </div>
-                </div>
-              )}
-
-              {!sectionId ? (
-                <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <motion.div
-                    animate={{ y: [0, -8, 0] }}
-                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                    className="w-20 h-20 rounded-full bg-gradient-to-br from-sky-100 via-indigo-100 to-violet-100 dark:from-sky-500/20 dark:via-indigo-500/20 dark:to-violet-500/20 flex items-center justify-center mb-4 ring-1 ring-indigo-200/60 dark:ring-indigo-400/20"
-                  >
-                    <BookMarked className="w-10 h-10 text-indigo-600 dark:text-indigo-300" />
-                  </motion.div>
-                  <h3 className="text-base font-semibold text-slate-700 dark:text-slate-200">
-                    Select a section
-                  </h3>
-                  <p className="mt-1 text-sm text-slate-400 dark:text-slate-500">
-                    Choose a class and section above to evaluate homework.
-                  </p>
-                </div>
-              ) : filteredStudents.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <motion.div
-                    animate={{ y: [0, -8, 0] }}
-                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                    className="w-20 h-20 rounded-full bg-gradient-to-br from-sky-100 via-indigo-100 to-violet-100 dark:from-sky-500/20 dark:via-indigo-500/20 dark:to-violet-500/20 flex items-center justify-center mb-4 ring-1 ring-indigo-200/60 dark:ring-indigo-400/20"
-                  >
-                    <Users className="w-10 h-10 text-indigo-600 dark:text-indigo-300" />
-                  </motion.div>
-                  <h3 className="text-base font-semibold text-slate-700 dark:text-slate-200">
-                    No students found
-                  </h3>
-                  <p className="mt-1 text-sm text-slate-400 dark:text-slate-500">
-                    Try adjusting your filters or search query.
-                  </p>
-                </div>
-              ) : (
-                <div className="w-full overflow-x-auto">
-                  <table className="w-full min-w-[640px] text-left text-sm">
-                    <thead>
-                      <tr className="border-b border-white/40 dark:border-white/10 bg-white/65 dark:bg-white/5">
-                        <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                          Student
-                        </th>
-                        <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">
-                          Roll
-                        </th>
-                        <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">
-                          Status
-                        </th>
-                        <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                          Viewed At
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/40 dark:divide-white/10">
-                      <AnimatePresence mode="popLayout">
-                        {filteredStudents.map((student, index) => (
-                          <motion.tr
-                            key={student.id}
-                            layout
-                            initial={{ opacity: 0, y: 14 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, x: -30, scale: 0.98 }}
-                            transition={{
-                              delay: index * 0.02,
-                              type: "spring",
-                              stiffness: 120,
-                              damping: 18,
-                            }}
-                            className={`group transition-colors duration-200 ${
-                              student.hasViewed
-                                ? "bg-emerald-50/30 dark:bg-emerald-500/5"
-                                : "bg-rose-50/30 dark:bg-rose-500/5"
-                            }`}
-                          >
-                            <td className="px-4 sm:px-6 py-4">
-                              <div className="flex items-center gap-3">
-                                <div
-                                  className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold ${
-                                    student.hasViewed
-                                      ? "bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"
-                                      : "bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-300"
-                                  }`}
-                                >
-                                  {student.name
-                                    .split(" ")
-                                    .map((n) => n[0])
-                                    .slice(0, 2)
-                                    .join("")
-                                    .toUpperCase()}
-                                </div>
-                                <span className="font-medium text-slate-800 dark:text-white truncate max-w-[200px]">
-                                  {student.name}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="px-4 sm:px-6 py-4 text-center">
-                              <span className="inline-flex items-center rounded-full border border-white/40 dark:border-white/10 bg-white/70 dark:bg-white/5 px-2 py-0.5 text-xs font-bold text-slate-500 dark:text-slate-400">
-                                {student.rollNumber}
-                              </span>
-                            </td>
-                            <td className="px-4 sm:px-6 py-4 text-center">
-                              {student.hasViewed ? (
-                                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200/70 dark:border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-300">
-                                  <Eye className="w-3 h-3" />
-                                  Viewed
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 rounded-full border border-rose-200/70 dark:border-rose-500/20 bg-rose-500/10 px-2.5 py-1 text-xs font-bold text-rose-600 dark:text-rose-300">
-                                  <EyeOff className="w-3 h-3" />
-                                  Not Viewed
-                                </span>
-                              )}
-                            </td>
-                            <td className="px-4 sm:px-6 py-4">
-                              <span className="text-sm text-slate-600 dark:text-slate-300">
-                                {student.viewedAt ? new Date(student.viewedAt).toLocaleString() : "—"}
-                              </span>
-                            </td>
-                          </motion.tr>
-                        ))}
-                      </AnimatePresence>
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {/* Footer info */}
-              {filteredStudents.length > 0 && (
-                <div className="p-4 sm:p-5 border-t border-white/40 dark:border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Showing{" "}
-                    <span className="font-semibold text-slate-700 dark:text-slate-300">
-                      {filteredStudents.length}
-                    </span>{" "}
-                    of{" "}
-                    <span className="font-semibold text-slate-700 dark:text-slate-300">
-                      {stats.totalStudents}
-                    </span>{" "}
-                    students
-                  </p>
-                  <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
-                    <span className="inline-flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                      Viewed
-                    </span>
-                    <span className="inline-flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
-                      Not Viewed
-                    </span>
-                  </div>
-                </div>
-              )}
-            </motion.div>
+                  )}
+                </motion.div>
+              </>
+            )}
           </div>
         </div>
 

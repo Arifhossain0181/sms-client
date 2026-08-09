@@ -9,6 +9,7 @@ import {
   CalendarDays,
   ChevronDown,
   Clock3,
+  Eye,
   FileDown,
   Loader2,
   Pencil,
@@ -836,6 +837,13 @@ export default function Page() {
                               </td>
                               <td className="px-4 sm:px-6 py-4 text-center">
                                 <div className="flex items-center justify-center gap-1">
+                                  <button
+                                    onClick={() => router.push(`/dashboard/teacher/homework/evaluate?homeworkId=${hw.id}`)}
+                                    className="p-2 rounded-xl border border-white/40 dark:border-white/10 bg-white/70 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:bg-white/90 dark:hover:bg-white/10 transition-colors"
+                                    title="Evaluate"
+                                  >
+                                    <Eye className="w-3.5 h-3.5" />
+                                  </button>
                                   <button
                                     onClick={() => openEditModal(hw)}
                                     className="p-2 rounded-xl border border-white/40 dark:border-white/10 bg-white/70 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:bg-white/90 dark:hover:bg-white/10 transition-colors"
