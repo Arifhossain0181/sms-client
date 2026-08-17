@@ -182,24 +182,54 @@ export default function AuditLogsPage() {
           </table>
         </div>
         {!loading && totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-border/60 flex items-center justify-between text-sm">
+          <div className="px-6 py-4 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm">
             <span className="text-muted-foreground text-xs">
               Page {page} of {totalPages}
             </span>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="w-8 h-8 rounded-lg border border-border flex items-center justify-center hover:bg-secondary disabled:opacity-40 transition-colors"
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-border text-xs font-medium hover:bg-secondary disabled:opacity-40 transition-colors"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-3.5 h-3.5" />
+                Prev
               </button>
+
+              {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                let pageNum: number;
+                if (totalPages <= 7) {
+                  pageNum = i + 1;
+                } else if (page <= 4) {
+                  pageNum = i + 1;
+                } else if (page >= totalPages - 3) {
+                  pageNum = totalPages - 6 + i;
+                } else {
+                  pageNum = page - 3 + i;
+                }
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setPage(pageNum)}
+                    disabled={page === pageNum}
+                    className={`w-8 h-8 rounded-lg text-xs font-semibold transition-colors ${
+                      page === pageNum
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "border border-border hover:bg-secondary disabled:opacity-40"
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="w-8 h-8 rounded-lg border border-border flex items-center justify-center hover:bg-secondary disabled:opacity-40 transition-colors"
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-border text-xs font-medium hover:bg-secondary disabled:opacity-40 transition-colors"
               >
-                <ChevronRight className="w-4 h-4" />
+                Next
+                <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
