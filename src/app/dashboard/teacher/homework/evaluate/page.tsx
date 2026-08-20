@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -43,6 +43,9 @@ type StudentViewStatus = {
   rollNumber: number;
   hasViewed: boolean;
   viewedAt: string | null;
+  marks: number | null;
+  feedback: string;
+  gradedAt: string | null;
 };
 
 type EvaluationDetailsExt = EvaluationDetails & {
@@ -64,11 +67,28 @@ export default function Page() {
   const [sectionId, setSectionId] = useState("");
   const [search, setSearch] = useState("");
   const [viewFilter, setViewFilter] = useState<"ALL" | "VIEWED" | "NOT_VIEWED">("ALL");
+  const [marksMap, setMarksMap] = useState<Record<string, { marks: string; feedback: string }>>({});
+  const [submittingId, setSubmittingId] = useState<string | null>(null);
 
   const urlHomeworkId = searchParams.get("homeworkId");
   const [selectedHomeworkId, setSelectedHomeworkId] = useState<string | null>(urlHomeworkId);
 
   const markReviewedMutation = useMarkHomeworkReviewed();
+  const submitMarkMutation = useMutation({
+    mutationFn: async ({ homeworkId, studentId, marks, feedback }: { homeworkId: string; studentId: string; marks: number; feedback?: string }) => {
+      return homeworkService.submitMark(homeworkId, studentId, marks, feedback);
+    },
+    onSuccess: () => {
+      toast.success("Mark submitted successfully!");
+      refetch();
+    },
+    onError: () => {
+      toast.error("Failed to submit mark");
+    },
+    onSettled: () => {
+      setSubmittingId(null);
+    },
+  });
 
   useEffect(() => {
     if (urlHomeworkId !== selectedHomeworkId) {
@@ -220,6 +240,36 @@ export default function Page() {
       // error handled by mutation
     }
   };
+
+  const handleSubmitMark = async (studentId: string) => {
+    if (!selectedHomeworkId) return;
+    const entry = marksMap[studentId];
+    if (!entry) return;
+    const marks = parseFloat(entry.marks);
+    if (Number.isNaN(marks)) {
+      toast.error("Please enter a valid mark");
+      return;
+    }
+    setSubmittingId(studentId);
+    await submitMarkMutation.mutateAsync({
+      homeworkId: selectedHomeworkId,
+      studentId,
+      marks,
+      feedback: entry.feedback || undefined,
+    });
+  };
+
+  useEffect(() => {
+    if (!evaluationData?.students) return;
+    const initial: Record<string, { marks: string; feedback: string }> = {};
+    for (const student of evaluationData.students) {
+      initial[student.id] = {
+        marks: student.marks != null ? String(student.marks) : "",
+        feedback: student.feedback || "",
+      };
+    }
+    setMarksMap(initial);
+  }, [evaluationData?.students]);
 
   useEffect(() => {
     if (!availableClasses.length) return;
@@ -638,7 +688,16 @@ export default function Page() {
                               Status
                             </th>
                             <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                              Mark
+                            </th>
+                            <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                              Feedback
+                            </th>
+                            <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                               Viewed At
+                            </th>
+                            <th className="px-4 sm:px-6 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 text-center">
+                              Actions
                             </th>
                           </tr>
                         </thead>
@@ -703,9 +762,43 @@ export default function Page() {
                                   )}
                                 </td>
                                 <td className="px-4 sm:px-6 py-4">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max="100"
+                                    value={marksMap[student.id]?.marks ?? ""}
+                                    onChange={(e) => setMarksMap((prev) => ({ ...prev, [student.id]: { ...prev[student.id], marks: e.target.value } }))}
+                                    placeholder="0-100"
+                                    className="w-20 rounded-xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-3 py-2 text-xs text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30 text-center"
+                                  />
+                                </td>
+                                <td className="px-4 sm:px-6 py-4">
+                                  <input
+                                    type="text"
+                                    value={marksMap[student.id]?.feedback ?? ""}
+                                    onChange={(e) => setMarksMap((prev) => ({ ...prev, [student.id]: { ...prev[student.id], feedback: e.target.value } }))}
+                                    placeholder="Feedback..."
+                                    className="w-32 sm:w-40 rounded-xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-3 py-2 text-xs text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
+                                  />
+                                </td>
+                                <td className="px-4 sm:px-6 py-4">
                                   <span className="text-sm text-slate-600 dark:text-slate-300">
                                     {student.viewedAt ? new Date(student.viewedAt).toLocaleString() : "—"}
                                   </span>
+                                </td>
+                                <td className="px-4 sm:px-6 py-4 text-center">
+                                  <motion.button
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => handleSubmitMark(student.id)}
+                                    disabled={submittingId === student.id || submitMarkMutation.isPending}
+                                    className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 px-3 py-2 text-xs font-semibold text-white shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {submittingId === student.id ? (
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    ) : (
+                                      "Save"
+                                    )}
+                                  </motion.button>
                                 </td>
                               </motion.tr>
                             ))}

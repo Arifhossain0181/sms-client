@@ -27,7 +27,7 @@ import api from "@/lib/axios";
 import { useAuth } from "@/hooks/useAuth";
 import { useClasses } from "@/app/modules/class/useClasses";
 import { useSubjects } from "@/app/modules/subject/useSubjects";
-import { useTeachers } from "@/app/modules/teachers/useTeachers";
+import { useMyProfile } from "@/app/modules/teachers/useTeachers";
 import {
   useMyHomework,
   useOverdueHomework,
@@ -49,6 +49,16 @@ type TeacherProfile = {
   sectionTeacher?: Array<{
     id: string;
     class?: { id: string; name: string };
+  }>;
+  subjectAssignments?: Array<{
+    id: string;
+    subjectId: string;
+    subject: {
+      id: string;
+      name: string;
+      code: string;
+      class?: { id: string; name: string };
+    };
   }>;
 };
 
@@ -87,12 +97,10 @@ export default function Page() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { role } = useAuth();
+  const { data: profile, isLoading: profileLoading } = useMyProfile(role === "TEACHER" || role === "SCHOOL_ADMIN" || role === "SUPER_ADMIN");
   const { data: classes, isLoading: classesLoading } = useClasses();
   const { data: subjects } = useSubjects();
-  const { data: teachers } = useTeachers();
 
-  const [profile, setProfile] = useState<TeacherProfile | null>(null);
-  const [profileLoading, setProfileLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>("list");
   const [classId, setClassId] = useState("");
   const [sectionId, setSectionId] = useState("");
@@ -120,27 +128,6 @@ export default function Page() {
       router.replace("/dashboard");
     }
   }, [role, router]);
-
-  useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        setProfileLoading(true);
-        const res = await api.get("/teachers/me");
-        const payload = res.data?.data ?? res.data;
-        setProfile(payload ?? null);
-      } catch {
-        setProfile(null);
-      } finally {
-        setProfileLoading(false);
-      }
-    };
-
-    if (role === "TEACHER" || role === "SCHOOL_ADMIN" || role === "SUPER_ADMIN") {
-      loadProfile();
-    } else {
-      setProfileLoading(false);
-    }
-  }, [role]);
 
   const assignedClassIds = useMemo(() => {
     return new Set(profile?.sectionTeacher?.map((entry) => entry.class?.id).filter(Boolean) as string[]);
@@ -179,8 +166,22 @@ export default function Page() {
   const availableSubjects = useMemo(() => {
     const allSubjects = Array.isArray(subjects) ? subjects : [];
     if (!selectedClass) return allSubjects;
-    return allSubjects.filter((sub) => sub.classId === selectedClass.id);
-  }, [subjects, selectedClass]);
+
+    const byClass = allSubjects.filter((sub) => sub.classId === selectedClass.id);
+
+    if (role === "TEACHER" && profile?.subjectAssignments) {
+      const assignedSubjectIds = new Set(
+        profile.subjectAssignments
+          .filter((sa) => sa.subject?.class?.id === selectedClass.id)
+          .map((sa) => sa.subjectId)
+      );
+      if (assignedSubjectIds.size > 0) {
+        return byClass.filter((sub) => assignedSubjectIds.has(sub.id));
+      }
+    }
+
+    return byClass;
+  }, [subjects, selectedClass, profile, role]);
 
   useEffect(() => {
     if (!availableClasses.length) return;
@@ -323,8 +324,22 @@ export default function Page() {
   const formAvailableSubjects = useMemo(() => {
     const allSubjects = Array.isArray(subjects) ? subjects : [];
     if (!formSelectedClass) return allSubjects;
-    return allSubjects.filter((sub) => sub.classId === formSelectedClass.id);
-  }, [subjects, formSelectedClass]);
+
+    const byClass = allSubjects.filter((sub) => sub.classId === formSelectedClass.id);
+
+    if (role === "TEACHER" && profile?.subjectAssignments) {
+      const assignedSubjectIds = new Set(
+        profile.subjectAssignments
+          .filter((sa) => sa.subject?.class?.id === formSelectedClass.id)
+          .map((sa) => sa.subjectId)
+      );
+      if (assignedSubjectIds.size > 0) {
+        return byClass.filter((sub) => assignedSubjectIds.has(sub.id));
+      }
+    }
+
+    return byClass;
+  }, [subjects, formSelectedClass, profile, role]);
 
   if (isLoading && !homeworkData.length) {
     return (

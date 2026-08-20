@@ -18,6 +18,8 @@ import {
   TrendingDown,
   Minus,
   Inbox,
+  Sparkles,
+  Clock,
 } from "lucide-react";
 
 const unwrap = <T,>(res: { data: any }) => (res.data?.data ?? res.data) as T;
@@ -45,6 +47,15 @@ type AttendanceSummary = {
   absent: number;
   late: number;
   percentage: number;
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.05, duration: 0.3 },
+  }),
 };
 
 const container = {
@@ -167,201 +178,315 @@ export default function ParentAttendancePage() {
   }
 
   const stats = [
-    { label: "Total Days", value: summary?.total ?? 0, icon: CalendarCheck },
-    { label: "Present", value: summary?.present ?? 0, icon: TrendingUp },
-    { label: "Absent", value: summary?.absent ?? 0, icon: TrendingDown },
-    { label: "Late", value: summary?.late ?? 0, icon: Minus },
-    { label: "Percentage", value: `${summary?.percentage ?? 0}%`, icon: CalendarCheck },
+    { label: "Total Days", value: summary?.total ?? 0, icon: CalendarCheck, color: "from-slate-400 to-slate-500" },
+    { label: "Present", value: summary?.present ?? 0, icon: TrendingUp, color: "from-emerald-400 to-teal-500" },
+    { label: "Absent", value: summary?.absent ?? 0, icon: TrendingDown, color: "from-rose-400 to-pink-500" },
+    { label: "Late", value: summary?.late ?? 0, icon: Minus, color: "from-amber-400 to-orange-500" },
+    { label: "Percentage", value: `${summary?.percentage ?? 0}%`, icon: CalendarCheck, color: "from-indigo-400 to-violet-500" },
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Attendance</h1>
-          <p className="text-sm text-muted-foreground">Monitor your children&apos;s attendance.</p>
-        </div>
-        <Link href="/dashboard/parent" className="text-sm text-primary hover:underline inline-flex items-center gap-1">
-          <ArrowLeft className="h-4 w-4" />
-          Back to dashboard
-        </Link>
-      </div>
+    <div className="relative min-h-screen overflow-hidden bg-slate-50/50 dark:bg-slate-950">
+      <motion.div
+        animate={{ x: [0, 40, 0], y: [0, -30, 0] }}
+        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-10 -left-32 w-[500px] h-[500px] bg-sky-300/20 dark:bg-sky-500/10 rounded-full blur-3xl pointer-events-none"
+      />
+      <motion.div
+        animate={{ x: [0, -30, 0], y: [0, 40, 0] }}
+        transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute bottom-10 -right-32 w-[600px] h-[600px] bg-violet-300/20 dark:bg-violet-500/10 rounded-full blur-3xl pointer-events-none"
+      />
+      <motion.div
+        animate={{ scale: [1, 1.2, 1] }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-indigo-300/10 dark:bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"
+      />
 
-      {alerts.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl border border-amber-300/60 dark:border-amber-400/30 bg-amber-50/60 dark:bg-amber-500/5 p-6 shadow-soft"
-        >
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingDown className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-            <h2 className="text-lg font-semibold text-foreground">Low Attendance Alerts</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {alerts.map((alert: any) => (
-              <motion.div
-                key={alert.childId}
-                whileHover={{ y: -2, transition: { duration: 0.2 } }}
-                whileTap={{ scale: 0.98 }}
-                className="flex items-center justify-between rounded-lg border border-amber-200/60 dark:border-amber-500/20 bg-white/60 dark:bg-white/[0.03] px-4 py-3"
-              >
-                <div>
-                  <p className="text-sm font-medium text-foreground">{alert.childName}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Attendance: {alert.attendancePercentage}% · {alert.absentDays} absent out of {alert.totalDays} days
-                  </p>
-                </div>
-                <span className="text-xs text-amber-700 dark:text-amber-300 font-medium">Below 75%</span>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-      )}
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 100, damping: 20 }}
+        className="relative w-full p-4 sm:p-6 space-y-6"
+      >
+        <div className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl shadow-slate-200/40 dark:shadow-none overflow-hidden">
+          {/* Header */}
+          <div className="relative px-6 sm:px-8 py-6 bg-gradient-to-r from-sky-50 via-indigo-50 to-violet-50 dark:from-sky-500/10 dark:via-indigo-500/10 dark:to-violet-500/10 border-b border-white/40 dark:border-white/5 overflow-hidden">
+            <motion.div
+              animate={{ x: [0, 100, 0] }}
+              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent pointer-events-none"
+            />
 
-      <div className="flex flex-wrap gap-2">
-        {children.map((child) => (
-          <motion.button
-            key={child.id}
-            whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setSelectedChildId(child.id)}
-            className={`inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
-              selectedChildId === child.id
-                ? "bg-gradient-to-r from-indigo-500 to-violet-500 text-white border-transparent shadow-lg shadow-indigo-500/20"
-                : "border-border/60 hover:bg-secondary/40 text-foreground"
-            }`}
-          >
-            <UsersRound className="h-4 w-4" />
-            {child.name}
-          </motion.button>
-        ))}
-      </div>
-
-      {selectedChild && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl border border-border/60 bg-card/80 p-6 shadow-soft"
-        >
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
-            <div>
-              <h2 className="text-lg font-semibold text-foreground">{selectedChild.name}</h2>
-              <p className="text-xs text-muted-foreground">
-                {selectedChild.class?.name ?? "Class"} · {selectedChild.section?.name ?? "Section"} · Roll: {selectedChild.rollNumber ?? "-"}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <select
-                value={month}
-                onChange={(event) => setMonth(Number(event.target.value))}
-                className="rounded-lg border border-border/60 bg-card px-3 py-2 text-sm text-foreground"
-              >
-                {monthOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={year}
-                onChange={(event) => setYear(Number(event.target.value))}
-                className="rounded-lg border border-border/60 bg-card px-3 py-2 text-sm text-foreground"
-              >
-                {yearOptions.map((yr) => (
-                  <option key={yr} value={yr}>
-                    {yr}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {attendanceLoading ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-              {Array.from({ length: 5 }).map((_, idx) => (
-                <div key={idx} className="rounded-xl border border-border/60 bg-card p-4 shadow-soft space-y-3">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-8 w-16" />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <motion.div variants={container} initial="hidden" animate="show" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-              {stats.map((stat) => (
+            <div className="relative flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
                 <motion.div
-                  key={stat.label}
-                  variants={item}
-                  whileHover={{ y: -2, transition: { duration: 0.2 } }}
-                  whileTap={{ scale: 0.98 }}
-                  className="rounded-xl border border-border/60 bg-card/80 p-4 shadow-soft"
+                  whileHover={{ scale: 1.08, rotate: 4 }}
+                  className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-400 via-indigo-400 to-violet-500 shadow-lg shadow-indigo-500/30 flex items-center justify-center cursor-pointer"
                 >
-                  <div className="flex items-center gap-2">
-                    <stat.icon className="h-4 w-4 text-muted-foreground" />
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">{stat.label}</p>
-                  </div>
-                  <p className={`mt-2 text-lg font-semibold ${stat.label === "Percentage" ? attendanceColor : "text-foreground"}`}>
-                    {stat.value}
-                  </p>
+                  <CalendarCheck className="w-6 h-6 text-white" />
+                  <motion.div
+                    className="absolute inset-0 rounded-2xl border-2 border-white/40 dark:border-white/20"
+                    animate={{ scale: [1, 1.12, 1], opacity: [0.6, 0, 0.6] }}
+                    transition={{ duration: 2.4, repeat: Infinity }}
+                  />
                 </motion.div>
-              ))}
-            </motion.div>
+                <div>
+                  <h1 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                    Attendance
+                    <Sparkles className="w-4 h-4 text-indigo-400" />
+                  </h1>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                    Monitor your children&apos;s attendance.
+                  </p>
+                </div>
+              </div>
+
+              <Link
+                href="/dashboard/parent"
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to dashboard
+              </Link>
+            </div>
+          </div>
+
+          {/* Alerts */}
+          {alerts.length > 0 && (
+            <div className="px-4 sm:px-6 pb-4">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-5 rounded-2xl border border-amber-200/60 dark:border-amber-500/20 bg-amber-50/60 dark:bg-amber-500/5 backdrop-blur-sm"
+              >
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white shadow-md shadow-amber-500/20">
+                    <TrendingDown className="w-4 h-4" />
+                  </div>
+                  <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Low Attendance Alerts</h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {alerts.map((alert: any) => (
+                    <motion.div
+                      key={alert.childId}
+                      whileHover={{ y: -2, transition: { duration: 0.2 } }}
+                      whileTap={{ scale: 0.98 }}
+                      className="flex items-center justify-between rounded-xl border border-amber-200/60 dark:border-amber-500/20 bg-white/60 dark:bg-white/5 px-4 py-3"
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{alert.childName}</p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500">
+                          Attendance: {alert.attendancePercentage}% · {alert.absentDays} absent out of {alert.totalDays} days
+                        </p>
+                      </div>
+                      <span className="text-xs text-amber-700 dark:text-amber-300 font-medium">Below 75%</span>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            </div>
           )}
 
-          <div className="mt-6 rounded-2xl border border-border/60 bg-card/80 shadow-soft overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border/60 bg-secondary/20">
-              <h3 className="text-base font-semibold text-foreground">Attendance Records</h3>
-              {!attendanceLoading && summary && summary.percentage > 0 && (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <TrendIcon percentage={summary.percentage} />
-                  <span>{summary.percentage}% attendance</span>
-                </div>
-              )}
-            </div>
-
-            {attendanceLoading ? (
-              <div className="p-6 space-y-3">
-                {Array.from({ length: 5 }).map((_, idx) => (
-                  <div key={idx} className="flex items-center justify-between rounded-lg border border-border/40 px-4 py-3">
-                    <Skeleton className="h-4 w-32" />
-                    <Skeleton className="h-5 w-16 rounded-full" />
-                  </div>
+          {/* Children selector */}
+          {childrenLoading ? (
+            <div className="px-4 sm:px-6">
+              <div className="flex flex-wrap gap-2">
+                {Array.from({ length: 3 }).map((_, idx) => (
+                  <div key={idx} className="h-10 w-40 rounded-xl bg-white/60 dark:bg-white/5 border border-white/30 dark:border-white/10" />
                 ))}
               </div>
-            ) : records.length === 0 ? (
-              <div className="p-12 text-center">
-                <Inbox className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">No attendance records found for this month.</p>
+            </div>
+          ) : children.length === 0 ? (
+            <div className="p-6">
+              <div className="rounded-2xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-white/5 backdrop-blur-sm p-12 text-center">
+                <motion.div
+                  animate={{ y: [0, -8, 0] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                  className="w-14 h-14 rounded-full bg-gradient-to-br from-sky-100 via-indigo-100 to-violet-100 dark:from-sky-500/10 dark:via-indigo-500/10 dark:to-violet-500/10 flex items-center justify-center mx-auto mb-4 ring-1 ring-indigo-200/60 dark:ring-indigo-400/20"
+                >
+                  <Inbox className="w-6 h-6 text-indigo-400" />
+                </motion.div>
+                <p className="text-sm font-medium text-slate-700 dark:text-slate-200">No children linked</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                  Children will appear here once linked to your account.
+                </p>
               </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="text-xs uppercase text-muted-foreground">
-                    <tr>
-                      <th className="py-3 px-4 text-left">Date</th>
-                      <th className="py-3 px-4 text-left">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/60">
-                    {records.map((record) => {
-                      const style = statusStyles[record.status] ?? statusStyles.ABSENT;
-                      return (
-                        <tr key={record.id} className="hover:bg-secondary/20 transition-colors">
-                          <td className="py-3 px-4 text-foreground">{formatDate(record.date)}</td>
-                          <td className="py-3 px-4">
-                            <span className={`text-xs px-2 py-1 rounded-full ${style.badge}`}>
-                              {style.label}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+            </div>
+          ) : (
+            <>
+              <div className="px-4 sm:px-6 pt-6">
+                <div className="flex flex-wrap gap-2">
+                  {children.map((child) => (
+                    <motion.button
+                      key={child.id}
+                      whileHover={{ y: -2 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setSelectedChildId(child.id)}
+                      className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-xs sm:text-sm font-medium transition-colors ${
+                        selectedChildId === child.id
+                          ? "bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 text-white border-transparent shadow-lg shadow-indigo-500/30"
+                          : "border-white/30 dark:border-white/10 bg-white/60 dark:bg-white/5 text-slate-700 dark:text-slate-200 hover:bg-white/80 dark:hover:bg-white/10"
+                      }`}
+                    >
+                      <UsersRound className="h-4 w-4" />
+                      {child.name}
+                    </motion.button>
+                  ))}
+                </div>
               </div>
-            )}
-          </div>
-        </motion.div>
-      )}
+
+              {selectedChild && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-4 sm:p-6"
+                >
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
+                    <div>
+                      <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">{selectedChild.name}</h2>
+                      <p className="text-xs text-slate-400 dark:text-slate-500">
+                        {selectedChild.class?.name ?? "Class"} · {selectedChild.section?.name ?? "Section"} · Roll:{" "}
+                        {selectedChild.rollNumber ?? "-"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={month}
+                        onChange={(event) => setMonth(Number(event.target.value))}
+                        className="rounded-xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-white/5 px-3 py-2 text-xs sm:text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400/40 backdrop-blur-sm"
+                      >
+                        {monthOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={year}
+                        onChange={(event) => setYear(Number(event.target.value))}
+                        className="rounded-xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-white/5 px-3 py-2 text-xs sm:text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400/40 backdrop-blur-sm"
+                      >
+                        {yearOptions.map((yr) => (
+                          <option key={yr} value={yr}>
+                            {yr}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {attendanceLoading ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                      {Array.from({ length: 5 }).map((_, idx) => (
+                        <div key={idx} className="rounded-2xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-white/5 p-4 space-y-3">
+                          <Skeleton className="h-4 w-24" />
+                          <Skeleton className="h-8 w-16" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <motion.div variants={container} initial="hidden" animate="show" className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                      {stats.map((stat, i) => (
+                        <motion.div
+                          key={stat.label}
+                          custom={i}
+                          variants={cardVariants}
+                          initial="hidden"
+                          animate="visible"
+                          className="relative flex items-center gap-3 p-4 rounded-2xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-white/5 backdrop-blur-sm"
+                        >
+                          <div className={`flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center text-white shadow-md shadow-indigo-500/20`}>
+                            <stat.icon className="w-5 h-5" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500 truncate">{stat.label}</p>
+                            <p className={`text-lg font-bold text-slate-800 dark:text-white mt-0.5 ${stat.label === "Percentage" ? attendanceColor : ""}`}>{stat.value}</p>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </motion.div>
+                  )}
+
+                  <div className="mt-6 rounded-2xl border border-white/30 dark:border-white/10 bg-white/60 dark:bg-white/5 backdrop-blur-sm overflow-hidden">
+                    <div className="px-6 py-4 border-b border-white/30 dark:border-white/10 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
+                          <Clock className="w-4 h-4" />
+                        </div>
+                        <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Attendance Records</h3>
+                      </div>
+                      {!attendanceLoading && summary && summary.percentage > 0 && (
+                        <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                          <TrendIcon percentage={summary.percentage} />
+                          <span>{summary.percentage}% attendance</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {attendanceLoading ? (
+                      <div className="p-6 space-y-3">
+                        {Array.from({ length: 5 }).map((_, idx) => (
+                          <div key={idx} className="flex items-center justify-between rounded-xl border border-white/20 dark:border-white/10 px-4 py-3">
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-5 w-16 rounded-full" />
+                          </div>
+                        ))}
+                      </div>
+                    ) : records.length === 0 ? (
+                      <div className="p-12 text-center">
+                        <motion.div
+                          animate={{ y: [0, -8, 0] }}
+                          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                          className="w-14 h-14 rounded-full bg-gradient-to-br from-sky-100 via-indigo-100 to-violet-100 dark:from-sky-500/10 dark:via-indigo-500/10 dark:to-violet-500/10 flex items-center justify-center mx-auto mb-4 ring-1 ring-indigo-200/60 dark:ring-indigo-400/20"
+                        >
+                          <Inbox className="w-6 h-6 text-indigo-400" />
+                        </motion.div>
+                        <p className="text-sm font-medium text-slate-700 dark:text-slate-200">No attendance records found for this month.</p>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-white/30 dark:border-white/10 text-left text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                              <th className="px-6 py-3 font-medium">Date</th>
+                              <th className="px-6 py-3 font-medium">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-white/30 dark:divide-white/5">
+                            {records.map((record) => {
+                              const style = statusStyles[record.status] ?? statusStyles.ABSENT;
+                              return (
+                                <tr key={record.id} className="hover:bg-white/40 dark:hover:bg-white/10 transition-colors">
+                                  <td className="px-6 py-3 text-slate-700 dark:text-slate-200">{formatDate(record.date)}</td>
+                                  <td className="px-6 py-3">
+                                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${style.badge}`}>
+                                      {style.label}
+                                    </span>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </>
+          )}
+        </div>
+
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.4 }}
+          transition={{ delay: 1 }}
+          className="text-center text-[10px] font-bold tracking-[0.3em] uppercase text-slate-400 dark:text-slate-600"
+        >
+          EduCore Parent Panel
+        </motion.p>
+      </motion.div>
     </div>
   );
 }

@@ -22,13 +22,14 @@ import {
   Users,
   UserRound,
   School,
+  BookOpen,
+  UsersRound,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import api from "@/lib/axios";
 import { useAuth } from "@/hooks/useAuth";
 import { useMyProfile } from "@/app/modules/teachers/useTeachers";
-import { useClasses } from "@/app/modules/class/useClasses";
 
 type Student = {
   id: string;
@@ -66,6 +67,13 @@ type Meta = {
   page: number;
   limit: number;
   totalPages: number;
+};
+
+type TeacherProfile = {
+  id: string;
+  name: string;
+  email: string;
+  sectionTeacher?: { id: string; class: { id: string; name: string } }[];
 };
 
 const LIMIT = 12;
@@ -117,28 +125,30 @@ export default function Page() {
   const queryClient = useQueryClient();
   const { role } = useAuth();
   const { data: profile, isLoading: profileLoading } = useMyProfile(role === "TEACHER");
-  const { data: classes = [], isLoading: classesLoading } = useClasses();
-  const teacherId = profile?.id ?? "";
+  const teacherId = (profile as TeacherProfile | undefined)?.id ?? "";
   const canLoad = role === "TEACHER" && !!teacherId;
 
-  const [classId, setClassId] = useState("");
+  const [selectedClassId, setSelectedClassId] = useState<string>("");
   const [sectionId, setSectionId] = useState("");
   const [search, setSearch] = useState("");
   const [genderFilter, setGenderFilter] = useState("");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Student | null>(null);
 
-  const selectedClass = useMemo(
-    () => classes.find((cls: any) => cls.id === classId),
-    [classes, classId]
-  );
+  const assignedClasses = useMemo(() => {
+    return (profile as TeacherProfile | undefined)?.sectionTeacher?.map((st) => st.class) ?? [];
+  }, [profile]);
+
+  const selectedClass = useMemo(() => {
+    return assignedClasses.find((cls) => cls.id === selectedClassId);
+  }, [assignedClasses, selectedClassId]);
 
   const availableSections = useMemo(() => {
-    if (!selectedClass) return [];
-    return selectedClass.sections ?? [];
-  }, [selectedClass]);
+    if (!selectedClassId) return [];
+    return (profile as TeacherProfile | undefined)?.sectionTeacher?.filter((st) => st.class.id === selectedClassId) ?? [];
+  }, [profile, selectedClassId]);
 
-  const effectiveClassId = classId || (classes[0]?.id ?? "");
+  const effectiveClassId = selectedClassId || (assignedClasses[0]?.id ?? "");
   const effectiveSectionId = sectionId || availableSections[0]?.id || "";
 
   const { data: response = { list: [], meta: { total: 0, page: 1, limit: LIMIT, totalPages: 1 } }, isLoading, error, refetch } = useQuery({
@@ -210,7 +220,7 @@ export default function Page() {
   };
 
   const handleClassChange = (value: string) => {
-    setClassId(value);
+    setSelectedClassId(value);
     setSectionId("");
     setPage(1);
   };
@@ -225,6 +235,13 @@ export default function Page() {
       router.replace("/dashboard");
     }
   }, [role, router]);
+
+  // Auto-select the first assigned class once profile is loaded
+  useEffect(() => {
+    if (assignedClasses.length > 0 && !selectedClassId) {
+      setSelectedClassId(assignedClasses[0].id);
+    }
+  }, [assignedClasses, selectedClassId]);
 
   if (role === "TEACHER" && profileLoading) {
     return (
@@ -262,6 +279,8 @@ export default function Page() {
     );
   }
 
+  const currentClassName = selectedClass?.name ?? (assignedClasses[0]?.name ?? "Class");
+
   return (
     <div className="relative min-h-[80vh] flex items-start sm:items-center p-4 sm:p-6 overflow-hidden bg-slate-50/50 dark:bg-slate-950 rounded-3xl">
       <motion.div
@@ -298,7 +317,7 @@ export default function Page() {
               <div className="flex items-center gap-3">
                 <motion.div
                   whileHover={{ scale: 1.08, rotate: 4 }}
-                  className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-400 via-indigo-400 to-violet-500 shadow-lg shadow-indigo-500/30 flex items-center justify-center cursor-pointer"
+                  className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-400 via-indigo-400 to-violet-500 shadow-lg shadow-indigo-500/30 flex items-center justify-center"
                 >
                   <GraduationCap className="w-6 h-6 text-white" />
                   <motion.div
@@ -313,7 +332,7 @@ export default function Page() {
                     <Sparkles className="w-4 h-4 text-indigo-400" />
                   </h1>
                   <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-                    View students from your assigned classes, filterable by class and section.
+                    View students from your assigned classes.
                   </p>
                 </div>
               </div>
@@ -328,145 +347,170 @@ export default function Page() {
             </div>
           </div>
 
-          <div className="p-4 sm:p-6 space-y-5 max-h-[75vh] overflow-y-auto">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 sm:gap-4">
-              {[
-                { label: "Total", value: (meta?.total ?? studentList.length).toString(), icon: Users, tint: "from-sky-400 to-indigo-500" },
-                { label: "Classes", value: String(classCount), icon: School, tint: "from-violet-400 to-indigo-500" },
-                { label: "Active", value: String(activeCount), icon: UserRound, tint: "from-emerald-400 to-green-500" },
-                { label: "Inactive", value: String(inactiveCount), icon: Clock3, tint: "from-rose-400 to-red-500" },
-              ].map((item) => {
-                const Icon = item.icon;
-                return (
-                  <motion.div
-                    key={item.label}
-                    whileHover={{ y: -2, scale: 1.01 }}
-                    className="rounded-2xl border border-white/40 dark:border-white/10 bg-white/60 dark:bg-white/5 backdrop-blur-sm p-4 shadow-sm"
-                  >
-                    <div className={`w-11 h-11 rounded-2xl mb-3 flex items-center justify-center bg-gradient-to-br ${item.tint} text-white shadow-lg`}>
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500">{item.label}</p>
-                    <p className="mt-2 text-2xl font-bold text-slate-800 dark:text-white">{item.value}</p>
-                  </motion.div>
-                );
-              })}
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_0.7fr] gap-4">
-              <div className="rounded-3xl border border-white/40 dark:border-white/10 bg-white/65 dark:bg-white/5 backdrop-blur-sm p-4 sm:p-5 shadow-sm">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Class</label>
-                    <div className="relative">
-                      <select
-                        value={classId || effectiveClassId}
-                        onChange={(e) => handleClassChange(e.target.value)}
-                        disabled={classesLoading}
-                        className="w-full appearance-none rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-3 pr-10 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30 disabled:opacity-60"
-                      >
-                        <option value="">Select class</option>
-                        {(Array.isArray(classes) ? classes : []).map((cls: any) => (
-                          <option key={cls.id} value={cls.id}>
-                            {cls.name}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Section</label>
-                    <div className="relative">
-                      <select
-                        value={sectionId || effectiveSectionId}
-                        onChange={(e) => handleSectionChange(e.target.value)}
-                        disabled={availableSections.length === 0}
-                        className="w-full appearance-none rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-3 pr-10 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30 disabled:opacity-60"
-                      >
-                        <option value="">Select section</option>
-                        {availableSections.map((section: any) => (
-                          <option key={section.id} value={section.id}>
-                            {section.name} {section.maxCapacity ? `(max ${section.maxCapacity})` : ""}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5 md:col-span-2">
-                    <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Search</label>
-                    <div className="relative">
-                      <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                      <input
-                        value={search}
-                        onChange={(e) => handleSearchChange(e.target.value)}
-                        placeholder="Search by name or roll number"
-                        className="w-full rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 pl-10 pr-4 py-3 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-500/10"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-4 flex flex-wrap items-center gap-3">
-                  <div className="relative">
-                    <select
-                      value={genderFilter}
-                      onChange={(e) => handleGenderChange(e.target.value)}
-                      className="appearance-none rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-2.5 pr-10 text-xs font-semibold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
-                    >
-                      <option value="">All genders</option>
-                      <option value="MALE">Male</option>
-                      <option value="FEMALE">Female</option>
-                      <option value="OTHER">Other</option>
-                    </select>
-                    <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      setSearch("");
-                      setGenderFilter("");
-                      setClassId("");
-                      setSectionId("");
-                      setPage(1);
-                    }}
-                    className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-4 py-2 text-xs font-semibold text-sky-700 transition-colors hover:bg-sky-100"
-                  >
-                    <RefreshCw className="h-3.5 w-3.5" />
-                    Reset
-                  </button>
-                </div>
-              </div>
-
-              <div className="rounded-3xl border border-white/40 dark:border-white/10 bg-gradient-to-br from-sky-50/90 via-indigo-50/70 to-violet-50/90 dark:from-sky-500/10 dark:via-indigo-500/10 dark:to-violet-500/10 backdrop-blur-sm p-4 sm:p-5 shadow-sm">
-                <div className="flex items-center gap-2">
+          {/* Assigned class info */}
+          <div className="px-4 sm:px-6 pt-4">
+            <div className="rounded-2xl border border-white/40 dark:border-white/10 bg-gradient-to-r from-sky-50/90 via-indigo-50/70 to-violet-50/90 dark:from-sky-500/10 dark:via-indigo-500/10 dark:to-violet-500/10 backdrop-blur-sm p-4 sm:p-5 shadow-sm">
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-sky-400 via-indigo-400 to-violet-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30">
                     <School className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-slate-800 dark:text-white">Class snapshot</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {effectiveClassId ? (selectedClass?.name ?? "Class") : "All classes"}
-                      {effectiveSectionId ? ` • ${availableSections.find((s: any) => s.id === effectiveSectionId)?.name ?? "Section"}` : ""}
-                    </p>
+                    <p className="text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">Assigned Class</p>
+                    <p className="text-sm font-semibold text-slate-800 dark:text-white">{currentClassName}</p>
                   </div>
                 </div>
-
-                <div className="grid grid-cols-2 gap-2 mt-4">
-                  <div className="rounded-2xl bg-white/70 dark:bg-white/5 border border-white/40 dark:border-white/10 p-3 text-center">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Total</p>
-                    <p className="mt-1 text-lg font-bold text-slate-800 dark:text-white">{meta?.total ?? studentList.length}</p>
-                  </div>
-                  <div className="rounded-2xl bg-white/70 dark:bg-white/5 border border-white/40 dark:border-white/10 p-3 text-center">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Page</p>
-                    <p className="mt-1 text-lg font-bold text-slate-800 dark:text-white">{meta?.page ?? page}</p>
-                  </div>
+                <div className="h-8 w-px bg-white/40 dark:bg-white/10 hidden sm:block" />
+                <div className="flex items-center gap-2">
+                  <UsersRound className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {assignedClasses.length} class{assignedClasses.length !== 1 ? "es" : ""} assigned
+                  </p>
                 </div>
               </div>
             </div>
+          </div>
+
+          <div className="p-4 sm:p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+            {assignedClasses.length > 1 && (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 sm:gap-4">
+                {[
+                  { label: "Total", value: (meta?.total ?? studentList.length).toString(), icon: Users, tint: "from-sky-400 to-indigo-500" },
+                  { label: "Classes", value: String(classCount), icon: School, tint: "from-violet-400 to-indigo-500" },
+                  { label: "Active", value: String(activeCount), icon: UserRound, tint: "from-emerald-400 to-green-500" },
+                  { label: "Inactive", value: String(inactiveCount), icon: Clock3, tint: "from-rose-400 to-red-500" },
+                ].map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <motion.div
+                      key={item.label}
+                      whileHover={{ y: -2, scale: 1.01 }}
+                      className="rounded-2xl border border-white/40 dark:border-white/10 bg-white/60 dark:bg-white/5 backdrop-blur-sm p-4 shadow-sm"
+                    >
+                      <div className={`w-11 h-11 rounded-2xl mb-3 flex items-center justify-center bg-gradient-to-br ${item.tint} text-white shadow-lg`}>
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500">{item.label}</p>
+                      <p className="mt-2 text-2xl font-bold text-slate-800 dark:text-white">{item.value}</p>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            )}
+
+            {assignedClasses.length > 1 && (
+              <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_0.7fr] gap-4">
+                <div className="rounded-3xl border border-white/40 dark:border-white/10 bg-white/65 dark:bg-white/5 backdrop-blur-sm p-4 sm:p-5 shadow-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Class</label>
+                      <div className="relative">
+                        <select
+                          value={selectedClassId || effectiveClassId}
+                          onChange={(e) => handleClassChange(e.target.value)}
+                          className="w-full appearance-none rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-3 pr-10 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
+                        >
+                          {assignedClasses.map((cls: any) => (
+                            <option key={cls.id} value={cls.id}>
+                              {cls.name}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Section</label>
+                      <div className="relative">
+                        <select
+                          value={sectionId || effectiveSectionId}
+                          onChange={(e) => handleSectionChange(e.target.value)}
+                          disabled={availableSections.length === 0}
+                          className="w-full appearance-none rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-3 pr-10 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30 disabled:opacity-60"
+                        >
+                          <option value="">All sections</option>
+                          {availableSections.map((section: any) => (
+                            <option key={section.id} value={section.id}>
+                              {section.name} {section.maxCapacity ? `(max ${section.maxCapacity})` : ""}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Search</label>
+                      <div className="relative">
+                        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                        <input
+                          value={search}
+                          onChange={(e) => handleSearchChange(e.target.value)}
+                          placeholder="Search by name or roll number"
+                          className="w-full rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 pl-10 pr-4 py-3 text-sm text-slate-700 dark:text-slate-200 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-500/10"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap items-center gap-3">
+                    <div className="relative">
+                      <select
+                        value={genderFilter}
+                        onChange={(e) => handleGenderChange(e.target.value)}
+                        className="appearance-none rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-2.5 pr-10 text-xs font-semibold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
+                      >
+                        <option value="">All genders</option>
+                        <option value="MALE">Male</option>
+                        <option value="FEMALE">Female</option>
+                        <option value="OTHER">Other</option>
+                      </select>
+                      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        setSearch("");
+                        setGenderFilter("");
+                        setSectionId("");
+                        setPage(1);
+                      }}
+                      className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-4 py-2 text-xs font-semibold text-sky-700 transition-colors hover:bg-sky-100"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      Reset
+                    </button>
+                  </div>
+                </div>
+
+                <div className="rounded-3xl border border-white/40 dark:border-white/10 bg-gradient-to-br from-sky-50/90 via-indigo-50/70 to-violet-50/90 dark:from-sky-500/10 dark:via-indigo-500/10 dark:to-violet-500/10 backdrop-blur-sm p-4 sm:p-5 shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-sky-400 via-indigo-400 to-violet-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                      <School className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800 dark:text-white">Class snapshot</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        {currentClassName}
+                        {effectiveSectionId ? ` • ${availableSections.find((s: any) => s.id === effectiveSectionId)?.name ?? "Section"}` : ""}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 mt-4">
+                    <div className="rounded-2xl bg-white/70 dark:bg-white/5 border border-white/40 dark:border-white/10 p-3 text-center">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Total</p>
+                      <p className="mt-1 text-lg font-bold text-slate-800 dark:text-white">{meta?.total ?? studentList.length}</p>
+                    </div>
+                    <div className="rounded-2xl bg-white/70 dark:bg-white/5 border border-white/40 dark:border-white/10 p-3 text-center">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Page</p>
+                      <p className="mt-1 text-lg font-bold text-slate-800 dark:text-white">{meta?.page ?? page}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {isLoading ? (
               <div className="divide-y divide-white/40 dark:divide-white/10 max-h-[45vh] overflow-y-auto">
@@ -501,7 +545,7 @@ export default function Page() {
                 </motion.div>
                 <h3 className="text-base font-semibold text-slate-700 dark:text-slate-200">No students found</h3>
                 <p className="mt-1 text-sm text-slate-400 dark:text-slate-500">
-                  Select a class and section, or clear the search filter.
+                  No students assigned to {currentClassName}.
                 </p>
               </div>
             ) : (

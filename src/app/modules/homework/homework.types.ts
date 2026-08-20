@@ -58,6 +58,9 @@ export interface EvaluationDetails {
     rollNumber: number;
     hasViewed: boolean;
     viewedAt: string | null;
+    marks: number | null;
+    feedback: string;
+    gradedAt: string | null;
   }[];
   stats: {
     totalStudents: number;

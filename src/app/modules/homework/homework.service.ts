@@ -43,6 +43,16 @@ export const homeworkService = {
     return res.data?.data ?? res.data;
   },
 
+  submitMark: async (homeworkId: string, studentId: string, marks: number, feedback?: string) => {
+    const res = await api.post(`/homework/${homeworkId}/submit-mark`, { studentId, marks, feedback });
+    return res.data?.data ?? res.data;
+  },
+
+  getSubmissions: async (homeworkId: string) => {
+    const res = await api.get(`/homework/${homeworkId}/submissions`);
+    return res.data?.data ?? res.data;
+  },
+
   delete: async (id: string): Promise<void> => {
     await api.delete(`/homework/${id}`);
   },
