@@ -9,6 +9,7 @@ export type DayOfWeek =
 export interface Timetable {
   id: string;
   classId: string;
+  sectionId?: string;
   class?: {
     id: string;
     name: string;
@@ -16,6 +17,7 @@ export interface Timetable {
   section?: {
     id: string;
     name: string;
+    maxCapacity?: number;
   };
   subjectId: string;
   subject?: {

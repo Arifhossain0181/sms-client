@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLenis } from "@/hooks/useLenis";
@@ -21,7 +21,7 @@ import { feesService } from "@/app/modules/fees/fees.service";
 import { formatTaka } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 
-const cardVariants = {
+const cardVariants: Variants = {
   hidden: { opacity: 0, y: 20 },
   visible: (i: number) => ({
     opacity: 1,

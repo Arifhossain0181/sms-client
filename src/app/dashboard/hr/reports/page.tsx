@@ -213,6 +213,59 @@ export default function ReportsPage() {
     doc.save(`attendance-report-${summary.year}-${summary.month}.pdf`);
   };
 
+  const generateStaffDocumentPDF = (staff: StaffSearchResult) => {
+    setPrintingId(staff.id);
+    try {
+      const doc = new jsPDF();
+      let y = 16;
+
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.text("Staff Document", 14, y);
+      y += 10;
+
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      const details = [
+        ["Name", staff.name],
+        ["Employee ID", staff.employeeId],
+        ["Email", staff.email],
+        ["Phone", staff.phone ?? "—"],
+        ["Designation", staff.designation ?? "—"],
+        ["Department", staff.department?.name ?? "—"],
+        ["Staff Type", staff.staffType === "TEACHING" ? "Teaching" : "Non-Teaching"],
+        ["Qualification", staff.qualification ?? "—"],
+        ["Experience", staff.experience != null ? `${staff.experience} years` : "—"],
+        ["Gender", staff.gender ?? "—"],
+        ["Date of Birth", staff.dateOfBirth ?? "—"],
+        ["Joining Date", staff.joiningDate ?? "—"],
+        ["Blood Group", staff.bloodGroup ?? "—"],
+        ["Address", staff.address ?? "—"],
+      ];
+
+      autoTable(doc, {
+        startY: y,
+        head: [["Field", "Details"]],
+        body: details,
+        theme: "grid",
+        headStyles: { fillColor: [79, 70, 229] },
+        styles: { fontSize: 10 },
+        columnStyles: { 0: { cellWidth: 42 } },
+      });
+
+      y = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? y;
+      y += 12;
+      doc.setFontSize(9);
+      doc.text(`ID proof: ${staff.idProofUrl ? "Available" : "Not available"}`, 14, y);
+      doc.text(`Contract: ${staff.contractUrl ? "Available" : "Not available"}`, 14, y + 6);
+      doc.text(`Certificates: ${staff.certificates?.length ?? 0}`, 14, y + 12);
+
+      doc.save(`staff-document-${staff.employeeId}-${staff.name.replace(/\s+/g, "-")}.pdf`);
+    } finally {
+      setPrintingId(null);
+    }
+  };
+
   const exportStaffAttendancePDF = async (staff: StaffSearchResult) => {
     setPrintingId(staff.id);
     try {

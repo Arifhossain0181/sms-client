@@ -145,7 +145,9 @@ export default function Page() {
 
   const availableSections = useMemo(() => {
     if (!selectedClassId) return [];
-    return (profile as TeacherProfile | undefined)?.sectionTeacher?.filter((st) => st.class.id === selectedClassId) ?? [];
+    return (profile as TeacherProfile | undefined)?.sectionTeacher
+      ?.filter((st) => st.class.id === selectedClassId)
+      .map((st) => ({ id: st.id, name: st.class.name })) ?? [];
   }, [profile, selectedClassId]);
 
   const effectiveClassId = selectedClassId || (assignedClasses[0]?.id ?? "");

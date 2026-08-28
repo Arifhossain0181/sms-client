@@ -112,12 +112,6 @@ const rolePermissions: Record<Role, Permission[]> = {
     "view_overdue_fees",
     "view_payment_history",
   ],
-  LIBRARIAN: [
-    "manage_books",
-    "issue_return_books",
-    "search_books",
-    "view_library_books",
-  ],
   TEACHER: [
     "mark_attendance",
     "add_result",
@@ -139,11 +133,6 @@ const rolePermissions: Record<Role, Permission[]> = {
     "view_payment_history",
     "view_report_card",
     "view_admit_card",
-  ],
-  RECEPTIONIST: [
-    "manage_visitors",
-    "manage_inquiries",
-    "post_notice",
   ],
   EXAM_CONTROLLER: [
     "configure_grading",

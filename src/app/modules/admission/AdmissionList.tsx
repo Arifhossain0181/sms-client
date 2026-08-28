@@ -433,7 +433,7 @@ export default function AdmissionList() {
       )}
 
       {/* Modals */}
-      {showForm && <AdminAdmissionForm onClose={handleClose} />}
+      {showForm && <AdminAdmissionForm />}
       {showDetail && selected && <AdmissionDetail admission={selected} onClose={handleClose} />}
     </div>
   );

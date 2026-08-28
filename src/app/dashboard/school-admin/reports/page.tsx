@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { classService } from "@/app/modules/class/class.service";
 import { examService } from "@/app/modules/exam/exam.service";
+import type { Exam } from "@/app/modules/exam/exam.types";
 import api from "@/lib/axios";
 import { motion } from "framer-motion";
 import {
@@ -32,14 +33,6 @@ type ClassType = {
   name: string;
   numericLevel: number;
   sections?: { id: string; name: string; maxCapacity: number }[];
-};
-
-type Exam = {
-  id: string;
-  name: string;
-  type: string;
-  classId: string;
-  examDate?: string;
 };
 
 type ReportType = "students" | "attendance" | "fees" | "results";

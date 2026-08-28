@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { hasPermission } from "@/config/roles";
@@ -19,7 +20,6 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle2,
-  XCircle,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -39,19 +39,6 @@ function Skel({ className = "" }: { className?: string }) {
   return (
     <span className={`inline-block rounded bg-muted/60 animate-pulse ${className}`} />
   );
-}
-
-function getPriorityConfig(priority?: string): { label: string; color: string; bg: string } {
-  switch (priority) {
-    case "URGENT":
-      return { label: "Urgent", color: "text-red-700 dark:text-red-400", bg: "bg-red-100 dark:bg-red-900/30" };
-    case "HIGH":
-      return { label: "High", color: "text-orange-700 dark:text-orange-400", bg: "bg-orange-100 dark:bg-orange-900/30" };
-    case "LOW":
-      return { label: "Low", color: "text-blue-700 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-900/30" };
-    default:
-      return { label: "Normal", color: "text-muted-foreground", bg: "bg-secondary/60" };
-  }
 }
 
 function getTargetLabel(target: string): string {
@@ -84,7 +71,7 @@ export default function SchoolAdminNoticesPage() {
     }
   }, [role, router]);
 
-  const canManage = role ? hasPermission(role, "publish_notices") : false;
+  const canManage = role ? hasPermission(role, "post_notice") : false;
 
   // ── State ─────────────────────────────────────────────────────────────────
   const [search, setSearch] = useState("");
@@ -126,7 +113,7 @@ export default function SchoolAdminNoticesPage() {
 
   const totalNotices = noticeList.length;
   const pinnedCount = useMemo(() => noticeList.filter((n) => n.pinned).length, [noticeList]);
-  const activeCount = useMemo(() => noticeList.filter((n) => !n.expiresAt || new Date(n.expiresAt) > new Date()).length, [noticeList]);
+  const activeCount = totalNotices;
 
   const handleCreate = async (data: any) => {
     await createMutation.mutateAsync(data);
@@ -297,9 +284,6 @@ export default function SchoolAdminNoticesPage() {
           </div>
         ) : (
           filtered.map((notice) => {
-            const priorityConfig = getPriorityConfig(notice.priority);
-            const isExpired = notice.expiresAt && new Date(notice.expiresAt) < new Date();
-
             return (
               <motion.div
                 key={notice.id}
@@ -308,7 +292,7 @@ export default function SchoolAdminNoticesPage() {
                   notice.pinned
                     ? "border-blue-200 dark:border-blue-800/40 shadow-md"
                     : "border-border/60 shadow-soft"
-                } ${isExpired ? "opacity-60" : ""}`}
+                }`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
@@ -319,19 +303,11 @@ export default function SchoolAdminNoticesPage() {
                           <Pin className="w-3 h-3" /> Pinned
                         </span>
                       )}
-                      {isExpired && (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
-                          <XCircle className="w-3 h-3" /> Expired
-                        </span>
-                      )}
                     </div>
                     <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
                       {notice.content}
                     </p>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full font-medium ${priorityConfig.bg} ${priorityConfig.color}`}>
-                        {priorityConfig.label}
-                      </span>
                       <span>Target: {getTargetLabel(notice.target)}</span>
                       <span>By: {notice.createdBy?.name ?? "Unknown"}</span>
                       <span>{fmt(notice.createdAt)}</span>

@@ -160,7 +160,7 @@ export default function RoutinePage() {
         const subject = s.subject?.name?.toLowerCase() ?? "";
         const teacher = s.teacher?.user?.name?.toLowerCase() ?? "";
         const cls = s.class?.name?.toLowerCase() ?? "";
-        const section = s.class?.section?.toLowerCase() ?? "";
+        const section = s.section?.name?.toLowerCase() ?? "";
         const time = `${s.startTime} - ${s.endTime}`.toLowerCase();
         return subject.includes(q) || teacher.includes(q) || cls.includes(q) || section.includes(q) || time.includes(q);
       });

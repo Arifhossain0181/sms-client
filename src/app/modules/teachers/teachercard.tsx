@@ -61,7 +61,7 @@ export default function TeacherCard({ id }: Props) {
 
           <div className="bg-gray-50 rounded-lg p-3">
             <p className="text-gray-500 text-xs mb-1">Subject</p>
-            <p className="font-medium">{teacher.subject?.name ?? "—"}</p>
+            <p className="font-medium">{teacher.subject ?? teacher.subjectSpecialization ?? "—"}</p>
           </div>
 
           <div className="bg-gray-50 rounded-lg p-3">

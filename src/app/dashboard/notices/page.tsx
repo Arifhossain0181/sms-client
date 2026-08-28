@@ -3,20 +3,22 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { useHydration } from "@/hooks/useHydration";
 import NoticeCard from "@/app/modules/notice/NoticeCard";
 
 export default function NoticesPage() {
   const router = useRouter();
-  const { role, loading } = useAuth();
+  const { role } = useAuth();
+  const isHydrated = useHydration();
 
   useEffect(() => {
-    if (loading) return;
+    if (!isHydrated) return;
     if (role === "STUDENT") {
       router.replace("/dashboard/student/notices");
     }
-  }, [role, loading, router]);
+  }, [role, isHydrated, router]);
 
-  if (loading) {
+  if (!isHydrated) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>

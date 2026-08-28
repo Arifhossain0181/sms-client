@@ -15,7 +15,6 @@ export default function DashboardIndex() {
     const roleRedirects: Record<Role, string> = {
       SUPER_ADMIN: "/dashboard/super-admin",
       SCHOOL_ADMIN: "/dashboard/school-admin",
-      ADMIN: "/dashboard/school-admin",
       ACCOUNTANT: "/dashboard/accountant",
       TEACHER: "/dashboard/teacher",
       STUDENT: "/dashboard/student",

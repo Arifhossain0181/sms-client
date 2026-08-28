@@ -1,11 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/hooks/useAuth";
 import api from "@/lib/axios";
 import { useLenis } from "@/hooks/useLenis";
-import type { Role } from "@/tyPes/auth.tyPes";
 import { BookOpen, BookMarked, AlertTriangle } from "lucide-react";
 
 type Book = {
@@ -17,33 +14,11 @@ type Book = {
   dueDate?: string;
 };
 
-const roleLabels: Record<Role, string> = {
-  SUPER_ADMIN: "Super Admin",
-  SCHOOL_ADMIN: "School Admin",
- 
-  ACCOUNTANT: "Accountant",
-  LIBRARIAN: "Librarian",
-  TEACHER: "Teacher",
-  STUDENT: "Student",
-  PARENT: "Parent",
-  RECEPTIONIST: "Receptionist",
-  EXAM_CONTROLLER: "Exam Controller",
-  HR: "HR",
-};
-
 export default function LibrarianDashboard() {
   useLenis();
-  const router = useRouter();
-  const { role } = useAuth();
   const [books, setBooks] = useState<Book[]>([]);
   const [overdueCount, setOverdueCount] = useState(0);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (role && role !== "LIBRARIAN") {
-      router.replace("/dashboard");
-    }
-  }, [role, router]);
 
   useEffect(() => {
     const load = async () => {
@@ -71,7 +46,7 @@ export default function LibrarianDashboard() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">
-          {roleLabels.LIBRARIAN} Dashboard
+          Librarian Dashboard
         </h1>
         <p className="text-muted-foreground mt-1">
           Book management, issue/return, and search.

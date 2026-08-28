@@ -152,7 +152,7 @@ api.interceptors.response.use(
       
       if (!error.response) {
         console.error(`[AXIOS-ERROR] Network Error - ${error.message} - URL: ${url}`);
-      } else if (!isRecruitmentJobsFetch || error.response?.status !== 403) {
+      } else if (!isRecruitmentJobsFetch || ![403, 404].includes(error.response?.status ?? 0)) {
         console.error(`[AXIOS-ERROR] ${error.response?.status} ${error.config?.method?.toUpperCase()} ${url}`);
         console.error(`[AXIOS-ERROR] Response:`, error.response?.data);
       }

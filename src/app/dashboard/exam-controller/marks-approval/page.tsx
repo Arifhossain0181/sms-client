@@ -5,7 +5,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLenis } from "@/hooks/useLenis";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
-import { marksService, type PendingMark } from "@/app/modules/marks/marks.service";
+import { marksService } from "@/app/modules/marks/marks.service";
+import type { MarkEntry } from "@/app/modules/marks/marks.types";
 import { Exam } from "@/app/modules/exam/exam.types";
 import { examService } from "@/app/modules/exam/exam.service";
 import {
@@ -83,7 +84,7 @@ export default function MarksApprovalPage() {
       marksService.approve(
         selectedExamId,
         Object.keys(rowSelection).filter((id) => rowSelection[id]).map((id) => {
-          const mark = pendingMarks.find((m: PendingMark) => m.id === id);
+          const mark = pendingMarks.find((m: MarkEntry) => m.id === id);
           if (!mark) throw new Error("Invalid mark");
           return { studentId: mark.studentId, subjectId: mark.subjectId };
         }),
@@ -106,7 +107,7 @@ export default function MarksApprovalPage() {
       marksService.reject(
         selectedExamId,
         Object.keys(rowSelection).filter((id) => rowSelection[id]).map((id) => {
-          const mark = pendingMarks.find((m: PendingMark) => m.id === id);
+          const mark = pendingMarks.find((m: MarkEntry) => m.id === id);
           if (!mark) throw new Error("Invalid mark");
           return { studentId: mark.studentId, subjectId: mark.subjectId };
         }),
@@ -147,7 +148,7 @@ export default function MarksApprovalPage() {
   const filteredPendingMarks = useMemo(() => {
     if (!searchQuery.trim()) return pendingMarks;
     const q = searchQuery.toLowerCase();
-    return pendingMarks.filter((m: PendingMark) => {
+    return pendingMarks.filter((m: MarkEntry) => {
       const studentName = m.student.name.toLowerCase();
       const className = m.student.section.class.name.toLowerCase();
       const subjectName = m.subject.name.toLowerCase();

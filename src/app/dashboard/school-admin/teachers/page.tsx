@@ -8,6 +8,7 @@ import { hasPermission } from "@/config/roles";
 import { teacherService } from "@/app/modules/teachers/teacher.service";
 import { classService } from "@/app/modules/class/class.service";
 import { subjectService } from "@/app/modules/subject/subject.service";
+import api from "@/lib/axios";
 import { motion } from "framer-motion";
 import {
   GraduationCap,
@@ -28,26 +29,11 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import TeacherForm from "@/app/modules/teachers/teacherForm";
+import type { Teacher } from "@/app/modules/teachers/teacher.types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Teacher = {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
-  gender: "MALE" | "FEMALE" | string;
-  dateOfBirth: string;
-  subject?: string;
-  subjectId: string;
-  createdAt: string;
-  joiningDate?: string;
-  classes?: string[];
-  isActive?: boolean;
-};
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Helpers 
 
 function fmt(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("en-GB", {
@@ -63,14 +49,14 @@ function Skel({ className = "" }: { className?: string }) {
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// ─── Main Page 
 
 export default function SchoolAdminTeachersPage() {
   const router = useRouter();
   const { role } = useAuth();
   const queryClient = useQueryClient();
 
-  // ── Role guard ────────────────────────────────────────────────────────────
+  // ── Role guard 
   useEffect(() => {
     if (role && role !== "SCHOOL_ADMIN" && role !== "SUPER_ADMIN") {
       router.replace("/dashboard");

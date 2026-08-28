@@ -79,7 +79,7 @@ type DashboardData = {
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 18 },
   animate: { opacity: 1, y: 0 },
-  transition: { delay, duration: 0.38, ease: "easeOut" },
+  transition: { delay, duration: 0.38, ease: "easeOut" as const },
 });
 
 // ─── Skeleton helper ─────────────────────────────────────────────────────────

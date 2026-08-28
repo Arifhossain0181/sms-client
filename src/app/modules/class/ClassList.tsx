@@ -32,7 +32,7 @@ const gradients = [
 const pickGradient = (s: string) =>
   gradients[s.split("").reduce((a, c) => a + c.charCodeAt(0), 0) % gradients.length];
 
-const fadeUp = {
+const fadeUp: Variants = {
   hidden: { opacity: 0, y: 12 },
   show: (i: number) => ({
     opacity: 1,

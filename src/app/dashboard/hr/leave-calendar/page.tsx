@@ -8,7 +8,7 @@ import api from "@/lib/axios";
 import { useLenis } from "@/hooks/useLenis";
 import type { Role } from "@/tyPes/auth.tyPes";
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type LeaveDay = {
@@ -29,7 +29,7 @@ const roleLabels: Record<Role, string> = {
   HR: "HR",
 };
 
-const cardVariants = {
+const cardVariants: Variants = {
   hidden: { opacity: 0, y: 20 },
   visible: (i: number) => ({
     opacity: 1,

@@ -1,11 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/hooks/useAuth";
 import api from "@/lib/axios";
 import { useLenis } from "@/hooks/useLenis";
-import type { Role } from "@/tyPes/auth.tyPes";
 import { UserRound, ClipboardCheck, Bell } from "lucide-react";
 
 type Visitor = {
@@ -24,33 +21,11 @@ type Inquiry = {
   status: string;
 };
 
-const roleLabels: Record<Role, string> = {
-  SUPER_ADMIN: "Super Admin",
-  SCHOOL_ADMIN: "School Admin",
-  ADMIN: "Admin",
-  ACCOUNTANT: "Accountant",
-  LIBRARIAN: "Librarian",
-  TEACHER: "Teacher",
-  STUDENT: "Student",
-  PARENT: "Parent",
-  RECEPTIONIST: "Receptionist",
-  EXAM_CONTROLLER: "Exam Controller",
-  HR: "HR",
-};
-
 export default function ReceptionistDashboard() {
   useLenis();
-  const router = useRouter();
-  const { role } = useAuth();
   const [visitors, setVisitors] = useState<Visitor[]>([]);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (role && role !== "RECEPTIONIST") {
-      router.replace("/dashboard");
-    }
-  }, [role, router]);
 
   useEffect(() => {
     const load = async () => {
@@ -78,7 +53,7 @@ export default function ReceptionistDashboard() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">
-          {roleLabels.RECEPTIONIST} Dashboard
+          Receptionist Dashboard
         </h1>
         <p className="text-muted-foreground mt-1">
           Front desk operations, visitor log, and inquiry management.

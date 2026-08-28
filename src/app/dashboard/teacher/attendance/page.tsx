@@ -385,7 +385,7 @@ export default function Page() {
   const { data: timetable = [], isLoading: timetableLoading } = useTimetableByTeacher(effectiveTeacherId, role === "TEACHER" && !!effectiveTeacherId);
 
   const assignedClassIds = useMemo(() => {
-    const ids = new Set((profile?.sectionTeacher ?? []).map((entry) => entry.class?.id).filter(Boolean) as string[]);
+    const ids = new Set((profile?.sectionTeacher ?? []).map((entry: { class?: { id?: string } }) => entry.class?.id).filter(Boolean) as string[]);
     if (Array.isArray(timetable)) {
       timetable.forEach((slot: Timetable) => {
         if (slot.classId) ids.add(slot.classId);
@@ -432,7 +432,7 @@ export default function Page() {
       : [];
 
     if (role === "TEACHER") {
-      const assignedSectionIds = new Set((profile?.sectionTeacher ?? []).map((entry) => entry.id).filter(Boolean) as string[]);
+      const assignedSectionIds = new Set((profile?.sectionTeacher ?? []).map((entry: { id: string }) => entry.id).filter(Boolean) as string[]);
       if (Array.isArray(timetable)) {
         timetable.forEach((slot: Timetable) => {
           if (slot.sectionId) assignedSectionIds.add(slot.sectionId);
