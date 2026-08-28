@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect, useCallback } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useLenis } from "@/hooks/useLenis";
 import { useAuth } from "@/hooks/useAuth";
@@ -13,13 +13,12 @@ import {
   Download,
   FileText,
   Calendar,
-  Clock,
   Users,
   Printer,
   ChevronDown,
   Loader2,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
@@ -51,7 +50,6 @@ export default function AdmitCardsPage() {
   const router = useRouter();
   const { role } = useAuth();
   const searchParams = useSearchParams();
-  const queryClient = useQueryClient();
 
   const examIdFromUrl = searchParams.get("examId");
   const classIdFromUrl = searchParams.get("classId");
@@ -120,6 +118,27 @@ export default function AdmitCardsPage() {
     },
   });
 
+  const downloadClassMutation = useMutation({
+    mutationFn: async ({ examId, classId }: { examId: string; classId: string }) => {
+      const blob = await examService.downloadAdmitCardsForClass(examId, classId);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const className = classes.find((c: any) => c.id === classId)?.name ?? "class";
+      a.download = `admit-cards-${className}-${examId}.pdf`.replace(/\s+/g, "-").toLowerCase();
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    },
+    onSuccess: () => {
+      toast.success("Class admit cards downloaded");
+    },
+    onError: () => {
+      toast.error("Failed to download class admit cards");
+    },
+  });
+
   const handleDownload = useCallback(
     (examId: string, studentId: string) => {
       setPrintingId(studentId);
@@ -127,6 +146,11 @@ export default function AdmitCardsPage() {
     },
     [downloadMutation]
   );
+
+  const handleDownloadClass = useCallback(() => {
+    if (!selectedExamId || !selectedClassId) return;
+    downloadClassMutation.mutate({ examId: selectedExamId, classId: selectedClassId });
+  }, [downloadClassMutation, selectedClassId, selectedExamId]);
 
   const handlePrintAll = useCallback(() => {
     if (!admitCards.length) return;
@@ -209,10 +233,6 @@ export default function AdmitCardsPage() {
       return name.includes(q) || sid.includes(q) || roll.includes(q) || cls.includes(q) || section.includes(q);
     });
   }, [admitCards, search]);
-
-  const selectedExam = useMemo(() => {
-    return exams.find((e: any) => e.id === selectedExamId);
-  }, [exams, selectedExamId]);
 
   const isLoading = examsLoading || classesLoading || cardsLoading;
 
@@ -316,15 +336,29 @@ export default function AdmitCardsPage() {
                       className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-white/5 pl-9 pr-4 py-2 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
                     />
                   </div>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handlePrintAll}
-                    disabled={filteredCards.length === 0}
-                    className="inline-flex items-center gap-2 rounded-lg border border-white/40 dark:border-white/10 bg-white/60 dark:bg-white/5 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-white/80 dark:hover:bg-white/10 disabled:opacity-50"
-                  >
-                    <Printer className="h-4 w-4" /> Print All
-                  </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={handlePrintAll}
+                      disabled={filteredCards.length === 0}
+                      className="inline-flex items-center gap-2 rounded-lg border border-white/40 dark:border-white/10 bg-white/60 dark:bg-white/5 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-white/80 dark:hover:bg-white/10 disabled:opacity-50"
+                    >
+                      <Printer className="h-4 w-4" /> Print Preview
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={handleDownloadClass}
+                      disabled={downloadClassMutation.isPending || !admitCards.length}
+                      className="inline-flex items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100 disabled:opacity-50 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-300"
+                    >
+                      {downloadClassMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Download className="h-4 w-4" />
+                      )}
+                      Download Class PDF
+                    </motion.button>
                 </>
               )}
             </div>

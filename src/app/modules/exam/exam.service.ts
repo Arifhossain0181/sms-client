@@ -63,4 +63,10 @@ export const examService={
     });
     return res.data;
   },
-}
+  downloadAdmitCardsForClass: async (examId: string, classId: string): Promise<Blob> => {
+    const res = await api.get(`/exams/${examId}/classes/${classId}/admit-cards/download`, {
+      responseType: "blob",
+    });
+    return res.data;
+  },
+} 

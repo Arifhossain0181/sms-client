@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Menu, X, GraduationCap, LogIn, User, ChevronDown, LogOut, Sparkles, Briefcase } from "lucide-react";
+import { Menu, X, GraduationCap, LogIn, User, ChevronDown, LogOut, Sparkles, Briefcase, Sun, Moon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Lenis from "lenis";
 import { useAuth } from "@/hooks/useAuth";
+import { useTheme } from "@/components/ThemeProvider";
 import api from "@/lib/axios";
 
 const BASE_NAV_LINKS = [
@@ -27,6 +28,7 @@ export default function Navbar() {
   const [jobsLoading, setJobsLoading] = useState(true);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const { user, isAuthenticated, logout, role } = useAuth();
+  const { theme, toggle } = useTheme();
 
   const teachingHref = latestJobId ? `/apply-for-Teaching?jobId=${latestJobId}` : "/apply-for-Teaching";
 
@@ -171,6 +173,25 @@ export default function Navbar() {
             <span className="relative z-10">Apply Now</span>
           </Link>
         </div>
+
+        {/* Theme Toggle */}
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          whileHover={{ scale: 1.05 }}
+          onClick={toggle}
+          className="hidden md:inline-flex items-center justify-center w-9 h-9 rounded-full border border-slate-200 bg-white/80 text-slate-600 hover:text-indigo-600 hover:border-indigo-300 transition-colors"
+          aria-label="Toggle theme"
+        >
+          <motion.span
+            key={theme}
+            initial={{ rotate: -90, opacity: 0 }}
+            animate={{ rotate: 0, opacity: 1 }}
+            transition={{ duration: 0.3 }}
+            className="block"
+          >
+            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </motion.span>
+        </motion.button>
 
         {/* Open Jobs Dropdown */}
         {openJobs.length > 0 && (
