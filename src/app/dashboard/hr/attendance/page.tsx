@@ -22,6 +22,13 @@ import {
 import { motion, type Variants } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -43,10 +50,11 @@ type StaffMember = {
   name: string;
   email: string;
   employeeId: string;
-  designation: string;
-  department?: { name: string };
-  staffType?: string;
+  designation?: string | null;
+  department?: { name: string } | string | null;
+  staffType?: string | null;
   phone?: string;
+  personType?: "STAFF" | "TEACHER";
 };
 
 type DailyAttendanceResponse = {
@@ -56,6 +64,30 @@ type DailyAttendanceResponse = {
   absent: number;
   late: number;
   records: AttendanceRecord[];
+};
+
+type StaffDirectoryItem = {
+  id?: string;
+  name?: string;
+  email?: string;
+  employeeId?: string | null;
+  designation?: string | null;
+  subject?: string | null;
+  department?: { name: string } | string | null;
+  staffType?: string | null;
+  phone?: string | null;
+};
+
+type TeacherDirectoryItem = {
+  id?: string;
+  name?: string;
+  email?: string;
+  employeeId?: string | null;
+  teacherId?: string | null;
+  designation?: string | null;
+  subject?: string | null;
+  department?: { name: string } | string | null;
+  phone?: string | null;
 };
 
 const STATUS_OPTIONS = [
@@ -123,17 +155,60 @@ export default function AttendancePage() {
   const { isLoading: loadingStaff } = useQuery({
     queryKey: ["hr", "staff", "directory"],
     queryFn: async () => {
-      const res = await api.get("/hr/staff/directory");
-      const payload = res.data?.data ?? res.data;
-      const data = Array.isArray(payload) ? payload : [];
-      setStaffList(data);
-      return data;
+      const [staffRes, teachingRes] = await Promise.all([
+        api.get("/hr/staff/directory"),
+        api.get("/teaching"),
+      ]);
+
+      const staffPayload = staffRes.data?.data ?? staffRes.data;
+      const teachingPayload = teachingRes.data?.data ?? teachingRes.data;
+
+      const staffData = Array.isArray(staffPayload) ? (staffPayload as StaffDirectoryItem[]) : [];
+      const teacherData = Array.isArray(teachingPayload?.data)
+        ? (teachingPayload.data as TeacherDirectoryItem[])
+        : Array.isArray(teachingPayload)
+          ? (teachingPayload as TeacherDirectoryItem[])
+          : [];
+
+      const merged: StaffMember[] = [
+        ...staffData.map((person) => ({
+          id: person.id ?? "",
+          name: person.name ?? "Unknown Staff",
+          email: person.email ?? "",
+          employeeId: person.employeeId ?? "—",
+          designation: person.designation ?? person.subject ?? "—",
+          department:
+            typeof person.department === "string"
+              ? { name: person.department }
+              : person.department ?? null,
+          staffType: person.staffType ?? person.subject ?? "STAFF",
+          phone: person.phone ?? undefined,
+          personType: "STAFF" as const,
+        })),
+        ...teacherData.map((person) => ({
+          id: person.id ?? "",
+          name: person.name ?? "Unknown Teacher",
+          email: person.email ?? "",
+          employeeId: person.employeeId ?? person.teacherId ?? "—",
+          designation: person.designation ?? person.subject ?? "—",
+          department:
+            typeof person.department === "string"
+              ? { name: person.department }
+              : person.department ?? null,
+          staffType: person.subject ?? person.designation ?? "TEACHING",
+          phone: person.phone ?? undefined,
+          personType: "TEACHER" as const,
+        })),
+      ];
+
+      setStaffList(merged);
+      return merged;
     },
     enabled: mode === "mark",
   });
 
   const bulkAttendanceMutation = useMutation({
-    mutationFn: async (payload: { date: string; attendances: { staffId: string; status: string; note?: string }[] }) => {
+    mutationFn: async (payload: { date: string; attendances: { staffId?: string; teacherId?: string; personType?: "STAFF" | "TEACHER"; status: string; note?: string }[] }) => {
       const res = await api.post("/hr/attendance/bulk", payload);
       return res.data?.data ?? res.data;
     },
@@ -152,7 +227,7 @@ export default function AttendancePage() {
   });
 
   const singleAttendanceMutation = useMutation({
-    mutationFn: async (payload: { staffId: string; date: string; status: string; note?: string }) => {
+    mutationFn: async (payload: { staffId?: string; teacherId?: string; personType?: "STAFF" | "TEACHER"; date: string; status: string; note?: string }) => {
       const res = await api.post("/hr/attendance", payload);
       return res.data?.data ?? res.data;
     },
@@ -198,8 +273,10 @@ export default function AttendancePage() {
       list = list.filter((s) => s.department?.name === departmentFilter);
     }
 
-    if (staffTypeFilter) {
-      list = list.filter((s) => s.staffType === staffTypeFilter);
+    if (staffTypeFilter === "TEACHING") {
+      list = list.filter((s) => s.personType === "TEACHER");
+    } else if (staffTypeFilter === "NON_TEACHING") {
+      list = list.filter((s) => s.personType === "STAFF");
     }
 
     return list;
@@ -215,37 +292,46 @@ export default function AttendancePage() {
 
   const attendanceMap = useMemo(() => {
     const map = new Map<string, AttendanceRecord>();
-    records.forEach((r) => map.set(r.staffId, r));
+    records.forEach((r) => {
+      map.set(`${r.personType ?? "STAFF"}:${r.staffId}`, r);
+    });
     return map;
   }, [records]);
 
-  const handleStatusChange = (staffId: string, status: string) => {
+  const handleStatusChange = (personId: string, status: string, personType?: "STAFF" | "TEACHER") => {
+    const resolvedType = personType ?? staffList.find((person) => person.id === personId)?.personType ?? "STAFF";
+
     setRecords((prev) => {
-      const existing = prev.find((r) => r.staffId === staffId);
+      const existing = prev.find((r) => r.staffId === personId && (r.personType ?? "STAFF") === resolvedType);
       if (existing) {
         return prev.map((r) =>
-          r.staffId === staffId ? { ...r, status } : r
+          r.staffId === personId && (r.personType ?? "STAFF") === resolvedType ? { ...r, status } : r
         );
       }
-      const staff = staffList.find((s) => s.id === staffId);
+      const staff = staffList.find((s) => s.id === personId);
       if (!staff) return prev;
       const newRecord: AttendanceRecord = {
-        id: `temp-${staffId}-${date}`,
+        id: `temp-${personId}-${date}`,
         staffId: staff.id,
         staffName: staff.name,
         employeeId: staff.employeeId,
         designation: staff.designation,
-        department: staff.department?.name,
+        department: typeof staff.department === "string" ? staff.department : staff.department?.name,
         staffType: staff.staffType,
+        personType: resolvedType,
         status,
       };
       return [...prev, newRecord];
     });
   };
 
-  const handleNoteChange = (staffId: string, note: string) => {
+  const handleNoteChange = (personId: string, note: string, personType?: "STAFF" | "TEACHER") => {
+    const resolvedType = personType ?? staffList.find((person) => person.id === personId)?.personType ?? "STAFF";
+
     setRecords((prev) =>
-      prev.map((r) => (r.staffId === staffId ? { ...r, note } : r))
+      prev.map((r) =>
+        r.staffId === personId && (r.personType ?? "STAFF") === resolvedType ? { ...r, note } : r
+      )
     );
   };
 
@@ -253,13 +339,18 @@ export default function AttendancePage() {
     setSaving(true);
     try {
       const attendances = filteredStaff
-        .map((staff) => {
-          const record = records.find((r) => r.staffId === staff.id);
+        .map((person) => {
+          const record = records.find(
+            (r) => r.staffId === person.id && (r.personType ?? "STAFF") === (person.personType ?? "STAFF")
+          );
           const status = record?.status || "PRESENT";
           const note = record?.note || "";
-          return { staffId: staff.id, status, note };
+
+          return person.personType === "TEACHER"
+            ? { teacherId: person.id, personType: "TEACHER" as const, status, note }
+            : { staffId: person.id, personType: "STAFF" as const, status, note };
         })
-        .filter((a) => a.staffId);
+        .filter((a) => a.staffId || a.teacherId);
 
       await bulkAttendanceMutation.mutateAsync({
         date,
@@ -270,9 +361,12 @@ export default function AttendancePage() {
     }
   };
 
-  const handleSingleSave = async (staffId: string, status: string, note?: string) => {
+  const handleSingleSave = async (personId: string, status: string, note?: string, personType?: "STAFF" | "TEACHER") => {
+    const resolvedType = personType ?? staffList.find((person) => person.id === personId)?.personType ?? "STAFF";
+
     await singleAttendanceMutation.mutateAsync({
-      staffId,
+      ...(resolvedType === "TEACHER" ? { teacherId: personId } : { staffId: personId }),
+      personType: resolvedType,
       date,
       status,
       note: note || "",
@@ -283,7 +377,10 @@ export default function AttendancePage() {
     setRecords((prev) => {
       const updated = [...prev];
       filteredStaff.forEach((staff) => {
-        const existingIndex = updated.findIndex((r) => r.staffId === staff.id);
+        const personType = staff.personType ?? "STAFF";
+        const existingIndex = updated.findIndex(
+          (r) => r.staffId === staff.id && (r.personType ?? "STAFF") === personType
+        );
         if (existingIndex >= 0) {
           updated[existingIndex] = { ...updated[existingIndex], status };
         } else {
@@ -293,8 +390,9 @@ export default function AttendancePage() {
             staffName: staff.name,
             employeeId: staff.employeeId,
             designation: staff.designation,
-            department: staff.department?.name,
+            department: typeof staff.department === "string" ? staff.department : staff.department?.name,
             staffType: staff.staffType,
+            personType,
             status,
           });
         }
@@ -306,7 +404,7 @@ export default function AttendancePage() {
   const exportPDF = () => {
     const doc = new jsPDF();
     doc.setFontSize(18);
-    doc.text("Staff Attendance Report", 14, 18);
+    doc.text("Staff & Teacher Attendance Report", 14, 18);
     doc.setFontSize(11);
     doc.text(`Date: ${date}`, 14, 26);
     doc.text(`Total: ${stats.total} | Present: ${stats.present} | Absent: ${stats.absent} | Late: ${stats.late}`, 14, 33);
@@ -696,7 +794,7 @@ function ViewModeTable({ loading, records, onCycleStatus }: { loading: boolean; 
                           : r.status === "ABSENT"
                             ? "LATE"
                             : "PRESENT";
-                      onCycleStatus(r.staffId, newStatus);
+                      onCycleStatus(r.staffId, newStatus, r.personType ?? "STAFF");
                     }}
                     className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
                   >
@@ -794,10 +892,11 @@ function MarkModeTable({
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
             {filteredStaff.map((staff) => {
-              const record = attendanceMap.get(staff.id);
+              const personType = staff.personType ?? "STAFF";
+              const record = attendanceMap.get(`${personType}:${staff.id}`);
               const currentStatus = record?.status || "PRESENT";
               return (
-                <tr key={staff.id}>
+                <tr key={`${personType}-${staff.id}`}>
                   <td className="py-3">
                     <p className="font-medium text-slate-900 dark:text-white">{staff.name}</p>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -819,7 +918,7 @@ function MarkModeTable({
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={() =>
-                            onStatusChange(staff.id, opt.value)
+                            onStatusChange(staff.id, opt.value, personType)
                           }
                           className={`rounded-lg px-2 py-1 text-xs font-medium transition-colors ${
                             currentStatus === opt.value
@@ -837,7 +936,7 @@ function MarkModeTable({
                       type="text"
                       value={record?.note || ""}
                       onChange={(e) =>
-                        onNoteChange(staff.id, e.target.value)
+                        onNoteChange(staff.id, e.target.value, personType)
                       }
                       placeholder="Optional note"
                       className="w-full min-w-[120px] rounded-lg border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-white/5 px-2 py-1 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-400/50"
