@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/axios";
 import { motion } from "framer-motion";
 import { Briefcase, Building2, Calendar, Users, ExternalLink, Search } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@/hooks/useAuth";
 
 type JobPosting = {
   id: string;
@@ -19,26 +21,18 @@ type JobPosting = {
 };
 
 export default function CareersPage() {
-  const [jobs, setJobs] = useState<JobPosting[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const { isAuthenticated } = useAuth();
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const res = await api.get("/recruitment/jobs/public");
-        const payload = res.data?.data ?? res.data;
-        const postings = payload.postings ?? [];
-        setJobs(postings);
-      } catch {
-        setJobs([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, []);
+  const { data: jobs = [], isLoading: loading } = useQuery<JobPosting[]>({
+    queryKey: ["recruitment", "jobs", "public"],
+    queryFn: async () => {
+      const res = await api.get("/recruitment/jobs/public");
+      const payload = res.data?.data ?? res.data;
+      return payload?.postings ?? [];
+    },
+    retry: false,
+  });
 
   const filtered = jobs.filter((j) => {
     if (!search) return true;
@@ -176,7 +170,11 @@ export default function CareersPage() {
                         )}
                       </div>
                       <Link
-                        href={`/apply-for-Teaching?jobId=${job.id}`}
+                        href={
+                          isAuthenticated
+                            ? `/apply-for-Teaching?jobId=${job.id}`
+                            : `/login?redirect=${encodeURIComponent(`/apply-for-Teaching?jobId=${job.id}`)}`
+                        }
                         className="shrink-0"
                       >
                         <motion.button

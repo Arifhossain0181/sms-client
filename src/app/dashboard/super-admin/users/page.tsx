@@ -259,7 +259,7 @@ export default function SuperAdminUsersPage() {
                     <Sparkles className="w-4 h-4 text-indigo-400" />
                   </h1>
                   <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-                    {filtered.length} টি user enlisted
+                    {filtered.length} users enlisted
                   </p>
                 </div>
               </div>
@@ -467,7 +467,7 @@ export default function SuperAdminUsersPage() {
                   <Inbox className="w-10 h-10 text-indigo-400" />
                 </motion.div>
                 <h3 className="text-base font-semibold text-slate-700 dark:text-slate-200">
-                  কোনো user নেই
+                  No users available
                 </h3>
                 <p className="mt-1 text-sm text-slate-400 dark:text-slate-500">
                   No users found matching your search.

@@ -127,8 +127,8 @@ export default function NotificationPanel() {
                   </h1>
                   <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
                     {unread > 0
-                      ? `${unread} টি unread notification`
-                      : "সব read হয়েছে"}
+                      ? `${unread} unread notifications`
+                      : "All notifications are read"}
                   </p>
                 </div>
               </div>
@@ -146,7 +146,7 @@ export default function NotificationPanel() {
                   ) : (
                     <CheckCheck className="w-3.5 h-3.5" />
                   )}
-                  সব Read করুন
+                  Mark all as read
                 </motion.button>
               )}
             </div>
@@ -259,7 +259,7 @@ export default function NotificationPanel() {
                   <Inbox className="w-10 h-10 text-indigo-400" />
                 </motion.div>
                 <h3 className="text-base font-semibold text-slate-700 dark:text-slate-200">
-                  কোনো notification নেই
+                  No notifications
                 </h3>
                 <p className="mt-1 text-sm text-slate-400 dark:text-slate-500">
                   Youre all caught up.

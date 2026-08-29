@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { Menu, X, GraduationCap, LogIn, User, ChevronDown, LogOut, Sparkles, Briefcase, Sun, Moon } from "lucide-react";
+import { Menu, X, GraduationCap, LogIn, ChevronDown, LogOut, Sparkles, Briefcase, Sun, Moon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import Lenis from "lenis";
+import { usePathname } from "next/navigation";
+// import Lenis from "lenis";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/components/ThemeProvider";
 import api from "@/lib/axios";
@@ -23,39 +25,71 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const [userOpen, setUserOpen] = useState(false);
-  const [latestJobId, setLatestJobId] = useState<string | null>(null);
-  const [openJobs, setOpenJobs] = useState<{ id: string; title: string; designation: string; department?: { name: string } }[]>([]);
-  const [jobsLoading, setJobsLoading] = useState(true);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const { user, isAuthenticated, logout, role } = useAuth();
+  const pathname = usePathname();
   const { theme, toggle } = useTheme();
+  const isNormalUser = isAuthenticated && !!role && (role === "STUDENT" || role === "PARENT");
+  const hideDashboardForPendingStudent =
+    role === "STUDENT" &&
+    (pathname === "/pending-approval" || pathname.startsWith("/apply-for-admission"));
 
+  type PublicJob = {
+    id: string;
+    title: string;
+    designation: string;
+    department?: { name: string };
+  };
+
+  const { data: openJobs = [], isLoading: jobsLoading } = useQuery<PublicJob[]>({
+    queryKey: ["recruitment", "jobs", "public"],
+    queryFn: async () => {
+      const res = await api.get("/recruitment/jobs/public");
+      const payload = res.data?.data ?? res.data;
+      const postings = payload?.postings ?? [];
+      return postings.map((p: PublicJob) => ({
+        id: p.id,
+        title: p.title,
+        designation: p.designation,
+        department: p.department,
+      }));
+    },
+    retry: false,
+  });
+
+  const latestJobId = openJobs[0]?.id ?? null;
   const teachingHref = latestJobId ? `/apply-for-Teaching?jobId=${latestJobId}` : "/apply-for-Teaching";
+  const teachingLoginHref = `/login?redirect=${encodeURIComponent(teachingHref)}`;
+
+  const visibleBaseLinks = BASE_NAV_LINKS.filter(
+    (link) =>
+      !(link.name === "Dashboard" && (isNormalUser || hideDashboardForPendingStudent))
+  );
 
   const navLinks = [
-    ...BASE_NAV_LINKS.slice(0, 3),
+    ...visibleBaseLinks.slice(0, 3),
     { name: "Careers", href: "/careers" },
     { name: "Apply for Admission", href: "/apply-for-admission" },
-    { name: "Apply for Teaching", href: teachingHref },
+    { name: "Apply for Teaching", href: isAuthenticated ? teachingHref : teachingLoginHref },
     { name: "Schedules", href: "/schedules" },
   ];
 
-  useEffect(() => {
-    const lenis = new Lenis({
-      duration: 1.2,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      smoothWheel: true,
-    });
-    function raf(time: number) {
-      lenis.raf(time);
-      requestAnimationFrame(raf);
-    }
-    const id = requestAnimationFrame(raf);
-    return () => {
-      cancelAnimationFrame(id);
-      lenis.destroy();
-    };
-  }, []);
+  // useEffect(() => {
+  //   const lenis = new Lenis({
+  //     duration: 1.2,
+  //     easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+  //     smoothWheel: true,
+  //   });
+  //   function raf(time: number) {
+  //     lenis.raf(time);
+  //     requestAnimationFrame(raf);
+  //   }
+  //   const id = requestAnimationFrame(raf);
+  //   return () => {
+  //     cancelAnimationFrame(id);
+  //     lenis.destroy();
+  //   };
+  // }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -72,39 +106,6 @@ export default function Navbar() {
     };
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    const loadOpenJobs = async () => {
-      setJobsLoading(true);
-      try {
-        const res = await api.get("/recruitment/jobs/public");
-        const payload = res.data?.data ?? res.data;
-        const postings = payload.postings ?? [];
-        if (!cancelled) {
-          setOpenJobs(
-            postings.map((p: any) => ({
-              id: p.id,
-              title: p.title,
-              designation: p.designation,
-              department: p.department,
-            }))
-          );
-          if (postings.length > 0) {
-            setLatestJobId(postings[0].id);
-          }
-        }
-      } catch {
-        if (!cancelled) {
-          setOpenJobs([]);
-        }
-      } finally {
-        if (!cancelled) setJobsLoading(false);
-      }
-    };
-    loadOpenJobs();
-    return () => { cancelled = true; };
   }, []);
 
   return (
@@ -165,7 +166,7 @@ export default function Navbar() {
             </Link>
           )          )}
           <Link
-            href={teachingHref}
+            href={isAuthenticated ? teachingHref : teachingLoginHref}
             onMouseEnter={() => setHoveredIdx(navLinks.length - 1)}
             className="relative inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-semibold text-white bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 rounded-full shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/30 transition-all"
           >
@@ -212,7 +213,7 @@ export default function Navbar() {
                     openJobs.map((job) => (
                       <Link
                         key={job.id}
-                        href={`/apply-for-Teaching?jobId=${job.id}`}
+                        href={isAuthenticated ? `/apply-for-Teaching?jobId=${job.id}` : `/login?redirect=${encodeURIComponent(`/apply-for-Teaching?jobId=${job.id}`)}`}
                         className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-gradient-to-r hover:from-sky-50 hover:to-indigo-50 transition group/item"
                       >
                         <div className="min-w-0">
@@ -357,7 +358,7 @@ export default function Navbar() {
                   {openJobs.map((job) => (
                     <Link
                       key={job.id}
-                      href={`/apply-for-Teaching?jobId=${job.id}`}
+                      href={isAuthenticated ? `/apply-for-Teaching?jobId=${job.id}` : `/login?redirect=${encodeURIComponent(`/apply-for-Teaching?jobId=${job.id}`)}`}
                       onClick={() => setMobileOpen(false)}
                       className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-sky-50 to-indigo-50 border border-indigo-100"
                     >
@@ -378,7 +379,7 @@ export default function Navbar() {
                 transition={{ delay: navLinks.length * 0.05 }}
               >
                 <Link
-                  href={teachingHref}
+                  href={isAuthenticated ? teachingHref : teachingLoginHref}
                   onClick={() => setMobileOpen(false)}
                   className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 text-white font-semibold shadow-lg shadow-indigo-500/20"
                 >

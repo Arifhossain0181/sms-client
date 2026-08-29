@@ -57,7 +57,7 @@ export default function TeacherList() {
   };
 
   const handleDelete = (id: string) => {
-    if (confirm("Delete করবেন?")) deleteTeacher(id);
+    if (confirm("Delete this teacher?")) deleteTeacher(id);
   };
 
   const handleClose = () => {
@@ -114,7 +114,7 @@ export default function TeacherList() {
               </h1>
               <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-1">
                 <Users className="w-3.5 h-3.5" />
-                মোট {teacherList.length} জন teacher
+                Total {teacherList.length} teachers
               </p>
             </div>
           </div>
@@ -142,7 +142,7 @@ export default function TeacherList() {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
-            placeholder="নাম বা email দিয়ে search করুন..."
+            placeholder="Search by name or email..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl pl-11 pr-4 py-2.5 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 shadow-sm transition-all"
@@ -160,7 +160,7 @@ export default function TeacherList() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gradient-to-r from-slate-100/80 via-blue-50/60 to-indigo-50/60 dark:from-slate-800/60 dark:via-slate-800/40 dark:to-indigo-900/40 text-left">
-                  <th className="px-5 py-4 font-semibold text-slate-700 dark:text-slate-200">নাম</th>
+                  <th className="px-5 py-4 font-semibold text-slate-700 dark:text-slate-200">Name</th>
                   <th className="px-5 py-4 font-semibold text-slate-700 dark:text-slate-200">
                     <span className="inline-flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" />Email</span>
                   </th>
@@ -172,7 +172,7 @@ export default function TeacherList() {
                   </th>
                   <th className="px-5 py-4 font-semibold text-slate-700 dark:text-slate-200">Gender</th>
                   <th className="px-5 py-4 font-semibold text-slate-700 dark:text-slate-200">
-                    <span className="inline-flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" />যোগ দেওয়ার তারিখ</span>
+                    <span className="inline-flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" />Joining date</span>
                   </th>
                   {role && hasPermission(role, "edit_teacher") && (
                     <th className="px-5 py-4 font-semibold text-slate-700 dark:text-slate-200 text-right">Action</th>
@@ -278,7 +278,7 @@ export default function TeacherList() {
                           <Users className="w-6 h-6 text-slate-400" />
                         </div>
                         <p className="text-slate-500 dark:text-slate-400 text-sm">
-                          কোনো teacher পাওয়া যায়নি
+                          No teachers found
                         </p>
                       </div>
                     </td>

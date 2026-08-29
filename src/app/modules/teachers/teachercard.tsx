@@ -21,7 +21,7 @@ export default function TeacherCard({ id }: Props) {
   }
 
   if (!teacher) {
-    return <div className="text-center py-20 text-gray-400">Teacher পাওয়া যায়নি</div>;
+    return <div className="text-center py-20 text-gray-400">Teacher not found</div>;
   }
 
   return (
@@ -70,7 +70,7 @@ export default function TeacherCard({ id }: Props) {
           </div>
 
           <div className="bg-gray-50 rounded-lg p-3">
-            <p className="text-gray-500 text-xs mb-1">যোগ দেওয়ার তারিখ</p>
+            <p className="text-gray-500 text-xs mb-1">Joining date</p>
             <p className="font-medium">{formatDate(teacher.createdAt)}</p>
           </div>
 

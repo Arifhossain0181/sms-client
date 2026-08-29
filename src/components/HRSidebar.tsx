@@ -17,7 +17,7 @@ import {
   LogOut,
 } from "lucide-react";
 
-// HR-এর জন্য মেনু লিস্ট
+// HR menu items
 const hrMenuOptions = [
   { title: "Dashboard", path: "/dashboard/hr", icon: LayoutDashboard },
   { title: "Recruitment", path: "/dashboard/hr/recruitment", icon: Briefcase },
@@ -32,18 +32,18 @@ const hrMenuOptions = [
 ];
 
 const HRSidebar = () => {
-  const pathname = usePathname(); // অ্যাকটিভ রাউট বোঝার জন্য
+  const pathname = usePathname(); // Identify the active route
 
   return (
     <aside className="h-screen w-64 bg-slate-900 text-white flex flex-col transition-all duration-300">
-      {/* লোগো ও ব্র্যান্ডিং */}
+      {/* Logo and branding */}
       <div className="h-16 flex items-center justify-center border-b border-slate-700">
         <h1 className="text-xl font-bold tracking-wider text-blue-400">
           SMS <span className="text-white">HR Panel</span>
         </h1>
       </div>
 
-      {/* নেভিগেশন মেনু */}
+      {/* Navigation menu */}
       <div className="flex-1 overflow-y-auto py-4 scrollbar-hide">
         <nav className="space-y-1 px-3">
           {hrMenuOptions.map((menu, index) => {
@@ -73,7 +73,7 @@ const HRSidebar = () => {
         </nav>
       </div>
 
-      {/* ইউজার প্রোফাইল এবং লগআউট (বটম সেকশন) */}
+      {/* User profile and logout (bottom section) */}
       <div className="p-4 border-t border-slate-700">
         <div className="flex items-center gap-3 mb-4 px-2">
           <div className="w-9 h-9 rounded-full bg-blue-500 flex items-center justify-center font-bold text-sm">

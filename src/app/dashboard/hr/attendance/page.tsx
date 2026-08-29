@@ -9,7 +9,6 @@ import { toast } from "sonner";
 import {
   CalendarCheck,
   Search,
-  Download,
   CheckCircle2,
   XCircle,
   Clock,
@@ -31,11 +30,12 @@ type AttendanceRecord = {
   staffId: string;
   staffName: string;
   employeeId: string;
-  designation: string;
-  department?: string;
-  staffType?: string;
+  designation?: string | null;
+  department?: string | null;
+  staffType?: string | null;
+  personType?: "STAFF" | "TEACHER";
   status: string;
-  note?: string;
+  note?: string | null;
 };
 
 type StaffMember = {
@@ -175,8 +175,9 @@ export default function AttendancePage() {
     const present = records.filter((r) => r.status === "PRESENT").length;
     const absent = records.filter((r) => r.status === "ABSENT").length;
     const late = records.filter((r) => r.status === "LATE").length;
-    const unmarked = staffList.length - records.length;
-    return { present, absent, late, unmarked, total: staffList.length };
+    const total = records.length || staffList.length;
+    const unmarked = Math.max(0, total - present - absent - late);
+    return { present, absent, late, unmarked, total };
   }, [records, staffList]);
 
   const filteredStaff = useMemo(() => {
@@ -386,7 +387,7 @@ export default function AttendancePage() {
             <div className="relative flex flex-wrap items-center justify-between gap-4">
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                  Staff Attendance
+                  Staff & Teacher Attendance
                   <motion.span
                     animate={{ rotate: [0, 10, -10, 0] }}
                     transition={{ duration: 3, repeat: Infinity }}
@@ -396,7 +397,7 @@ export default function AttendancePage() {
                   </motion.span>
                 </h1>
                 <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-                  Daily attendance tracking for all staff members
+                  Daily attendance tracking for all staff and teachers
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -633,7 +634,7 @@ function ViewModeTable({ loading, records, onCycleStatus }: { loading: boolean; 
           No attendance records for this date
         </h3>
         <p className="mt-1 text-sm text-slate-400 dark:text-slate-500">
-          Switch to Mark Attendance to record staff attendance.
+          Switch to Mark Attendance to record staff and teacher attendance.
         </p>
         <motion.button
           whileHover={{ scale: 1.05 }}
@@ -653,7 +654,7 @@ function ViewModeTable({ loading, records, onCycleStatus }: { loading: boolean; 
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-200 dark:border-slate-700 text-left text-xs uppercase text-slate-500 dark:text-slate-400">
-              <th className="pb-2 font-medium">Staff</th>
+              <th className="pb-2 font-medium">Person</th>
               <th className="pb-2 font-medium">Employee ID</th>
               <th className="pb-2 font-medium">Designation</th>
               <th className="pb-2 font-medium">Department</th>
@@ -666,14 +667,19 @@ function ViewModeTable({ loading, records, onCycleStatus }: { loading: boolean; 
           <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
             {records.map((r) => (
               <tr key={r.id}>
-                <td className="py-3 font-medium text-slate-900 dark:text-white">{r.staffName}</td>
+                <td className="py-3">
+                  <div className="font-medium text-slate-900 dark:text-white">{r.staffName}</div>
+                  <div className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    {r.personType === "TEACHER" ? "Teacher" : "Staff"}
+                  </div>
+                </td>
                 <td className="py-3 font-mono text-xs text-slate-600 dark:text-slate-300">{r.employeeId}</td>
-                <td className="py-3 text-slate-700 dark:text-slate-200">{r.designation}</td>
+                <td className="py-3 text-slate-700 dark:text-slate-200">{r.designation || "—"}</td>
                 <td className="py-3 text-xs text-slate-500 dark:text-slate-400">
                   {r.department || "—"}
                 </td>
                 <td className="py-3 text-xs text-slate-500 dark:text-slate-400">
-                  {r.staffType || "—"}
+                  {r.staffType || (r.personType === "TEACHER" ? "Teaching" : "—")}
                 </td>
                 <td className="py-3">{getStatusBadge(r.status)}</td>
                 <td className="py-3 text-xs text-slate-500 dark:text-slate-400 max-w-[180px] truncate">

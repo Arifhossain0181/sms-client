@@ -4,19 +4,37 @@ import { useState, useEffect } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import api from "@/lib/axios";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
-import { Briefcase, Building2, Calendar, Users, ExternalLink, BookOpen } from "lucide-react";
+import { Briefcase, Building2, Calendar, BookOpen } from "lucide-react";
 
 const schema = z.object({
   name: z.string().min(2, "Name is required"),
   email: z.string().email("Valid email required"),
   phone: z.string().min(10, "Phone is required"),
   gender: z.enum(["MALE", "FEMALE", "OTHER"]),
-  dob: z.string().min(1, "Date of birth required"),
+  dob: z
+    .string()
+    .min(1, "Date of birth required")
+    .refine((value) => {
+      if (!value) return false;
+
+      const dobDate = new Date(`${value}T00:00:00`);
+      if (Number.isNaN(dobDate.getTime())) return false;
+
+      const today = new Date();
+      let age = today.getFullYear() - dobDate.getFullYear();
+      const monthDiff = today.getMonth() - dobDate.getMonth();
+
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dobDate.getDate())) {
+        age -= 1;
+      }
+
+      return age >= 20;
+    }, "Applicant must be at least 20 years old"),
   address: z.string().min(3, "Address required"),
   designation: z.string().min(2, "Designation required"),
   department: z.string().optional(),
@@ -46,9 +64,10 @@ type JobPosting = {
 };
 
 export default function ApplyForTeaching() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const jobId = searchParams.get("jobId");
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [loadingJob, setLoadingJob] = useState(false);
   const [job, setJob] = useState<JobPosting | null>(null);
@@ -57,21 +76,48 @@ export default function ApplyForTeaching() {
 
   useEffect(() => {
     if (!jobId) return;
-    setLoadingJob(true);
-    api.get(`/recruitment/jobs/${jobId}`)
-      .then((res) => {
+
+    let isCancelled = false;
+
+    const loadJob = async () => {
+      setLoadingJob(true);
+
+      try {
+        const res = await api.get(`/recruitment/jobs/${jobId}`);
         const payload = res.data?.data ?? res.data;
         const jobData = payload as JobPosting;
-        setJob(jobData);
-        if (jobData.designation) {
-          setValue("designation", jobData.designation);
+
+        if (!isCancelled) {
+          setJob(jobData);
+          if (jobData.designation) {
+            setValue("designation", jobData.designation);
+          }
         }
-      })
-      .catch(() => setJob(null))
-      .finally(() => setLoadingJob(false));
+      } catch {
+        if (!isCancelled) {
+          setJob(null);
+        }
+      } finally {
+        if (!isCancelled) {
+          setLoadingJob(false);
+        }
+      }
+    };
+
+    void loadJob();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [jobId, setValue]);
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
+    if (!isAuthenticated || !user) {
+      toast.error("You must be logged in to submit your application.");
+      router.push(`/login?redirect=${encodeURIComponent(`/apply-for-Teaching${jobId ? `?jobId=${jobId}` : ""}`)}`);
+      return;
+    }
+
     try {
       setSubmitting(true);
       await api.post("/teaching/apply", data);
@@ -93,8 +139,13 @@ export default function ApplyForTeaching() {
 
       toast.success("Application submitted successfully");
       reset();
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Failed to submit application");
+    } catch (err: unknown) {
+      const message =
+        typeof err === "object" && err !== null && "response" in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : undefined;
+
+      toast.error(message || "Failed to submit application");
     } finally {
       setSubmitting(false);
     }

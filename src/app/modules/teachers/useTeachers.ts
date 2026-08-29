@@ -31,7 +31,7 @@ export const useCreateTeacher = () => {
     mutationFn: (data: CreateTeacherPayload) => teacherService.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teachers"] });
-      toast.success("Teacher add হয়েছে!");
+      toast.success("Teacher added!");
     },
     onError: (err: unknown) => {
       toast.error(getErrorMessage(err, "Failed!"));
@@ -45,7 +45,7 @@ export const useUpdateTeacher = () => {
       teacherService.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teachers"] });
-      toast.success("Teacher update হয়েছে!");
+      toast.success("Teacher updated!");
     },
     onError: (err: unknown) => {
       toast.error(getErrorMessage(err, "Failed!"));
@@ -59,7 +59,7 @@ export const useDeleteTeacher = () => {
     mutationFn: (id: string) => teacherService.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teachers"] });
-      toast.success("Teacher delete হয়েছে!");
+      toast.success("Teacher deleted!");
     },
     onError: (err: unknown) => {
       toast.error(getErrorMessage(err, "Failed!"));

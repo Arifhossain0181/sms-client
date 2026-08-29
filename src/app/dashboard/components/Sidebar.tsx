@@ -12,12 +12,9 @@ import {
   ClipboardList,
   FileText,
   GraduationCap,
-  HelpCircle,
   Home,
   LayoutDashboard,
   Megaphone,
-  Settings,
-  UserCheck,
   Users,
   Wallet,
   GraduationCap as Logo,
@@ -33,10 +30,8 @@ import {
   CreditCard,
   TrendingUp,
   ClipboardEdit,
-  Star,
   Baby,
   HeartHandshake,
-  Layers,
   DollarSign,
   Receipt,
   PieChart,
@@ -46,7 +41,6 @@ import {
   BriefcaseMedical,
   Handshake,
   FolderOpen,
-  ListChecks,
   TimerReset,
   CheckSquare,
   FileBadge,
@@ -368,7 +362,7 @@ const getNavGroups = (role: Role | null): NavGroup[] => {
           items: [
             { icon: BriefcaseMedical, label: "Jobs",         href: "/dashboard/hr/recruitment/jobs" },
             { icon: Handshake,        label: "Applicants",   href: "/dashboard/hr/recruitment/applicants" },
-            { icon: FileBadge,        label: "Teaching Applications", href: "/dashboard/teaching-applications" },
+            { icon: FileBadge,        label: "Teacher Applications", href: "/dashboard/teaching-applications" },
           ],
         },
         {
@@ -525,14 +519,6 @@ const SidebarContent = ({ showClose, onClose }: { showClose: boolean; onClose: (
       </nav>
 
       {/* Bottom */}
-      <div className="px-3 py-4 border-t border-white/10 space-y-1">
-        <button className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-muted hover:bg-white/5 hover:text-sidebar-fg transition-colors">
-          <HelpCircle className="w-4 h-4" /> Support
-        </button>
-        <button className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-muted hover:bg-white/5 hover:text-sidebar-fg transition-colors">
-          <Settings className="w-4 h-4" /> Settings
-        </button>
-      </div>
     </div>
   );
 };

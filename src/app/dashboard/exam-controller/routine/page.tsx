@@ -195,7 +195,7 @@ export default function RoutinePage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("এই routine slot delete করতে চান?")) return;
+    if (!confirm("Delete this routine slot?")) return;
     try {
       await deleteSlot(id);
       queryClient.invalidateQueries({ queryKey: ["timetable"] });
@@ -509,13 +509,13 @@ export default function RoutinePage() {
                   </div>
                   <div className="flex-1">
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                      {editingSlot ? "Slot Edit" : "নতুন Routine Slot"}
+                      {editingSlot ? "Edit Slot" : "New Routine Slot"}
                       <Sparkles className="w-4 h-4 text-indigo-500" />
                     </h2>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                       {editingSlot
-                        ? "Slot details update করুন ও teacher assign করুন"
-                        : "Day, subject, teacher ও time select করুন"}
+                        ? "Update slot details and assign a teacher"
+                        : "Select the day, subject, teacher, and time"}
                     </p>
                   </div>
                 </div>

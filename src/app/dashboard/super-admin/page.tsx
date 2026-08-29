@@ -437,7 +437,7 @@ export default function SuperAdminDashboard() {
                   <Inbox className="w-10 h-10 text-indigo-400" />
                 </motion.div>
                 <h3 className="text-base font-semibold text-slate-700 dark:text-slate-200">
-                  কোনো school নেই
+                  No schools available
                 </h3>
                 <p className="mt-1 text-sm text-slate-400 dark:text-slate-500">
                   No schools found matching your search.

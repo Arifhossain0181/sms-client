@@ -30,17 +30,17 @@ import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
 
 const schema = z.object({
-  applicantName: z.string().min(1, "Student নাম দাও"),
-  studentEmail: z.string().email("Student email ঠিক নয়"),
-  dob: z.string().min(1, "জন্ম তারিখ দাও"),
-  gender: z.enum(["MALE", "FEMALE", "OTHER"], { message: "Gender select করো" }),
+  applicantName: z.string().min(1, "Enter the student name"),
+  studentEmail: z.string().email("Enter a valid student email"),
+  dob: z.string().min(1, "Enter the date of birth"),
+  gender: z.enum(["MALE", "FEMALE", "OTHER"], { message: "Select a gender" }),
   bloodGroup: z.enum(["A_POS", "A_NEG", "B_POS", "B_NEG", "O_POS", "O_NEG", "AB_POS", "AB_NEG"]).optional(),
   religion: z.string().optional(),
-  address: z.string().min(1, "ঠিকানা দাও"),
-  guardianName: z.string().min(1, "Guardian নাম দাও"),
-  guardianPhone: z.string().min(7, "Guardian phone দাও"),
-  guardianEmail: z.string().email("Guardian email ঠিক নয়"),
-  targetClassId: z.string().min(1, "Class select করো"),
+  address: z.string().min(1, "Enter the address"),
+  guardianName: z.string().min(1, "Enter the guardian name"),
+  guardianPhone: z.string().min(7, "Enter the guardian phone number"),
+  guardianEmail: z.string().email("Enter a valid guardian email"),
+  targetClassId: z.string().min(1, "Select a class"),
   payNow: z.boolean().default(false),
   paymentMethod: z.enum(["CASH", "STRIPE"]).optional(),
   paymentAmount: z.coerce.number().optional(),
@@ -48,10 +48,10 @@ const schema = z.object({
 }).superRefine((data, ctx) => {
   if (data.payNow) {
     if (!data.paymentMethod) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["paymentMethod"], message: "Payment method select করো" });
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["paymentMethod"], message: "Select a payment method" });
     }
     if (!data.paymentAmount || data.paymentAmount <= 0) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["paymentAmount"], message: "Payment amount দাও" });
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["paymentAmount"], message: "Enter the payment amount" });
     }
   }
 });
@@ -168,7 +168,7 @@ export default function Admission() {
       draft.guardianName, draft.guardianPhone, draft.guardianEmail, draft.targetClassId,
     ].some((v) => !v);
     if (requiredMissing) {
-      toast.error("Stripe payment complete হয়েছে, কিন্তু form data অসম্পূর্ণ। ফর্ম পূরণ করুন।");
+      toast.error("Stripe payment is complete, but the form data is incomplete. Please complete the form.");
       return;
     }
     await api.post("/admission/apply", {
@@ -180,7 +180,7 @@ export default function Admission() {
       photoUrl: draft.photoUrl,
       birthCertUrl: draft.birthCertUrl,
     });
-    toast.success("Admission application submit হয়েছে");
+    toast.success("Admission application submitted");
     finalizeSuccess();
   };
 
@@ -318,7 +318,7 @@ export default function Admission() {
 
   const handleStripeCheckout = async () => {
     if (!paymentAmount || paymentAmount <= 0) {
-      toast.error("Payment amount দিন");
+      toast.error("Enter the payment amount");
       return;
     }
     try {
@@ -328,7 +328,7 @@ export default function Admission() {
       });
       const payload = res.data?.data ?? res.data;
       if (payload?.url) window.location.href = payload.url;
-      else toast.error("Stripe checkout URL পাওয়া যায়নি");
+      else toast.error("Stripe checkout URL was not found");
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Stripe checkout failed");
     }
@@ -337,7 +337,7 @@ export default function Admission() {
   const onSubmit: SubmitHandler<FormInput> = async (data) => {
     try {
       if (data.payNow && data.paymentMethod === "STRIPE" && !stripePaid) {
-        toast.error("Stripe payment complete করুন");
+        toast.error("Complete the Stripe payment");
         return;
       }
       await api.post("/admission/apply", {
@@ -348,7 +348,7 @@ export default function Admission() {
         photoUrl: photoUrl || undefined,
         birthCertUrl: birthCertUrl || undefined,
       });
-      toast.success("Admission application submit হয়েছে");
+      toast.success("Admission application submitted");
       finalizeSuccess();
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Application failed");
@@ -367,7 +367,7 @@ export default function Admission() {
       if (!url) throw new Error("Upload failed");
       if (type === "photo") setPhotoUrl(url);
       else setBirthCertUrl(url);
-      toast.success("Document upload হয়েছে");
+      toast.success("Document uploaded");
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Upload failed");
     } finally {
@@ -417,7 +417,7 @@ export default function Admission() {
                   Payment verified and admission submitted!
                 </h3>
                 <p className="text-sm text-emerald-700/80 dark:text-emerald-300/80 mt-0.5">
-                  আপনার Stripe payment verify হয়েছে। Admission application সফলভাবে submit হয়েছে।
+                  Your Stripe payment has been verified. The admission application was submitted successfully.
                 </p>
               </div>
             </motion.div>
@@ -455,18 +455,18 @@ export default function Admission() {
                   : existingApplication.status === "PENDING" ? "text-yellow-800 dark:text-yellow-200"
                   : "text-red-800 dark:text-red-200"
                 }`}>
-                  {existingApplication.status === "APPROVED" && "✅ আপনার Admission Approved হয়েছে!"}
-                  {existingApplication.status === "PENDING" && "⏳ আপনার Admission পেন্ডিং আছে"}
-                  {existingApplication.status === "REJECTED" && "❌ আপনার Admission Rejected হয়েছে"}
+                  {existingApplication.status === "APPROVED" && "✅ Your admission has been approved!"}
+                  {existingApplication.status === "PENDING" && "⏳ Your admission is pending"}
+                  {existingApplication.status === "REJECTED" && "❌ Your admission has been rejected"}
                 </h3>
                 <p className={`text-sm mt-0.5 ${
                   existingApplication.status === "APPROVED" ? "text-emerald-700/80 dark:text-emerald-300/80"
                   : existingApplication.status === "PENDING" ? "text-yellow-700/80 dark:text-yellow-300/80"
                   : "text-red-700/80 dark:text-red-300/80"
                 }`}>
-                  {existingApplication.status === "APPROVED" && "আপনার Student Dashboard এ লগইন করতে পারবেন। নতুন application submit করার প্রয়োজন নেই।"}
-                  {existingApplication.status === "PENDING" && "Admin আপনার application review করছেন। অনুগ্রহ করে অপেক্ষা করুন।"}
-                  {existingApplication.status === "REJECTED" && `কারণ: ${existingApplication.rejectionReason || "নির্দিষ্ট নয়"}. আপনি আবার apply করতে পারেন।`}
+                  {existingApplication.status === "APPROVED" && "You can log in to your student dashboard. No new application is needed."}
+                  {existingApplication.status === "PENDING" && "An admin is reviewing your application. Please wait."}
+                  {existingApplication.status === "REJECTED" && `Reason: ${existingApplication.rejectionReason || "Not specified"}. You can apply again.`}
                 </p>
               </div>
             </motion.div>
@@ -488,7 +488,7 @@ export default function Admission() {
             Student Admission Form
           </h1>
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-400 max-w-xl mx-auto">
-            সব তথ্য ঠিকভাবে দিন। Guardian phone এবং email অবশ্যই সঠিক হতে হবে।
+            Enter all information correctly. The guardian phone and email must be valid.
           </p>
         </motion.div>
 
@@ -515,12 +515,12 @@ export default function Admission() {
               <div className="mt-5 grid gap-5 md:grid-cols-2">
                 <Field delay={0.05}>
                   <label className={labelCls}><User className="h-3.5 w-3.5 text-indigo-500" /> Student Name</label>
-                  <input {...register("applicantName")} className={inputCls} placeholder="পূর্ণ নাম" />
+                  <input {...register("applicantName")} className={inputCls} placeholder="Full name" />
                   {errors.applicantName && <p className={errCls}>{errors.applicantName.message}</p>}
                 </Field>
 
                 <Field delay={0.1}>
-                  <label className={labelCls}><Mail className="h-3.5 w-3.5 text-indigo-500" /> Student Email (Login এর জন্য)</label>
+                  <label className={labelCls}><Mail className="h-3.5 w-3.5 text-indigo-500" /> Student Email (for login)</label>
                   <input type="email" {...register("studentEmail")} className={inputCls} placeholder="student@email.com" />
                   {errors.studentEmail && <p className={errCls}>{errors.studentEmail.message}</p>}
                 </Field>
@@ -584,7 +584,7 @@ export default function Admission() {
 
                 <Field delay={0.35} span={2}>
                   <label className={labelCls}><MapPin className="h-3.5 w-3.5 text-indigo-500" /> Address</label>
-                  <textarea {...register("address")} rows={3} className={inputCls} placeholder="পূর্ণ ঠিকানা" />
+                  <textarea {...register("address")} rows={3} className={inputCls} placeholder="Full address" />
                   {errors.address && <p className={errCls}>{errors.address.message}</p>}
                 </Field>
 
@@ -626,7 +626,7 @@ export default function Admission() {
               <div className="mt-5 grid gap-5 md:grid-cols-2">
                 <Field delay={0.05}>
                   <label className={labelCls}><User className="h-3.5 w-3.5 text-sky-500" /> Guardian Name</label>
-                  <input {...register("guardianName")} className={inputCls} placeholder="Guardian নাম" />
+                  <input {...register("guardianName")} className={inputCls} placeholder="Guardian name" />
                   {errors.guardianName && <p className={errCls}>{errors.guardianName.message}</p>}
                 </Field>
 
@@ -741,7 +741,7 @@ export default function Admission() {
               </motion.button>
               {isStripeFlow && !stripePaid && (
                 <p className="mt-3 text-center text-xs text-slate-500 dark:text-slate-400">
-                  Stripe payment complete হলে application auto submit হবে।
+                  The application will be submitted automatically after Stripe payment is complete.
                 </p>
               )}
             </div>

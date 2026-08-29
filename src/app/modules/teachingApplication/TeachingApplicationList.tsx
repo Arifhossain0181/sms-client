@@ -54,11 +54,11 @@ export default function TeachingApplicationList() {
   const canManage = role && hasPermission(role, "create_teacher");
 
   const handleApprove = (id: string) => {
-    if (confirm("Approve করবেন?")) updateStatus({ id, data: { status: "APPROVED" } });
+    if (confirm("Approve this application?")) updateStatus({ id, data: { status: "APPROVED" } });
   };
   const handleReject = (id: string) => {
-    const reason = prompt("Reject reason লিখুন (optional)") ?? undefined;
-    if (confirm("Reject করবেন?")) updateStatus({ id, data: { status: "REJECTED", rejectionReason: reason } });
+    const reason = prompt("Enter a rejection reason (optional)") ?? undefined;
+    if (confirm("Reject this application?")) updateStatus({ id, data: { status: "REJECTED", rejectionReason: reason } });
   };
   const handleView = (item: TeachingApplication) => { setSelected(item); setShowDetail(true); };
   const handleClose = () => { setSelected(null); setShowDetail(false); };
@@ -86,7 +86,7 @@ export default function TeachingApplicationList() {
                 <Sparkles className="h-4 w-4 text-amber-500 shrink-0" />
               </div>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
-                মোট {list.length} টি application
+                Total {list.length} applications
               </p>
             </div>
           </div>

@@ -2,19 +2,19 @@ import api from "@/lib/axios";
 import { Notification } from "./notification.types";
 
 export const notificationService = {
-  // আমার সব notification আনো
+  // Fetch all notifications
   getAll: async (): Promise<Notification[]> => {
     const res = await api.get("/notifications");
     return res.data;
   },
 
-  // একটা notification read করো
+  // Mark one notification as read
   markAsRead: async (id: string): Promise<Notification> => {
     const res = await api.put(`/notifications/${id}/read`);
     return res.data;
   },
 
-  // সব notification read করো
+  // Mark all notifications as read
   markAllAsRead: async (): Promise<void> => {
     await api.put("/notifications/read-all");
   },

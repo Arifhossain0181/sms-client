@@ -131,13 +131,13 @@ async function triggerDownload(url: string, filename: string) {
   }
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// ─── Main Page 
 
 export default function SchoolAdminReportsPage() {
   const router = useRouter();
   const { role } = useAuth();
 
-  // ── Role guard ────────────────────────────────────────────────────────────
+  // ── Role guard 
   useEffect(() => {
     if (role && role !== "SCHOOL_ADMIN" && role !== "SUPER_ADMIN") {
       router.replace("/dashboard");
@@ -156,7 +156,7 @@ export default function SchoolAdminReportsPage() {
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
 
-  // ── Fetch classes ──────────────────────────────────────────────────────────
+  // ── Fetch classes 
   const { data: classes = [] } = useQuery({
     queryKey: ["classes"],
     queryFn: classService.getAll,
@@ -164,7 +164,7 @@ export default function SchoolAdminReportsPage() {
 
   const classList: ClassType[] = Array.isArray(classes) ? classes : [];
 
-  // ── Derived: sections for selected class ───────────────────────────────────
+  // ── Derived: sections for selected class 
   const selectedClass = useMemo(
     () => classList.find((c) => c.id === classFilter),
     [classList, classFilter]
@@ -172,7 +172,7 @@ export default function SchoolAdminReportsPage() {
 
   const sections = useMemo(() => selectedClass?.sections ?? [], [selectedClass]);
 
-  // ── Fetch exams ────────────────────────────────────────────────────────────
+  // ── Fetch exams 
   const { data: exams = [] } = useQuery({
     queryKey: ["exams"],
     queryFn: examService.getAll,
@@ -181,7 +181,7 @@ export default function SchoolAdminReportsPage() {
 
   const examList: Exam[] = Array.isArray(exams) ? exams : [];
 
-  // ── Fetch students for single-student export ──────────────────────────────
+  // ── Fetch students for single-student export 
   const { data: students = [] } = useQuery({
     queryKey: ["students", "report-search", studentSearch],
     queryFn: async () => {
@@ -197,7 +197,7 @@ export default function SchoolAdminReportsPage() {
   const studentList = Array.isArray(students) ? students : [];
   const selectedStudent = studentList.find((s) => s.id === selectedStudentId);
 
-  // ── useMemo: report config & filters validity ──────────────────────────────
+  // ── useMemo: report config & filters validity 
   const currentConfig = REPORT_TYPES.find((r) => r.key === reportType)!;
 
   const canExport = useMemo(() => {

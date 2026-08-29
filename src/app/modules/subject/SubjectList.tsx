@@ -47,7 +47,7 @@ export default function SubjectList() {
   };
 
   const handleDelete = (id: string) => {
-    if (confirm("Delete করবেন?")) deleteSubject(id);
+    if (confirm("Delete this subject?")) deleteSubject(id);
   };
 
   const handleClose = () => {
@@ -73,7 +73,7 @@ export default function SubjectList() {
           <div>
             <h1 className="text-2xl font-bold text-foreground">Subjects</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              মোট <span className="font-semibold text-foreground">{safeSubjects.length}</span> টি subject
+              Total <span className="font-semibold text-foreground">{safeSubjects.length}</span> subjects
             </p>
           </div>
         </div>

@@ -55,7 +55,7 @@ export default function StudentCard({ id }: Props) {
       <div className="min-h-[60vh] flex items-center justify-center p-6">
         <div className="flex flex-col items-center gap-3 text-slate-600 dark:text-slate-300">
           <AlertCircle className="w-10 h-10 text-rose-500" />
-          <p className="text-lg font-semibold">Student পাওয়া যায়নি</p>
+          <p className="text-lg font-semibold">Student not found</p>
         </div>
       </div>
     );
@@ -72,7 +72,7 @@ export default function StudentCard({ id }: Props) {
     { label: "Phone", value: student.phone, icon: Phone },
     { label: "Class", value: student.class?.name ?? "—", icon: GraduationCap },
     { label: "Date of Birth", value: formatDate(student.dateOfBirth), icon: Cake },
-    { label: "যোগ দেওয়ার তারিখ", value: formatDate(student.createdAt), icon: CalendarDays },
+    { label: "Joining date", value: formatDate(student.createdAt), icon: CalendarDays },
     { label: "Address", value: student.address, icon: MapPin, full: true },
   ];
 

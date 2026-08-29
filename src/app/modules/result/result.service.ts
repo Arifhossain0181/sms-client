@@ -8,7 +8,7 @@ export const resultService = {
     return res.data;
   },
 
-  // Exam অনুযায়ী result আনো
+  // Fetch results by exam
   getByExam: async (examId: string): Promise<Result[]> => {
     const res = await api.get(`/results/exam/${examId}`);
     const data = res.data?.data ?? res.data;
@@ -18,19 +18,19 @@ export const resultService = {
     return [];
   },
 
-  // Student এর সব result আনো
+  // Fetch all results for a student
   getByStudent: async (studentId: string): Promise<Result[]> => {
     const res = await api.get(`/results/student/${studentId}`);
     return res.data?.data ?? res.data;
   },
 
-  // Result দাও
+  // Submit a result
   create: async (data: CreateResultPayload): Promise<Result> => {
     const res = await api.post("/results", data);
     return res.data;
   },
 
-  // Bulk result দাও
+  // Submit results in bulk
   createBulk: async (data: CreateResultPayload[]): Promise<Result[]> => {
     const res = await api.post("/results/bulk", data);
     return res.data;

@@ -33,7 +33,7 @@ export const useCreateBulkResult = () => {
     mutationFn: (data: CreateResultPayload[]) => resultService.createBulk(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["results"] });
-      toast.success("Result save হয়েছে!");
+      toast.success("Result saved!");
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message || "Failed!");
@@ -48,7 +48,7 @@ export const useUpdateResult = () => {
       resultService.update(id, marksObtained),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["results"] });
-      toast.success("Result update হয়েছে!");
+      toast.success("Result updated!");
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message || "Failed!");
@@ -62,7 +62,7 @@ export const useDeleteResult = () => {
     mutationFn: (id: string) => resultService.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["results"] });
-      toast.success("Result delete হয়েছে!");
+      toast.success("Result deleted!");
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message || "Failed!");

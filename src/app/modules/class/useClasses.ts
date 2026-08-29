@@ -35,7 +35,7 @@ export const useCreateClass = () => {
       // Invalidate and wait for refetch to complete
       await queryClient.invalidateQueries({ queryKey: ["classes"] });
       await queryClient.refetchQueries({ queryKey: ["classes"] });
-      toast.success("Class add হয়েছে!");
+      toast.success("Class added!");
     },
     onError: (err: unknown) => {
       toast.error(getErrorMessage(err, "Failed!"));
@@ -52,7 +52,7 @@ export const useUpdateClass = () => {
       // Invalidate and wait for refetch to complete
       await queryClient.invalidateQueries({ queryKey: ["classes"] });
       await queryClient.refetchQueries({ queryKey: ["classes"] });
-      toast.success("Class update হয়েছে!");
+      toast.success("Class updated!");
     },
     onError: (err: unknown) => {
       toast.error(getErrorMessage(err, "Failed!"));
@@ -68,7 +68,7 @@ export const useDeleteClass = () => {
       // Invalidate and wait for refetch to complete
       await queryClient.invalidateQueries({ queryKey: ["classes"] });
       await queryClient.refetchQueries({ queryKey: ["classes"] });
-      toast.success("Class delete হয়েছে!");
+      toast.success("Class deleted!");
     },
     onError: (err: unknown) => {
       toast.error(getErrorMessage(err, "Failed!"));

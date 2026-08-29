@@ -53,7 +53,7 @@ const getStatusBadge = (status: string) => {
 export default function JobsPage() {
   useLenis();
   const router = useRouter();
-  const { role } = useAuth();
+  const { role, isAuthenticated } = useAuth();
   const [jobs, setJobs] = useState<JobPosting[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -228,7 +228,11 @@ export default function JobsPage() {
                         {getStatusBadge(job.status)}
                         {role === "TEACHER" && job.status === "OPEN" && (
                           <Link
-                            href={`/apply-for-Teaching?jobId=${job.id}`}
+                            href={
+                              isAuthenticated
+                                ? `/apply-for-Teaching?jobId=${job.id}`
+                                : `/login?redirect=${encodeURIComponent(`/apply-for-Teaching?jobId=${job.id}`)}`
+                            }
                             onClick={(e: MouseEvent) => e.stopPropagation()}
                             className="flex items-center gap-1 text-xs font-semibold text-white bg-indigo-500 hover:bg-indigo-600 rounded-full px-3 py-1 transition-all duration-300 hover:-translate-y-0.5"
                           >

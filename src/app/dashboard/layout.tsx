@@ -17,15 +17,6 @@ export default function DashboardLayout({
   const { role } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
-  const [bannerMessage] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null;
-    const msg = window.localStorage.getItem("redirectMessage");
-    if (msg) {
-      window.localStorage.removeItem("redirectMessage");
-    }
-    return msg;
-  });
-
   useEffect(() => {
     if (!role) return;
 
@@ -34,17 +25,17 @@ export default function DashboardLayout({
     // Super admin can access everything
     if (isSuperAdmin) return;
 
-    const routeRoleMap: { prefix: string; allowedRole: Role; label: string }[] = [
-      { prefix: "/dashboard/school-admin", allowedRole: "SCHOOL_ADMIN", label: "School Admin" },
-      { prefix: "/dashboard/accountant", allowedRole: "ACCOUNTANT", label: "Accountant" },
-      { prefix: "/dashboard/teacher", allowedRole: "TEACHER", label: "Teacher" },
-      { prefix: "/dashboard/parent", allowedRole: "PARENT", label: "Parent" },
-      { prefix: "/dashboard/exam-controller", allowedRole: "EXAM_CONTROLLER", label: "Exam Controller" },
-      { prefix: "/dashboard/hr", allowedRole: "HR", label: "HR" },
-      { prefix: "/dashboard/super-admin", allowedRole: "SUPER_ADMIN", label: "Super Admin" },
+    const routeRoleMap: { prefix: string; allowedRole: Role }[] = [
+      { prefix: "/dashboard/school-admin", allowedRole: "SCHOOL_ADMIN" },
+      { prefix: "/dashboard/accountant", allowedRole: "ACCOUNTANT" },
+      { prefix: "/dashboard/teacher", allowedRole: "TEACHER" },
+      { prefix: "/dashboard/parent", allowedRole: "PARENT" },
+      { prefix: "/dashboard/exam-controller", allowedRole: "EXAM_CONTROLLER" },
+      { prefix: "/dashboard/hr", allowedRole: "HR" },
+      { prefix: "/dashboard/super-admin", allowedRole: "SUPER_ADMIN" },
     ];
 
-    for (const { prefix, allowedRole, label } of routeRoleMap) {
+    for (const { prefix, allowedRole } of routeRoleMap) {
       if (pathname?.startsWith(prefix)) {
         // Special case: SCHOOL_ADMIN can access HR routes
         if (prefix === "/dashboard/hr" && (role === "HR" || role === "SCHOOL_ADMIN")) {
@@ -52,10 +43,6 @@ export default function DashboardLayout({
         }
         
         if (role !== allowedRole) {
-          window.localStorage.setItem(
-            "redirectMessage",
-            `You do not have permission to view the ${label} pages.`
-          );
           router.replace("/dashboard");
           return;
         }
@@ -65,7 +52,6 @@ export default function DashboardLayout({
     // Student approval check
     if (pathname?.startsWith("/dashboard/student")) {
       if (role !== "STUDENT" && role !== "PARENT") {
-        window.localStorage.setItem("redirectMessage", "You do not have permission to view student pages.");
         router.replace("/dashboard");
         return;
       }
@@ -87,18 +73,10 @@ export default function DashboardLayout({
           } catch (error: unknown) {
             const status = (error as { response?: { status?: number } }).response?.status;
             if (status === 404) {
-              window.localStorage.setItem(
-                "redirectMessage",
-                "Complete your admission application first to access the dashboard."
-              );
               router.replace("/apply-for-admission");
               return;
             }
 
-            window.localStorage.setItem(
-              "redirectMessage",
-              "We could not verify your student access right now. Please try again."
-            );
             router.replace("/");
           }
         };
@@ -107,14 +85,6 @@ export default function DashboardLayout({
       }
     }
   }, [role, pathname, router]);
-
-  const [roleLoaded, setRoleLoaded] = useState(false);
-
-  useEffect(() => {
-    if (role) {
-      setRoleLoaded(true);
-    }
-  }, [role]);
 
   if (!role) {
     return (
@@ -139,12 +109,6 @@ export default function DashboardLayout({
       <div className="flex-1 min-w-0 flex flex-col">
         <Topbar onToggleSidebar={() => setSidebarOpen((prev) => !prev)} />
         <main className="flex-1 px-6 lg:px-10 py-8">
-          {bannerMessage && (
-            <div className="mb-4 rounded-md border border-border/60 bg-yellow-50 p-3 text-yellow-900">
-              <strong className="block">Notice:</strong>
-              <span>{bannerMessage}</span>
-            </div>
-          )}
           {children}
         </main>
       </div>

@@ -29,7 +29,31 @@ type DashboardStats = {
   avgAttendance: number;
   currentMonth: number;
   currentYear: number;
+  totalTeachingApplications: number;
   pendingTeachingApplications: number;
+};
+
+type TeachingApplicationSummary = {
+  id: string;
+  name: string;
+  email: string;
+  designation: string;
+  experience: number;
+  phone?: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  createdAt?: string;
+  reviewedAt?: string;
+};
+
+type StaffRecord = {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  employeeId?: string;
+  designation?: string;
+  staffType?: string;
+  department?: { name?: string };
 };
 
 const roleLabels: Record<Role, string> = {
@@ -62,7 +86,8 @@ export default function HrDashboard() {
   const router = useRouter();
   const { role } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [staffList, setStaffList] = useState<any[]>([]);
+  const [staffList, setStaffList] = useState<StaffRecord[]>([]);
+  const [teachingApplications, setTeachingApplications] = useState<TeachingApplicationSummary[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -72,6 +97,10 @@ export default function HrDashboard() {
   }, [role, router]);
 
   useEffect(() => {
+    if (!role || (role !== "HR" && role !== "SCHOOL_ADMIN")) {
+      return;
+    }
+
     const load = async () => {
       try {
         setLoading(true);
@@ -82,87 +111,78 @@ export default function HrDashboard() {
           api.get("/teaching"),
         ]);
         const statsData = statsRes.status === "fulfilled" ? (statsRes.value.data?.data ?? statsRes.value.data) : null;
-        const teachingPayload = teachingRes.status === "fulfilled"
-          ? (teachingRes.value.data?.data?.data ?? teachingRes.value.data?.data ?? teachingRes.value.data ?? [])
+
+        const rawTeachingData = teachingRes.status === "fulfilled" ? teachingRes.value.data : null;
+        const teachingPayload = Array.isArray(rawTeachingData)
+          ? rawTeachingData
+          : Array.isArray(rawTeachingData?.data)
+            ? rawTeachingData.data
+            : Array.isArray(rawTeachingData?.data?.data)
+              ? rawTeachingData.data.data
+              : [];
+        const normalizedTeachingApplications: TeachingApplicationSummary[] = Array.isArray(teachingPayload)
+          ? (teachingPayload as TeachingApplicationSummary[])
           : [];
+
         setStats({
           ...(statsData || {}),
+          totalTeachingApplications: normalizedTeachingApplications.length,
           pendingTeachingApplications:
-            Array.isArray(teachingPayload)
-              ? teachingPayload.filter((a: any) => a.status === "PENDING").length
-              : 0,
+            normalizedTeachingApplications.filter((item) => item.status === "PENDING").length,
         });
+        setTeachingApplications(normalizedTeachingApplications);
 
         const staffData = staffRes.status === "fulfilled" ? (staffRes.value.data?.data ?? staffRes.value.data) : [];
-        setStaffList(Array.isArray(staffData) ? staffData : []);
+        setStaffList(Array.isArray(staffData) ? (staffData as StaffRecord[]) : []);
       } catch {
         setStaffList([]);
+        setTeachingApplications([]);
       } finally {
         setLoading(false);
       }
     };
     load();
-  }, []);
+  }, [role]);
 
-  const statCards = [
+  const approvedTeacherCount = teachingApplications.filter((item) => item.status === "APPROVED").length;
+
+  const summaryCards = [
     {
-      label: "Total Staff",
-      value: stats ? stats.totalStaff.toString() : "—",
+      label: "Approved Teachers",
+      value: String(approvedTeacherCount),
+      icon: <FileBadge className="h-5 w-5 text-violet-600 dark:text-violet-400" />,
+    },
+    {
+      label: "Total Teachers",
+      value: stats ? String(stats.totalStaff) : "—",
       icon: <Users className="h-5 w-5 text-sky-600 dark:text-sky-400" />,
     },
     {
-      label: "Active Staff",
-      value: stats ? stats.activeStaff.toString() : "—",
-      sub: `${stats?.inactiveStaff ?? 0} inactive`,
+      label: "Active",
+      value: stats ? String(stats.activeStaff) : "—",
       icon: <UserCog className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />,
     },
     {
-      label: "Avg Attendance",
-      value: stats ? `${stats.avgAttendance}%` : "—",
-      sub: stats
-        ? `${months[stats.currentMonth - 1]} ${stats.currentYear}`
-        : undefined,
-      icon: <TrendingUp className="h-5 w-5 text-teal-600 dark:text-teal-400" />,
-      link: "/dashboard/hr/attendance",
-      linkText: "Take Attendance →",
-    },
-    {
-      label: "Pending Actions",
-      value: stats
-        ? String(
-            (stats.pendingLeaves ?? 0) +
-              (stats.pendingPayrolls ?? 0) +
-              (stats.pendingCriticalActions ?? 0)
-          )
-        : "—",
-      sub: `${stats?.pendingLeaves ?? 0} leaves · ${stats?.pendingPayrolls ?? 0} payrolls`,
+      label: "Inactive",
+      value: stats ? String(stats.inactiveStaff) : "—",
       icon: <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />,
-    },
-    {
-      label: "Pending Teaching Applications",
-      value: stats ? String(stats.pendingTeachingApplications ?? 0) : "—",
-      icon: <FileBadge className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />,
-      link: "/dashboard/teaching-applications",
-      linkText: "Review →",
     },
   ];
 
-  const secondaryCards = [
+  const staffStatusCards = [
     {
-      label: "Pending Leave Requests",
-      value: stats ? String(stats.pendingLeaves) : "—",
-      icon: <FileText className="h-5 w-5 text-amber-600 dark:text-amber-400" />,
+      label: "Active Staff",
+      value: stats ? String(stats.activeStaff) : "0",
+      accent: "emerald",
+      note: "Currently working",
+      icon: <UserCog className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />,
     },
     {
-      label: "Pending Payroll Disbursements",
-      value: stats ? String(stats.pendingPayrolls) : "—",
-      icon: <Wallet className="h-5 w-5 text-violet-600 dark:text-violet-400" />,
-    },
-    {
-      label: "Pending Critical Actions",
-      value: stats ? String(stats.pendingCriticalActions) : "—",
-      sub: "Awaiting School Admin approval",
-      icon: <CalendarCheck className="h-5 w-5 text-rose-600 dark:text-rose-400" />,
+      label: "Inactive Staff",
+      value: stats ? String(stats.inactiveStaff) : "0",
+      accent: "amber",
+      note: "Currently inactive",
+      icon: <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />,
     },
   ];
 
@@ -210,16 +230,16 @@ export default function HrDashboard() {
           </div>
 
           <div className="p-4 sm:p-6 space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
               {loading
                 ? Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
+                    <div key={i} className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl">
                       <Skeleton className="w-14 h-14 rounded-2xl shrink-0 mb-4" />
-                      <Skeleton className="h-3 w-24 rounded-md mb-2" />
-                      <Skeleton className="h-6 w-16 rounded-md" />
+                      <Skeleton className="h-3 w-28 rounded-md mb-2" />
+                      <Skeleton className="h-6 w-12 rounded-md" />
                     </div>
                   ))
-                : statCards.map((card, i) => (
+                : summaryCards.map((card, i) => (
                     <motion.div
                       key={card.label}
                       custom={i}
@@ -238,120 +258,52 @@ export default function HrDashboard() {
                         <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">
                           {card.value}
                         </p>
-                        <div className="mt-1 flex items-center justify-between">
-                          {card.sub ? (
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
-                              {card.sub}
-                            </p>
-                          ) : (
-                            <div />
-                          )}
-                          {(card as any).linkText && (card as any).link && (
-                            <a href={(card as any).link} className="text-xs text-indigo-500 hover:underline">
-                              {(card as any).linkText}
-                            </a>
-                          )}
-                        </div>
                       </div>
                     </motion.div>
                   ))}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-              {loading
-                ? Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
-                      <Skeleton className="w-14 h-14 rounded-2xl shrink-0 mb-4" />
-                      <Skeleton className="h-3 w-32 rounded-md mb-2" />
-                      <Skeleton className="h-6 w-12 rounded-md" />
-                    </div>
-                  ))
-                : secondaryCards.map((card, i) => (
-                    <motion.div
-                      key={card.label}
-                      custom={i + 4}
-                      initial="hidden"
-                      animate="visible"
-                      variants={cardVariants}
-                      className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl flex items-center gap-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
-                    >
-                      <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center shrink-0">
-                        {card.icon}
-                      </div>
+            <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xl">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                    Staff status
+                  </p>
+                  <h2 className="mt-1 text-xl font-bold text-slate-900 dark:text-white">
+                    Active vs Inactive Staff
+                  </h2>
+                </div>
+                <div className="rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                  {stats ? `${stats.totalStaff} total staff` : "0 total staff"}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {staffStatusCards.map((card) => (
+                  <div
+                    key={card.label}
+                    className={`rounded-2xl border p-5 shadow-sm ${
+                      card.accent === "emerald"
+                        ? "border-emerald-200 bg-emerald-50/80 dark:border-emerald-800/60 dark:bg-emerald-950/30"
+                        : "border-amber-200 bg-amber-50/80 dark:border-amber-800/60 dark:bg-amber-950/30"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
                       <div>
                         <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                           {card.label}
                         </p>
-                        <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">
-                          {card.value}
-                        </p>
-                        {card.sub && (
-                          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                            {card.sub}
-                          </p>
-                        )}
+                        <p className="mt-2 text-3xl font-bold text-slate-900 dark:text-white">{card.value}</p>
                       </div>
-                    </motion.div>
-                  ))}
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/80 dark:bg-slate-900/60">
+                        {card.icon}
+                      </div>
+                    </div>
+                    <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">{card.note}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
-            >
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Staff Directory</h3>
-              {loading ? (
-                <div className="space-y-3">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className="flex items-center justify-between py-3">
-                      <div className="flex items-center gap-3">
-                        <Skeleton className="w-10 h-10 rounded-full shrink-0" />
-                        <div className="space-y-2">
-                          <Skeleton className="h-4 w-32 rounded-md" />
-                          <Skeleton className="h-3 w-48 rounded-md" />
-                        </div>
-                      </div>
-                      <Skeleton className="h-3 w-24 rounded-md" />
-                    </div>
-                  ))}
-                </div>
-              ) : staffList.length === 0 ? (
-                <p className="text-xs text-slate-500 dark:text-slate-400">No staff records found.</p>
-              ) : (
-                <div className="divide-y divide-slate-200 dark:divide-slate-800">
-                  {staffList.slice(0, 20).map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between py-3 px-2 rounded-xl transition-all duration-300 hover:bg-slate-50/80 dark:hover:bg-slate-800/40 hover:px-3"
-                    >
-                      <div>
-                        <p className="text-sm font-medium text-slate-900 dark:text-white">{item.name}</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                          {item.employeeId ?? ""} · {item.designation ?? "—"} ·{" "}
-                          {item.department?.name ?? item.staffType ?? "—"}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-slate-500 dark:text-slate-400">{item.email}</p>
-                        {item.phone && (
-                          <p className="text-xs text-slate-500 dark:text-slate-400">{item.phone}</p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {!loading && staffList.length > 20 && (
-                <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-                  Showing 20 of {staffList.length} staff members.{" "}
-                  <a href="/dashboard/hr/profiles" className="underline">
-                    View all
-                  </a>
-                </p>
-              )}
-            </motion.div>
           </div>
         </div>
       </div>

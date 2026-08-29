@@ -245,7 +245,7 @@ export default function StudentForm({ student, onClose, mode = "admin" }: Props)
                       : "Student Registration"}
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  সব তথ্য সঠিকভাবে পূরণ করুন
+                  Complete all information correctly
                 </p>
               </div>
             </div>
@@ -269,7 +269,7 @@ export default function StudentForm({ student, onClose, mode = "admin" }: Props)
               {/* Name */}
               <div>
                 <label className={labelCls}>
-                  <User className="h-3.5 w-3.5 text-indigo-500" /> নাম
+                  <User className="h-3.5 w-3.5 text-indigo-500" /> Name
                 </label>
                 <input
                   {...register("name")}

@@ -144,8 +144,8 @@ export default function MarkAttendance() {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Attendance নিন</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">Class এবং তারিখ select করুন</p>
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Take Attendance</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Select a class and date</p>
       </div>
 
       {/* Filter */}
@@ -157,7 +157,7 @@ export default function MarkAttendance() {
             onChange={(e) => handleClassChange(e.target.value)}
             className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 dark:text-white dark:border-slate-700"
           >
-            <option value="">Class select করুন</option>
+            <option value="">Select class</option>
             {availableClasses.map((cls) => (
               <option key={cls.id} value={cls.id}>
                 {cls.name} — {(cls.sections ?? []).map((section) => section.name).join(", ")}
@@ -173,7 +173,7 @@ export default function MarkAttendance() {
             onChange={(e) => setSectionId(e.target.value)}
             className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 dark:text-white dark:border-slate-700"
           >
-            <option value="">Section select করুন</option>
+            <option value="">Select section</option>
             {availableSections.map((section) => (
               <option key={section.id} value={section.id}>
                 {section.name} (max {section.maxCapacity})
@@ -190,7 +190,7 @@ export default function MarkAttendance() {
               onChange={(e) => setTeacherId(e.target.value)}
               className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 dark:text-white dark:border-slate-700"
             >
-              <option value="">Teacher select করুন</option>
+              <option value="">Select teacher</option>
               {(Array.isArray(teachers) ? teachers : []).map((teacher) => (
                 <option key={teacher.id} value={teacher.id}>
                   {teacher.name} ({teacher.email})
@@ -201,7 +201,7 @@ export default function MarkAttendance() {
         )}
 
         <div className="flex-1 min-w-[200px]">
-          <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">তারিখ</label>
+          <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">Date</label>
           <input
             type="date"
             value={date}
@@ -217,24 +217,24 @@ export default function MarkAttendance() {
 
           {/* Mark All Buttons */}
           <div className="flex gap-2 p-4 border-b dark:border-slate-700">
-            <span className="text-sm font-medium text-gray-600 dark:text-gray-300 mr-2">সবাইকে:</span>
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-300 mr-2">Mark all as:</span>
             <button
               onClick={() => handleMarkAll("PRESENT")}
               className="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-medium hover:bg-green-200"
             >
-              সবাই Present
+              All Present
             </button>
             <button
               onClick={() => handleMarkAll("ABSENT")}
               className="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-xs font-medium hover:bg-red-200"
             >
-              সবাই Absent
+              All Absent
             </button>
             <button
               onClick={() => handleMarkAll("LATE")}
               className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-lg text-xs font-medium hover:bg-yellow-200"
             >
-              সবাই Late
+              All Late
             </button>
           </div>
 
@@ -242,7 +242,7 @@ export default function MarkAttendance() {
             <thead className="bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-gray-300 uppercase text-xs">
               <tr>
                 <th className="px-6 py-3 text-left">#</th>
-                <th className="px-6 py-3 text-left">Student নাম</th>
+                <th className="px-6 py-3 text-left">Student name</th>
                 <th className="px-6 py-3 text-left">Status</th>
               </tr>
             </thead>
@@ -280,7 +280,7 @@ export default function MarkAttendance() {
               disabled={isPending}
               className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg text-sm font-medium disabled:opacity-50"
             >
-              {isPending ? "Saving..." : "Attendance Save করুন"}
+              {isPending ? "Saving..." : "Save Attendance"}
             </button>
           </div>
         </div>
@@ -289,19 +289,19 @@ export default function MarkAttendance() {
       {/* No class selected */}
       {!classId && role === "TEACHER" && availableClasses.length === 0 && classesLoaded && (
         <div className="text-center py-20 text-gray-400 dark:text-gray-500">
-          আপনার কোনো class assign করা নেই।
+              No class is assigned to you.
         </div>
       )}
       {!classId && !(role === "TEACHER" && availableClasses.length === 0 && classesLoaded) && (
         <div className="text-center py-20 text-gray-400 dark:text-gray-500">
-          Class select করুন
+          Select a class
         </div>
       )}
 
       {/* Class selected but no students */}
       {classId && attendanceList.length === 0 && (
         <div className="text-center py-20 text-gray-400 dark:text-gray-500">
-          এই class এ কোনো student নেই
+          No students in this class
         </div>
       )}
     </div>

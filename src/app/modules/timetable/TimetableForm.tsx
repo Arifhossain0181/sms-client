@@ -22,15 +22,15 @@ import { useTeachers } from "../teachers/useTeachers";
 import { Timetable } from "./timetable.types";
 
 const schema = z.object({
-  classId:   z.string().min(1, "Class select করো"),
-  subjectId: z.string().min(1, "Subject select করো"),
-  teacherId: z.string().min(1, "Teacher select করো"),
+  classId:   z.string().min(1, "Select a class"),
+  subjectId: z.string().min(1, "Select a subject"),
+  teacherId: z.string().min(1, "Select a teacher"),
   dayOfWeek: z.enum([
     "SATURDAY", "SUNDAY", "MONDAY",
     "TUESDAY", "WEDNESDAY", "THURSDAY",
   ]),
-  startTime: z.string().min(1, "Start time দাও"),
-  endTime:   z.string().min(1, "End time দাও"),
+  startTime: z.string().min(1, "Enter a start time"),
+  endTime:   z.string().min(1, "Enter an end time"),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -117,9 +117,9 @@ export default function TimetableForm({ timetable, onClose }: Props) {
               </motion.div>
               <div>
                 <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                  {timetable ? "Timetable Edit" : "নতুন Class যোগ করো"}
+                  {timetable ? "Edit Timetable" : "Add New Class"}
                 </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Class schedule manage করো</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Manage the class schedule</p>
               </div>
             </div>
             <motion.button
@@ -223,19 +223,19 @@ export default function TimetableForm({ timetable, onClose }: Props) {
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
               <CalendarDays className="w-4 h-4 text-sky-400" />
-              দিন
+              Day
             </label>
             <select
               {...register("dayOfWeek")}
               className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 dark:focus:border-sky-500/50 focus:ring-1 focus:ring-sky-500/20 transition-all appearance-none cursor-pointer"
             >
               <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Select Day</option>
-              <option value="SATURDAY">শনিবার</option>
-              <option value="SUNDAY">রবিবার</option>
-              <option value="MONDAY">সোমবার</option>
-              <option value="TUESDAY">মঙ্গলবার</option>
-              <option value="WEDNESDAY">বুধবার</option>
-              <option value="THURSDAY">বৃহস্পতিবার</option>
+              <option value="SATURDAY">Saturday</option>
+              <option value="SUNDAY">Sunday</option>
+              <option value="MONDAY">Monday</option>
+              <option value="TUESDAY">Tuesday</option>
+              <option value="WEDNESDAY">Wednesday</option>
+              <option value="THURSDAY">Thursday</option>
             </select>
             {errors.dayOfWeek && (
               <motion.p

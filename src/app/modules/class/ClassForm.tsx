@@ -23,8 +23,8 @@ import { Class } from "./class.types";
 import { toast } from "sonner";
 
 const schema = z.object({
-  name: z.string().min(1, "Class নাম দাও"),
-  numericLevel: z.number().min(1, "Numeric level দাও"),
+  name: z.string().min(1, "Enter the class name"),
+  numericLevel: z.number().min(1, "Enter the numeric level"),
   sectionName: z.string().optional(),
   sectionCapacity: z.number().optional(),
 });
@@ -243,13 +243,13 @@ export default function ClassForm({ cls, onClose }: Props) {
               </div>
               <div className="flex-1">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  {cls ? "Class Edit" : "নতুন Class"}
+                  {cls ? "Edit Class" : "New Class"}
                   <Sparkles className="w-4 h-4 text-indigo-500" />
                 </h2>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                   {cls
-                    ? "Class details update করুন"
-                    : "নতুন class ও section যোগ করুন"}
+                    ? "Update class details"
+                    : "Add a new class and section"}
                 </p>
               </div>
             </div>
@@ -284,7 +284,7 @@ export default function ClassForm({ cls, onClose }: Props) {
                   className={fieldBase}
                   defaultValue={cls?.name || ""}
                 />
-                <label className={floatLabelBase}>Class নাম</label>
+                <label className={floatLabelBase}>Class name</label>
                 {errors.name && <ErrorMsg message={errors.name.message} />}
               </motion.div>
 

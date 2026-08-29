@@ -31,7 +31,7 @@ export default function AttendanceTable() {
     <div className="p-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Attendance Records</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">মোট {attendances?.length ?? 0} টি record</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Total {attendances?.length ?? 0} records</p>
       </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-xl shadow p-4 mb-6 flex flex-wrap gap-4">
@@ -47,7 +47,7 @@ export default function AttendanceTable() {
             }}
             className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
           >
-            <option value="">Class select করুন</option>
+            <option value="">Select class</option>
             {(Array.isArray(classes) ? classes : []).map((cls) => (
               <option key={cls.id} value={cls.id}>
                 {cls.name} — {(cls.sections ?? []).map((section) => section.name).join(", ")}
@@ -63,7 +63,7 @@ export default function AttendanceTable() {
             onChange={(e) => setSectionId(e.target.value)}
             className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 dark:text-white dark:border-slate-700"
           >
-            <option value="">Section select করুন</option>
+            <option value="">Select section</option>
             {(Array.isArray(classes) ? classes : [])
               .find((cls) => cls.id === classId)?.sections?.map((section) => (
                 <option key={section.id} value={section.id}>
@@ -74,7 +74,7 @@ export default function AttendanceTable() {
         </div>
 
         <div className="flex-1 min-w-[200px]">
-          <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">তারিখ</label>
+          <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">Date</label>
           <input
             type="date"
             value={date}
@@ -86,7 +86,7 @@ export default function AttendanceTable() {
 
       <input
         type="text"
-        placeholder="Student নাম দিয়ে খুঁজুন..."
+        placeholder="Search by student name..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         className="w-full max-w-sm border border-gray-300 rounded-lg px-4 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 dark:text-white dark:border-slate-700"
@@ -98,7 +98,7 @@ export default function AttendanceTable() {
             <tr>
               <th className="px-6 py-3 text-left">Student</th>
               <th className="px-6 py-3 text-left">Class</th>
-              <th className="px-6 py-3 text-left">তারিখ</th>
+              <th className="px-6 py-3 text-left">Date</th>
               <th className="px-6 py-3 text-left">Status</th>
             </tr>
           </thead>
@@ -125,7 +125,7 @@ export default function AttendanceTable() {
             {filtered?.length === 0 && (
               <tr>
                 <td colSpan={4} className="text-center py-10 text-gray-400 dark:text-gray-500">
-                  কোনো attendance record নেই
+                  No attendance records found
                 </td>
               </tr>
             )}

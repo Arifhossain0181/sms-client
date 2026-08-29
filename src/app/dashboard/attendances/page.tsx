@@ -32,7 +32,7 @@ export default function AttendancePage() {
     },
     {
       id: "mark" as const,
-      label: "Attendance নিন",
+      label: "Take Attendance",
       icon: CheckSquare,
       gradient: "from-emerald-500 via-teal-500 to-cyan-500",
       shadow: "shadow-emerald-500/30",

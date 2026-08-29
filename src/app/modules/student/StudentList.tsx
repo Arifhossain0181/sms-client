@@ -155,7 +155,7 @@ export default function StudentList() {
               </h1>
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
                 <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
-                মোট <span className="font-semibold text-indigo-600 dark:text-indigo-400">{studentList.length}</span> জন student
+                Total <span className="font-semibold text-indigo-600 dark:text-indigo-400">{studentList.length}</span> students
               </p>
             </div>
           </div>
@@ -219,12 +219,12 @@ export default function StudentList() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gradient-to-r from-slate-100 via-indigo-50 to-violet-50 dark:from-slate-800/80 dark:via-indigo-950/50 dark:to-violet-950/50 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                  <th className="px-5 py-4">নাম</th>
+                  <th className="px-5 py-4">Name</th>
                   <th className="px-5 py-4">Guardian Email</th>
                   <th className="px-5 py-4">Phone</th>
                   <th className="px-5 py-4">Class</th>
                   <th className="px-5 py-4">Gender</th>
-                  <th className="px-5 py-4">যোগ দেওয়ার তারিখ</th>
+                  <th className="px-5 py-4">Enrollment date</th>
                   {canEdit && <th className="px-5 py-4 text-right">Action</th>}
                 </tr>
               </thead>
@@ -355,7 +355,7 @@ export default function StudentList() {
                         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800">
                           <Users className="h-6 w-6" />
                         </div>
-                        <p className="text-sm font-medium">কোনো student পাওয়া যায়নি</p>
+                        <p className="text-sm font-medium">No students found</p>
                       </div>
                     </td>
                   </tr>

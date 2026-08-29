@@ -30,12 +30,12 @@ const DAYS: DayOfWeek[] = [
 ];
 
 const dayLabel: Record<DayOfWeek, string> = {
-  SATURDAY: "শনিবার",
-  SUNDAY: "রবিবার",
-  MONDAY: "সোমবার",
-  TUESDAY: "মঙ্গলবার",
-  WEDNESDAY: "বুধবার",
-  THURSDAY: "বৃহস্পতিবার",
+  SATURDAY: "Saturday",
+  SUNDAY: "Sunday",
+  MONDAY: "Monday",
+  TUESDAY: "Tuesday",
+  WEDNESDAY: "Wednesday",
+  THURSDAY: "Thursday",
 };
 
 function formatTime(value: string) {

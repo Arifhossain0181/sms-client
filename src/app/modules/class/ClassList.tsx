@@ -82,7 +82,7 @@ export default function ClassList() {
     setShowForm(true);
   };
   const handleDelete = (id: string) => {
-    if (confirm("Delete করবেন?")) deleteClass(id);
+    if (confirm("Delete this class?")) deleteClass(id);
   };
   const handleClose = () => {
     setShowForm(false);
@@ -118,7 +118,7 @@ export default function ClassList() {
                   <Sparkles className="h-4 w-4 text-amber-500" />
                 </h1>
                 <p className="text-sm text-slate-500 dark:text-slate-400">
-                  মোট <span className="font-semibold text-indigo-600 dark:text-indigo-400">{classList.length}</span> টি class ·{" "}
+                  Total <span className="font-semibold text-indigo-600 dark:text-indigo-400">{classList.length}</span> classes ·{" "}
                   <span className="font-semibold text-fuchsia-600 dark:text-fuchsia-400">{totalSections}</span> sections ·{" "}
                   <span className="font-semibold text-emerald-600 dark:text-emerald-400">{totalStudents}</span> students
                 </p>
@@ -267,7 +267,7 @@ export default function ClassList() {
                           <td className="px-4 py-4">
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300 text-xs font-semibold">
                               <Users className="h-3 w-3" />
-                              {studentCount} জন
+                              {studentCount} students
                             </span>
                           </td>
 
@@ -316,7 +316,7 @@ export default function ClassList() {
                             <GraduationCap className="h-8 w-8 text-slate-400" />
                           </div>
                           <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-                            কোনো class পাওয়া যায়নি
+                              No classes found
                           </p>
                         </motion.div>
                       </td>

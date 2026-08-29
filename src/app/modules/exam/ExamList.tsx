@@ -59,7 +59,7 @@ export default function ExamList() {
   };
 
   const handleDelete = (id: string) => {
-    if (confirm("Delete করবেন?")) deleteExam(id);
+    if (confirm("Delete this exam?")) deleteExam(id);
   };
 
   const handleClose = () => {
@@ -104,11 +104,11 @@ export default function ExamList() {
                 Exams
               </h1>
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-                মোট{" "}
+                Total{" "}
                 <span className="font-semibold text-indigo-600 dark:text-indigo-400">
                   {examList.length}
                 </span>{" "}
-                টি exam
+                exams
               </p>
             </div>
           </div>
@@ -156,7 +156,7 @@ export default function ExamList() {
                 <tr className="bg-gradient-to-r from-slate-50/80 to-indigo-50/40 dark:from-slate-800/60 dark:to-indigo-950/40 border-b border-slate-200/70 dark:border-slate-700/50">
                   <th className="text-left px-6 py-4 font-semibold text-slate-600 dark:text-slate-300">
                     <div className="flex items-center gap-2">
-                      <ClipboardList className="w-4 h-4" /> Exam নাম
+                      <ClipboardList className="w-4 h-4" /> Exam name
                     </div>
                   </th>
                   <th className="text-left px-6 py-4 font-semibold text-slate-600 dark:text-slate-300">
@@ -171,7 +171,7 @@ export default function ExamList() {
                   </th>
                   <th className="text-left px-6 py-4 font-semibold text-slate-600 dark:text-slate-300">
                     <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4" /> তারিখ
+                        <Calendar className="w-4 h-4" /> Date
                     </div>
                   </th>
                   <th className="text-left px-6 py-4 font-semibold text-slate-600 dark:text-slate-300">
@@ -260,7 +260,7 @@ export default function ExamList() {
                         <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
                           <Inbox className="w-7 h-7" />
                         </div>
-                        <p className="text-sm">কোনো exam পাওয়া যায়নি</p>
+                        <p className="text-sm">No exams found</p>
                       </div>
                     </td>
                   </tr>

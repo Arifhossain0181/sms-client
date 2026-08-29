@@ -18,7 +18,7 @@ export default function TimetablePage() {
               ? "Your assigned classes routine"
               : role === "STUDENT"
               ? "Your class weekly routine"
-              : "Class অনুযায়ী সাপ্তাহিক রুটিন"}
+              : "Weekly routine by class"}
           </p>
         </div>
       </div>

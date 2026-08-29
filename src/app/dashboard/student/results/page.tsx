@@ -290,7 +290,7 @@ export default function StudentResultsPage() {
                   <BookOpen className="w-10 h-10 text-indigo-400" />
                 </div>
                 <h3 className="text-base font-semibold text-slate-700 dark:text-slate-200">
-                  কোনো result নেই
+                  No results available
                 </h3>
                 <p className="mt-1 text-sm text-slate-400 dark:text-slate-500">
                   No results available yet.

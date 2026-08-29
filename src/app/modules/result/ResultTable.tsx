@@ -108,7 +108,7 @@ export default function ResultTable() {
               Results
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-              Exam select করে result দিন বা দেখুন
+              Select an exam to enter or view results
             </p>
           </div>
         </motion.div>
@@ -122,7 +122,7 @@ export default function ResultTable() {
         >
           <label className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-200 mb-3">
             <ClipboardList className="w-4 h-4 text-indigo-500" />
-            Exam Select করুন
+            Select Exam
           </label>
           <div className="relative max-w-md">
             <select
@@ -277,7 +277,7 @@ export default function ResultTable() {
                     ) : (
                       <>
                         <Save className="w-4 h-4" />
-                        Result Save করুন
+                        Save Result
                       </>
                     )}
                   </motion.button>
@@ -298,7 +298,7 @@ export default function ResultTable() {
                 <ClipboardList className="w-7 h-7 text-indigo-500" />
               </div>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                Exam select করুন
+                Select an exam
               </p>
             </motion.div>
           )}
@@ -315,7 +315,7 @@ export default function ResultTable() {
                 <Inbox className="w-7 h-7 text-slate-400" />
               </div>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                এই class এ কোনো student নেই
+                No students in this class
               </p>
             </motion.div>
           )}

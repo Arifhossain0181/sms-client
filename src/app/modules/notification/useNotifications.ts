@@ -12,7 +12,7 @@ export const useNotifications = () => {
     queryFn: notificationService.getAll,
   });
 
-  // Unread count update করো
+  // Update the unread count
   useEffect(() => {
     if (query.data) {
       const unread = query.data.filter((n) => !n.isRead).length;
@@ -44,7 +44,7 @@ export const useMarkAllAsRead = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       reset();
-      toast.success("সব notification read হয়েছে!");
+      toast.success("All notifications marked as read!");
     },
   });
 };

@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
+import { jwtDecode } from "jwt-decode";
 import { loginSchema, LoginFormData } from "@/lib/validtation";
 import { authService } from "@/service/auth.service";
 import { useAuthStore } from "@/store/authstore";
@@ -21,6 +23,32 @@ const getErrorMessage = (err: unknown, fallback: string) => {
   return fallback;
 };
 
+const parseCookieToken = () => {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(/(?:^|; )accessToken=([^;]+)/);
+  const token = match?.[1];
+  if (!token) return null;
+
+  try {
+    const decoded = jwtDecode<{ role?: string; exp?: number }>(token);
+    if (decoded?.exp && decoded.exp * 1000 < Date.now()) {
+      document.cookie = "accessToken=; Path=/; Max-Age=0; SameSite=Lax";
+      document.cookie = "refreshToken=; Path=/; Max-Age=0; SameSite=Lax";
+      return null;
+    }
+    return decoded;
+  } catch {
+    return null;
+  }
+};
+
+const getSafeRedirectTarget = (redirect: string | null) => {
+  if (!redirect) return null;
+  if (redirect.startsWith("/login") || redirect.startsWith("/register")) return null;
+  if (redirect === "/dashboard") return null;
+  return redirect;
+};
+
 export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -31,20 +59,72 @@ export default function LoginForm() {
     formState: { errors, isSubmitting },
   } = useForm<LoginFormData>({ resolver: zodResolver(loginSchema) });
 
+  useEffect(() => {
+    const decoded = parseCookieToken();
+    if (!decoded?.role) return;
+
+    const roleRedirects: Record<string, string> = {
+      SUPER_ADMIN: "/dashboard/super-admin",
+      SCHOOL_ADMIN: "/dashboard/school-admin",
+      ACCOUNTANT: "/dashboard/accountant",
+      TEACHER: "/dashboard/teacher",
+      STUDENT: "/dashboard/student",
+      PARENT: "/dashboard/parent",
+      EXAM_CONTROLLER: "/dashboard/exam-controller",
+      HR: "/dashboard/hr",
+    };
+
+    const redirect = getSafeRedirectTarget(searchParams.get("redirect"));
+    const target = redirect || roleRedirects[decoded.role] || "/dashboard";
+    router.replace(target);
+  }, [router, searchParams]);
+
   const onSubmit = async (data: LoginFormData) => {
     try {
       const user = await authService.login(data);
       setUser(user);
+
+      if (user?.role === "STUDENT") {
+        try {
+          const meRes = await api.get("/students/me");
+          const profile = meRes.data?.data ?? meRes.data;
+          const isPendingApproval =
+            profile?.pending ||
+            (profile?.admissionStatus !== undefined && profile.admissionStatus !== "APPROVED");
+
+          if (isPendingApproval) {
+            toast.info("Your admission is pending approval. Dashboard access is hidden until approval.");
+            router.push("/pending-approval");
+            return;
+          }
+        } catch (error: unknown) {
+          const status = (error as { response?: { status?: number } }).response?.status;
+          if (status === 404) {
+            router.push("/apply-for-admission?reason=profile_not_found");
+            return;
+          }
+        }
+      }
+
       toast.success("Login successful");
-      const redirect = searchParams.get("redirect");
-      if (redirect && !redirect.startsWith("/login") && !redirect.startsWith("/register")) {
+      const redirect = getSafeRedirectTarget(searchParams.get("redirect"));
+      if (redirect) {
         router.push(redirect);
         return;
       }
 
-      // Always send the user to the home page after login.
-      // Student dashboard access will be allowed only after admission is approved.
-      router.push("/");
+      const roleRedirects: Record<string, string> = {
+        SUPER_ADMIN: "/dashboard/super-admin",
+        SCHOOL_ADMIN: "/dashboard/school-admin",
+        ACCOUNTANT: "/dashboard/accountant",
+        TEACHER: "/dashboard/teacher",
+        STUDENT: "/dashboard/student",
+        PARENT: "/dashboard/parent",
+        EXAM_CONTROLLER: "/dashboard/exam-controller",
+        HR: "/dashboard/hr",
+      };
+
+      router.push(roleRedirects[user?.role ?? ""] || "/dashboard");
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, "Login failed"));
     }

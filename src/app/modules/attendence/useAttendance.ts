@@ -5,7 +5,7 @@ import { TakeAttendancePayload } from "./attendance.types"
 import { toast } from "sonner"
 
 
-// Class + Section + Date দিয়ে attendance আনো
+// Fetch attendance by class, section, and date
 export const useAttendancesByClassAndDate = (classId: string, sectionId: string, date: string) => {
     return useQuery({
     queryKey: ["attendances", classId, sectionId, date],
@@ -14,7 +14,7 @@ export const useAttendancesByClassAndDate = (classId: string, sectionId: string,
     })
 }
 
-// Student এর attendance আনো
+// Fetch a student's attendance
 export const useAttendancesByStudent = (studentId: string) => {
     return useQuery({
         queryKey: ["attendances", studentId],
@@ -22,7 +22,7 @@ export const useAttendancesByStudent = (studentId: string) => {
     })
 }
 
-// Bulk attendance দাও (একসাথে সব student এর)
+// Submit attendance for all students
 export const useTakeAttendance = () =>{
     const queryClient = useQueryClient()
     return useMutation({
@@ -44,7 +44,7 @@ export const useUpdateAttendance = () => {
       attendanceService.update(id, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["attendances"] });
-      toast.success("Attendance update হয়েছে!");
+      toast.success("Attendance updated!");
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message || "Failed!");

@@ -42,7 +42,7 @@ export const useCreateTimetable = () => {
       timetableService.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["timetables"] });
-      toast.success("Timetable add হয়েছে!");
+      toast.success("Timetable added!");
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message || "Failed!");
@@ -62,7 +62,7 @@ export const useUpdateTimetable = () => {
     }) => timetableService.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["timetables"] });
-      toast.success("Timetable update হয়েছে!");
+      toast.success("Timetable updated!");
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message || "Failed!");
@@ -76,7 +76,7 @@ export const useDeleteTimetable = () => {
     mutationFn: (id: string) => timetableService.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["timetables"] });
-      toast.success("Timetable delete হয়েছে!");
+      toast.success("Timetable deleted!");
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message || "Failed!");

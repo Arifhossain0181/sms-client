@@ -25,13 +25,13 @@ import { useSubjects } from "../subject/useSubjects";
 import { Exam } from "./exam.types";
 
 const schema = z.object({
-  name: z.string().min(1, "Exam নাম দাও"),
-  subjectId: z.string().min(1, "Subject select করো"),
-  classId: z.string().min(1, "Class select করো"),
-  date: z.string().min(1, "Date দাও"),
-  startTime: z.string().min(1, "Start time দাও"),
-  endTime: z.string().min(1, "End time দাও"),
-  totalMarks: z.coerce.number().min(1, "Total marks দাও"),
+  name: z.string().min(1, "Enter the exam name"),
+  subjectId: z.string().min(1, "Select a subject"),
+  classId: z.string().min(1, "Select a class"),
+  date: z.string().min(1, "Enter the date"),
+  startTime: z.string().min(1, "Enter the start time"),
+  endTime: z.string().min(1, "Enter the end time"),
+  totalMarks: z.coerce.number().min(1, "Enter the total marks"),
 });
 
 type FormInput = z.input<typeof schema>;
@@ -152,10 +152,10 @@ export default function ExamForm({ exam, onClose }: Props) {
               </div>
               <div>
                 <h2 className="text-lg font-bold bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
-                  {exam ? "Exam Edit" : "নতুন Exam"}
+                  {exam ? "Edit Exam" : "New Exam"}
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  {exam ? "তথ্য আপডেট করো" : "নতুন exam যোগ করো"}
+                  {exam ? "Update the details" : "Add a new exam"}
                 </p>
               </div>
             </div>
@@ -174,10 +174,10 @@ export default function ExamForm({ exam, onClose }: Props) {
                 <ClipboardList className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   {...register("name")}
-                  placeholder="Exam নাম"
+                  placeholder="Exam name"
                   className={`${fieldBase} pr-11`}
                 />
-                <label className={floatLabelBase}>Exam নাম</label>
+                <label className={floatLabelBase}>Exam name</label>
               </div>
               <ErrorMsg message={errors.name?.message} />
             </motion.div>

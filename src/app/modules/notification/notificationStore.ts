@@ -12,10 +12,10 @@ export const useNotificationStore = create<NotificationState>((set) => ({
 
   setUnreadCount: (count) => set({ unreadCount: count }),
 
-  // নতুন notification আসলে count বাড়াও
+  // Increase the count when a new notification arrives
   increment: () =>
     set((state) => ({ unreadCount: state.unreadCount + 1 })),
 
-  // সব read করলে reset
+  // Reset when all notifications are read
   reset: () => set({ unreadCount: 0 }),
 }));

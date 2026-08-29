@@ -39,12 +39,12 @@ const DAYS: DayOfWeek[] = [
 ];
 
 const dayLabel: Record<DayOfWeek, string> = {
-  SATURDAY: "শনিবার",
-  SUNDAY: "রবিবার",
-  MONDAY: "সোমবার",
-  TUESDAY: "মঙ্গলবার",
-  WEDNESDAY: "বুধবার",
-  THURSDAY: "বৃহস্পতিবার",
+  SATURDAY: "Saturday",
+  SUNDAY: "Sunday",
+  MONDAY: "Monday",
+  TUESDAY: "Tuesday",
+  WEDNESDAY: "Wednesday",
+  THURSDAY: "Thursday",
 };
 
 const subjectGradients = [
@@ -116,7 +116,7 @@ export default function TimetableGrid() {
   };
 
   const handleDelete = (id: string) => {
-    if (confirm("Delete করবেন?")) deleteTimetable(id);
+    if (confirm("Delete this timetable?")) deleteTimetable(id);
   };
 
   const handleClose = () => {
@@ -173,7 +173,7 @@ export default function TimetableGrid() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Timetable</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {isStudent ? "Your class weekly routine" : isTeacher ? "Your assigned classes routine" : "Class অনুযায়ী সাপ্তাহিক রুটিন"}
+            {isStudent ? "Your class weekly routine" : isTeacher ? "Your assigned classes routine" : "Weekly routine by class"}
           </p>
         </div>
         {role && hasPermission(role, "manage_timetable") && (
@@ -207,7 +207,7 @@ export default function TimetableGrid() {
               onChange={(e) => setClassId(e.target.value)}
               className="w-full appearance-none rounded-lg border border-border bg-background px-4 py-2.5 pr-10 text-sm font-medium text-foreground outline-none transition duration-200 hover:border-indigo-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 cursor-pointer"
             >
-              <option value="">সব Class</option>
+              <option value="">All Classes</option>
               {classes?.map((cls: any) => (
                 <option key={cls.id} value={cls.id}>
                   {cls.name}{" "}
@@ -246,7 +246,7 @@ export default function TimetableGrid() {
                   </h2>
                 </div>
                 <span className="inline-flex items-center rounded-full bg-white/25 px-2 py-0.5 text-[11px] font-semibold">
-                  {groupedByDay[day].length} টি class
+                  {groupedByDay[day].length} classes
                 </span>
               </div>
             </div>
@@ -320,7 +320,7 @@ export default function TimetableGrid() {
                     <Inbox className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    এই দিনে কোনো class নেই
+                    No classes on this day
                   </p>
                 </div>
               )}

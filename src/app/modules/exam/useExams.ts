@@ -31,7 +31,7 @@ export const useCreateExam = () => {
     mutationFn: (data: CreateExamPayload) => examService.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["exams"] });
-      toast.success("Exam add হয়েছে!");
+      toast.success("Exam added!");
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message || "Failed!");
@@ -46,7 +46,7 @@ export const useUpdateExam = () => {
       examService.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["exams"] });
-      toast.success("Exam update হয়েছে!");
+      toast.success("Exam updated!");
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message || "Failed!");
@@ -60,7 +60,7 @@ export const useDeleteExam = () => {
     mutationFn: (id: string) => examService.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["exams"] });
-      toast.success("Exam delete হয়েছে!");
+      toast.success("Exam deleted!");
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message || "Failed!");

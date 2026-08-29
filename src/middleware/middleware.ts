@@ -24,24 +24,54 @@ const dashboardRoutes: Record<Role, string[]> = {
 
 const roleRoutes: Record<Role, string[]> = {
   SUPER_ADMIN: ["/dashboard"],
-  SCHOOL_ADMIN: ["/students", "/teachers", "/classes", "/subjects", "/attendance", "/exams", "/results", "/fees", "/notices", "/admission", "/notifications", "/hr"],
-  ACCOUNTANT: ["/fees", "/notifications", "/hr"],
-  TEACHER: ["/attendance", "/exams", "/results", "/notices", "/timetable", "/notifications"],
-  STUDENT: ["/results", "/fees", "/notices", "/timetable", "/notifications"],
-  PARENT: ["/results", "/fees", "/notices", "/timetable", "/notifications"],
-  EXAM_CONTROLLER: ["/exams", "/results", "/notices", "/notifications"],
-  HR: ["/teachers", "/attendance", "/notices", "/notifications", "/hr", "/recruitment"],
+  SCHOOL_ADMIN: ["/dashboard", "/students", "/teachers", "/classes", "/subjects", "/attendance", "/exams", "/results", "/fees", "/notices", "/admission", "/notifications", "/hr"],
+  ACCOUNTANT: ["/dashboard", "/fees", "/notifications", "/hr"],
+  TEACHER: ["/dashboard", "/attendance", "/exams", "/results", "/notices", "/timetable", "/notifications"],
+  STUDENT: ["/dashboard", "/results", "/fees", "/notices", "/timetable", "/notifications"],
+  PARENT: ["/dashboard", "/results", "/fees", "/notices", "/timetable", "/notifications"],
+  EXAM_CONTROLLER: ["/dashboard", "/exams", "/results", "/notices", "/notifications"],
+  HR: ["/dashboard", "/teachers", "/attendance", "/notices", "/notifications", "/hr", "/recruitment"],
+};
+
+const roleDashboardRedirects: Record<Role, string> = {
+  SUPER_ADMIN: "/dashboard/super-admin",
+  SCHOOL_ADMIN: "/dashboard/school-admin",
+  ACCOUNTANT: "/dashboard/accountant",
+  TEACHER: "/dashboard/teacher",
+  STUDENT: "/dashboard/student",
+  PARENT: "/dashboard/parent",
+  EXAM_CONTROLLER: "/dashboard/exam-controller",
+  HR: "/dashboard/hr",
 };
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  if (pathname === "/apply-for-Teaching" || pathname.startsWith("/apply-for-Teaching")) {
+    return NextResponse.next();
+  }
 
   const accessToken = req.cookies.get("accessToken")?.value;
   const refreshToken = req.cookies.get("refreshToken")?.value;
 
   if (pathname.startsWith("/login") || pathname.startsWith("/register")) {
     if (accessToken) {
-      return NextResponse.redirect(new URL("/dashboard", req.url));
+      try {
+        const decoded = jwtDecode<{ role: Role; exp: number }>(accessToken);
+        const target = roleDashboardRedirects[decoded.role] || "/dashboard";
+        const requestedRedirect = req.nextUrl.searchParams.get("redirect");
+
+        if (
+          requestedRedirect &&
+          (requestedRedirect === target || requestedRedirect === "/dashboard")
+        ) {
+          return NextResponse.next();
+        }
+
+        return NextResponse.redirect(new URL(target, req.url));
+      } catch {
+        return NextResponse.redirect(new URL("/dashboard", req.url));
+      }
     }
     return NextResponse.next();
   }
@@ -50,12 +80,12 @@ export async function middleware(req: NextRequest) {
     if (refreshToken) {
       try {
         const refreshRes = await fetch(
-          "${process.env.NEXT_PUBLIC_API_URL}/auth/refresh-token",
+          `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh-token`,
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Cookie: "refreshToken=${refreshToken}",
+              Cookie: `refreshToken=${refreshToken}`,
             },
             credentials: "include",
             body: JSON.stringify({ refreshToken }),
@@ -87,7 +117,15 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
 
+    if (pathname === "/apply-for-Teaching") {
+      return NextResponse.next();
+    }
+
     const role = decoded.role as Role;
+
+    if (pathname === "/dashboard") {
+      return NextResponse.next();
+    }
 
     if (pathname.startsWith("/dashboard/")) {
       const allowed = dashboardRoutes[role] || [];
@@ -101,7 +139,7 @@ export async function middleware(req: NextRequest) {
     }
 
     const allowed = roleRoutes[role] || [];
-    const hasAccess = allowed.some((r) => pathname.startsWith(r));
+    const hasAccess = allowed.some((r) => pathname === r || pathname.startsWith(`${r}/`));
 
     if (!hasAccess) {
       return NextResponse.redirect(new URL("/dashboard", req.url));
@@ -119,12 +157,4 @@ export async function middleware(req: NextRequest) {
   }
 }
 
-export const config = {
-  matcher: [
-    "/dashboard/:path*", "/students/:path*", "/teachers/:path*",
-    "/classes/:path*", "/subjects/:path*", "/attendance/:path*",
-    "/exams/:path*", "/results/:path*", "/fees/:path*",
-    "/notices/:path*", "/admission/:path*", "/timetable/:path*",
-    "/notifications/:path*", "/login", "/register",
-  ],
-};
+

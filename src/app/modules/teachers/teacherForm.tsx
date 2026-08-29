@@ -31,18 +31,18 @@ import { useCreateTeacher, useUpdateTeacher } from "./useTeachers";
 import { Teacher } from "./teacher.types";
 
 const schema = z.object({
-  name: z.string().min(2, "নাম দাও"),
-  email: z.string().email("Valid email দাও"),
+  name: z.string().min(2, "Enter the name"),
+  email: z.string().email("Enter a valid email"),
   TeachersId: z.string().optional(),
-  designation: z.string().min(2, "Designation দাও"),
+  designation: z.string().min(2, "Enter the designation"),
   department: z.string().optional(),
-  qualification: z.string().min(2, "Qualification দাও"),
-  experience: z.coerce.number().min(0, "Experience দাও"),
-  phone: z.string().min(11, "Phone নম্বর দাও"),
-  address: z.string().min(3, "Address দাও"),
+  qualification: z.string().min(2, "Enter the qualification"),
+  experience: z.coerce.number().min(0, "Enter the experience"),
+  phone: z.string().min(11, "Enter the phone number"),
+  address: z.string().min(3, "Enter the address"),
   gender: z.enum(["MALE", "FEMALE", "OTHER"]),
-  dateOfBirth: z.string().min(1, "Date of birth দাও"),
-  dateOfJoining: z.string().min(1, "Joining date দাও"),
+  dateOfBirth: z.string().min(1, "Enter the date of birth"),
+  dateOfJoining: z.string().min(1, "Enter the joining date"),
   bloodGroup: z.string().optional(),
   salary: z.coerce.number().optional(),
   subjectId: z.string().optional(),
@@ -160,7 +160,7 @@ export default function TeacherForm({ teacher, onClose }: Props) {
                   {teacher ? "Update teacher profile" : "Add a new teacher"}
                 </h2>
                 <p className="mt-3 text-sm text-white/80 leading-relaxed">
-                  সঠিক তথ্য দিয়ে form পূরণ করুন। সব fields validation অনুযায়ী save হবে।
+                      Complete the form correctly. All fields will be saved after validation.
                 </p>
               </div>
 
@@ -193,7 +193,7 @@ export default function TeacherForm({ teacher, onClose }: Props) {
                   </div>
                   <div>
                     <h3 className="text-lg font-bold text-slate-900 dark:text-slate-50">
-                      {teacher ? "Teacher Edit" : "নতুন Teacher"}
+                      {teacher ? "Edit Teacher" : "New Teacher"}
                     </h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
                       Fill in the details below

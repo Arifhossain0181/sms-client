@@ -23,17 +23,17 @@ export default function SocketProvider({
   useEffect(() => {
     if (!user || !SOCKET_URL) return;
 
-    // Backend এ connect করো
+    // Connect to the backend
     const socket = io(SOCKET_URL, {
       withCredentials: true,
     });
 
-    // Connect হলে user এর room এ join করো
+    // Join the user's room after connecting
     socket.on("connect", () => {
       socket.emit("join", { userId: user.id, role: user.role });
     });
 
-    // নতুন notification আসলে
+    // Handle new notifications
     const handleNotification = (data: {
       title?: string;
       body?: string;

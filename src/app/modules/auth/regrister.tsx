@@ -34,7 +34,7 @@ export default function RegisterForm() {
   const onSubmit = async (data: RegisterFormData) => {
     try {
       await authService.register(data);
-      toast.success("Registration সফল! এখন Login করুন");
+      toast.success("Registration successful! You can now log in");
       router.push("/login");
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, "Registration failed"));
@@ -118,7 +118,7 @@ export default function RegisterForm() {
                 {...register("username")}
                 type="text"
                 autoComplete="name"
-                placeholder="আপনার নাম"
+                placeholder="Your name"
                 className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400"
               />
               {errors.username && (
