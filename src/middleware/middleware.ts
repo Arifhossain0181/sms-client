@@ -19,7 +19,7 @@ const dashboardRoutes: Record<Role, string[]> = {
   STUDENT: ["/dashboard", "/dashboard/student", "/dashboard/fees", "/dashboard/notices", "/dashboard/timetable", "/dashboard/notification"],
   PARENT: ["/dashboard", "/dashboard/parent", "/dashboard/parent/children", "/dashboard/parent/attendance", "/dashboard/parent/results", "/dashboard/parent/timetable", "/dashboard/parent/payments", "/dashboard/parent/contact", "/dashboard/student", "/dashboard/result", "/dashboard/fees", "/dashboard/notices", "/dashboard/timetable", "/dashboard/notification"],
   EXAM_CONTROLLER: ["/dashboard", "/dashboard/exam-controller", "/dashboard/exam", "/dashboard/result", "/dashboard/notices", "/dashboard/notification"],
-  HR: ["/dashboard", "/dashboard/hr", "/dashboard/teachers", "/dashboard/attendances", "/dashboard/notices", "/dashboard/notification", "/dashboard/hr/recruitment", "/dashboard/hr/profiles", "/dashboard/hr/leave", "/dashboard/hr/leave-calendar", "/dashboard/hr/payroll", "/dashboard/hr/reports", "/dashboard/hr/performance", "/dashboard/hr/departments", "/dashboard/hr/documents", "/dashboard/hr/attendance"],
+  HR: ["/dashboard", "/dashboard/hr", "/dashboard/teachers", "/dashboard/attendances", "/dashboard/notices", "/dashboard/notification", "/dashboard/hr/recruitment", "/dashboard/hr/profiles", "/dashboard/hr/leave", "/dashboard/hr/leave-calendar", "/dashboard/hr/payroll", "/dashboard/hr/reports", "/dashboard/hr/performance", "/dashboard/hr/departments", "/dashboard/hr/documents", "/dashboard/hr/attendance", "/dashboard/school-admin/admissions"],
 };
 
 const roleRoutes: Record<Role, string[]> = {

@@ -71,8 +71,17 @@ export default function ApplyForTeaching() {
   const [submitting, setSubmitting] = useState(false);
   const [loadingJob, setLoadingJob] = useState(false);
   const [job, setJob] = useState<JobPosting | null>(null);
+
+  const maxDobDate = new Date();
+  maxDobDate.setFullYear(maxDobDate.getFullYear() - 20);
+  const maxDob = maxDobDate.toISOString().slice(0, 10);
+
   const { register, handleSubmit, reset, setValue, formState: { errors } } =
-    useForm<FormInput, unknown, FormData>({ resolver: zodResolver(schema) });
+    useForm<FormInput, unknown, FormData>({
+      resolver: zodResolver(schema),
+      mode: "onChange",
+      reValidateMode: "onChange",
+    });
 
   useEffect(() => {
     if (!jobId) return;
@@ -280,9 +289,10 @@ export default function ApplyForTeaching() {
               <input
                 {...register("dob")}
                 type="date"
+                max={maxDob}
                 className="w-full bg-transparent border border-border/60 rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
-              {errors.dob && <p className="text-xs text-red-500 mt-1">{errors.dob.message}</p>}
+              {errors.dob && <p className="text-xs text-red-500 mt-1">Applicant must be at least 20 years old</p>}
             </div>
 
             <div>

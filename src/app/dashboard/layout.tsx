@@ -37,11 +37,14 @@ export default function DashboardLayout({
 
     for (const { prefix, allowedRole } of routeRoleMap) {
       if (pathname?.startsWith(prefix)) {
-        // Special case: SCHOOL_ADMIN can access HR routes
-        if (prefix === "/dashboard/hr" && (role === "HR" || role === "SCHOOL_ADMIN")) {
+        // Special case: SCHOOL_ADMIN and HR can access shared admin routes
+        if (
+          (prefix === "/dashboard/hr" && (role === "HR" || role === "SCHOOL_ADMIN")) ||
+          (prefix === "/dashboard/school-admin" && (role === "HR" || role === "SCHOOL_ADMIN"))
+        ) {
           continue;
         }
-        
+
         if (role !== allowedRole) {
           router.replace("/dashboard");
           return;

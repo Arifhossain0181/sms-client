@@ -355,6 +355,7 @@ const getNavGroups = (role: Role | null): NavGroup[] => {
             { icon: UserCog,       label: "All Staff",        href: "/dashboard/teachers" },
             { icon: UserPlus,      label: "Recruitment",      href: "/dashboard/hr/recruitment" },
             { icon: FolderOpen,    label: "Staff Profiles",   href: "/dashboard/hr/profiles" },
+            { icon: UserPlus,      label: "Student Applications", href: "/dashboard/school-admin/admissions" },
           ],
         },
         {

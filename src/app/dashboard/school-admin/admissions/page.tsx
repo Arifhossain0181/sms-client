@@ -27,9 +27,8 @@ import {
   RefreshCw,
   Plus,
 } from "lucide-react";
-import { toast } from "sonner";
 import { admissionService } from "@/app/modules/admission/admission.service";
-import { AdmissionClassOption, CreateAdmissionPayload, Gender, BloodGroup } from "@/app/modules/admission/admission.types";
+import { AdmissionClassOption, CreateAdmissionPayload, Gender } from "@/app/modules/admission/admission.types";
 
 // ─── Types 
 
@@ -112,9 +111,6 @@ function DetailModal({
   const [rejectReason, setRejectReason] = useState("");
   const [showReject, setShowReject] = useState(false);
   const [showConvert, setShowConvert] = useState(false);
-  const [convertForm, setConvertForm] = useState<ConvertForm>({
-    admissionId: admission.id,
-  });
 
   const cfg = STATUS_CONFIG[admission.status];
   const Icon = cfg.icon;
@@ -315,7 +311,7 @@ function DetailModal({
                     Cancel
                   </button>
                   <button
-                    onClick={() => onConvert(convertForm)}
+                    onClick={() => onConvert({ admissionId: admission.id })}
                     disabled={actionLoading}
                     className="flex-1 flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold py-2.5 rounded-xl transition-colors disabled:opacity-50"
                   >
@@ -340,7 +336,7 @@ export default function AdminAdmissionsPage() {
 
   // Role guard
   useEffect(() => {
-    if (role && role !== "SCHOOL_ADMIN" && role !== "SUPER_ADMIN") {
+    if (role && role !== "SCHOOL_ADMIN" && role !== "SUPER_ADMIN" && role !== "HR") {
       router.replace("/dashboard");
     }
   }, [role, router]);
@@ -468,8 +464,15 @@ export default function AdminAdmissionsPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // reset page when filters change
-  useEffect(() => { setPage(1); }, [search, statusFilter]);
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
+
+  const handleStatusChange = (value: AdmissionStatus | "ALL") => {
+    setStatusFilter(value);
+    setPage(1);
+  };
 
   // ── Actions 
   const handleApprove = async (id: string) => {
@@ -509,6 +512,24 @@ export default function AdminAdmissionsPage() {
       fetchData();
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? "Failed to create student account";
+      showToast(msg, false);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    const confirmed = window.confirm("Are you sure you want to delete this student application?");
+    if (!confirmed) return;
+
+    try {
+      setActionLoading(true);
+      await api.delete(`/admission/${id}`);
+      showToast("Student application deleted ✓");
+      setSelected(null);
+      fetchData();
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? "Failed to delete student application";
       showToast(msg, false);
     } finally {
       setActionLoading(false);
@@ -587,7 +608,7 @@ export default function AdminAdmissionsPage() {
             type="text"
             placeholder="Search by name, guardian, phone or email…"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="w-full pl-9 pr-4 py-2.5 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
@@ -596,7 +617,7 @@ export default function AdminAdmissionsPage() {
           {(["ALL", "PENDING", "APPROVED", "REJECTED"] as const).map((s) => (
             <button
               key={s}
-              onClick={() => setStatusFilter(s)}
+              onClick={() => handleStatusChange(s)}
               className={`text-xs px-3 py-2 rounded-lg font-medium transition-colors ${
                 statusFilter === s
                   ? "bg-primary text-primary-foreground"
@@ -666,13 +687,23 @@ export default function AdminAdmissionsPage() {
                         </span>
                       </td>
                       <td className="px-5 py-4 text-right">
-                        <button
-                          onClick={() => setSelected(adm)}
-                          className="w-8 h-8 rounded-lg hover:bg-secondary flex items-center justify-center ml-auto transition-colors"
-                          title="View details"
-                        >
-                          <Eye className="w-4 h-4 text-muted-foreground" />
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => setSelected(adm)}
+                            className="w-8 h-8 rounded-lg hover:bg-secondary flex items-center justify-center transition-colors"
+                            title="View details"
+                          >
+                            <Eye className="w-4 h-4 text-muted-foreground" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(adm.id)}
+                            disabled={actionLoading}
+                            className="w-8 h-8 rounded-lg hover:bg-red-100 dark:hover:bg-red-950/40 flex items-center justify-center transition-colors disabled:opacity-50"
+                            title="Delete application"
+                          >
+                            <XCircle className="w-4 h-4 text-red-500" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

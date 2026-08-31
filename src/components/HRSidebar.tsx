@@ -20,6 +20,7 @@ import {
 // HR menu items
 const hrMenuOptions = [
   { title: "Dashboard", path: "/dashboard/hr", icon: LayoutDashboard },
+  { title: "Student Applications", path: "/dashboard/school-admin/admissions", icon: Users },
   { title: "Recruitment", path: "/dashboard/hr/recruitment", icon: Briefcase },
   { title: "Staff Management", path: "/dashboard/hr/profiles", icon: Users },
   { title: "Attendance", path: "/dashboard/hr/attendance", icon: CalendarCheck },
