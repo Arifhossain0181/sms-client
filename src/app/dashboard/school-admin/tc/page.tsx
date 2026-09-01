@@ -127,12 +127,10 @@ export default function SchoolAdminTCPage() {
   // ── Generate TC mutation ──────────────────────────────────────────────────
   const generateMutation = useMutation({
     mutationFn: async (payload: { studentId: string; reason: string }) => {
-      // We need to handle the PDF response as a blob
       const res = await api.post("/tc/generate", payload, { responseType: "blob" });
       return res.data as Blob;
     },
     onSuccess: (blob, variables) => {
-      // Download the PDF
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -176,262 +174,289 @@ export default function SchoolAdminTCPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="relative min-h-screen flex items-start sm:items-center justify-center p-4 sm:p-6 overflow-hidden bg-slate-50/50 dark:bg-slate-950">
       <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between flex-wrap gap-3"
-      >
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">
-            Transfer Certificate
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Issue transfer certificates for students leaving the school.
-          </p>
-        </div>
-        <button
-          onClick={() => refetch()}
-          className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl border border-border hover:bg-secondary transition-colors"
-        >
-          <RefreshCw className="w-4 h-4" /> Refresh
-        </button>
-      </motion.div>
+        animate={{ x: [0, 40, 0], y: [0, -30, 0] }}
+        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-10 -left-32 w-[500px] h-[500px] bg-sky-300/20 dark:bg-sky-500/10 rounded-full blur-3xl pointer-events-none"
+      />
+      <motion.div
+        animate={{ x: [0, -30, 0], y: [0, 40, 0] }}
+        transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute bottom-10 -right-32 w-[600px] h-[600px] bg-violet-300/20 dark:bg-violet-500/10 rounded-full blur-3xl pointer-events-none"
+      />
+      <motion.div
+        animate={{ scale: [1, 1.2, 1] }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-indigo-300/10 dark:bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"
+      />
 
-      {/* Stats strip */}
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
-        className="grid grid-cols-3 gap-4"
+        transition={{ type: "spring", stiffness: 100, damping: 20 }}
+        className="relative w-full max-w-5xl space-y-6"
       >
-        {[
-          {
-            label: "TC Issued",
-            value: totalTCIssued,
-            color: "text-foreground",
-            bg: "bg-secondary/60",
-            icon: FileBadge,
-          },
-          {
-            label: "Active Students",
-            value: activeStudents.length,
-            color: "text-emerald-600 dark:text-emerald-400",
-            bg: "bg-emerald-50 dark:bg-emerald-950/30",
-            icon: UserCheck,
-          },
-          {
-            label: "Classes",
-            value: classes.length,
-            color: "text-violet-600 dark:text-violet-400",
-            bg: "bg-violet-50 dark:bg-violet-950/30",
-            icon: GraduationCap,
-          },
-        ].map(({ label, value, color, bg, icon: Icon }) => (
-          <div key={label} className={`${bg} rounded-2xl p-4`}>
-            <div className="flex items-center gap-2 mb-1">
-              <Icon className={`w-4 h-4 ${color}`} />
-              <span className="text-xs text-muted-foreground">{label}</span>
+        {/* Header */}
+        <div className="relative px-6 sm:px-8 py-6 bg-gradient-to-r from-sky-50 via-indigo-50 to-violet-50 dark:from-sky-500/10 dark:via-indigo-500/10 dark:to-violet-500/10 border border-white/30 dark:border-white/10 rounded-3xl shadow-2xl shadow-slate-200/40 dark:shadow-none overflow-hidden">
+          <motion.div
+            animate={{ x: [0, 100, 0] }}
+            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent pointer-events-none"
+          />
+
+          <div className="relative flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-slate-800 dark:text-white">
+                Transfer Certificate
+              </h1>
+              <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
+                Issue transfer certificates for students leaving the school.
+              </p>
             </div>
-            <p className={`text-2xl font-bold ${color}`}>
-              {tcsLoading || studentsLoading ? (
-                <Skel className="w-10 h-7 inline-block" />
-              ) : (
-                value
-              )}
-            </p>
+            <button
+              onClick={() => refetch()}
+              className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl border border-white/30 dark:border-white/10 hover:bg-white/60 dark:hover:bg-white/5 transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" /> Refresh
+            </button>
           </div>
-        ))}
-      </motion.div>
+        </div>
 
-      {/* Generate TC card */}
-      {canGenerateTC && (
+        {/* Stats strip */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="rounded-2xl border border-border/60 bg-card/80 p-6 shadow-soft"
+          transition={{ delay: 0.05 }}
+          className="grid grid-cols-3 gap-4"
         >
-          <div className="flex items-center gap-2 mb-4">
-            <FileText className="w-5 h-5 text-primary" />
-            <h2 className="font-semibold text-base">Issue New TC</h2>
-          </div>
+          {[
+            {
+              label: "TC Issued",
+              value: totalTCIssued,
+              color: "text-slate-800 dark:text-white",
+              bg: "bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl border border-white/30 dark:border-white/10 shadow-2xl",
+              icon: FileBadge,
+            },
+            {
+              label: "Active Students",
+              value: activeStudents.length,
+              color: "text-emerald-600 dark:text-emerald-400",
+              bg: "bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl border border-white/30 dark:border-white/10 shadow-2xl",
+              icon: UserCheck,
+            },
+            {
+              label: "Classes",
+              value: classes.length,
+              color: "text-violet-600 dark:text-violet-400",
+              bg: "bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl border border-white/30 dark:border-white/10 shadow-2xl",
+              icon: GraduationCap,
+            },
+          ].map(({ label, value, color, bg, icon: Icon }) => (
+            <div key={label} className={`${bg} rounded-2xl p-4`}>
+              <div className="flex items-center gap-2 mb-1">
+                <Icon className={`w-4 h-4 ${color}`} />
+                <span className="text-xs text-slate-500 dark:text-slate-400">{label}</span>
+              </div>
+              <p className={`text-2xl font-bold ${color}`}>
+                {tcsLoading || studentsLoading ? (
+                  <Skel className="w-10 h-7 inline-block" />
+                ) : (
+                  value
+                )}
+              </p>
+            </div>
+          ))}
+        </motion.div>
 
-          <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
-            {/* Student search/select */}
-            <div className="relative flex-1 min-w-[220px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search active student by name..."
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setSelectedStudentId("");
-                }}
-                className="w-full pl-9 pr-4 py-2.5 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring"
-              />
+        {/* Generate TC card */}
+        {canGenerateTC && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl shadow-slate-200/40 dark:shadow-none p-6"
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <FileText className="w-5 h-5 text-primary" />
+              <h2 className="font-semibold text-base text-slate-800 dark:text-white">Issue New TC</h2>
             </div>
 
-            {/* Student dropdown */}
-            <select
-              value={selectedStudentId}
-              onChange={(e) => setSelectedStudentId(e.target.value)}
-              className="text-sm border border-border rounded-xl px-3 py-2.5 bg-background focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              <option value="">Select Student</option>
-              {activeStudents.map((s: Student) => (
-                <option key={s.id} value={s.id}>
-                  {s.name} {s.class?.name ? `(${s.class.name}` : ""}
-                  {s.section?.name ? ` - ${s.section.name}` : ""}
-                  {")"}
-                </option>
-              ))}
-            </select>
+            <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
+              {/* Student search/select */}
+              <div className="relative flex-1 min-w-[220px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
+                <input
+                  type="text"
+                  placeholder="Search active student by name..."
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setSelectedStudentId("");
+                  }}
+                  className="w-full pl-9 pr-4 py-2.5 text-sm border border-white/30 dark:border-white/10 rounded-xl bg-white/60 dark:bg-slate-800/60 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
 
-            {/* Reason */}
-            <input
-              type="text"
-              placeholder="Reason for leaving"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              className="text-sm border border-border rounded-xl px-3 py-2.5 bg-background focus:outline-none focus:ring-2 focus:ring-ring flex-1 min-w-[180px]"
-            />
+              {/* Student dropdown */}
+              <select
+                value={selectedStudentId}
+                onChange={(e) => setSelectedStudentId(e.target.value)}
+                className="text-sm border border-white/30 dark:border-white/10 rounded-xl px-3 py-2.5 bg-white/60 dark:bg-slate-800/60 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="">Select Student</option>
+                {activeStudents.map((s: Student) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} {s.class?.name ? `(${s.class.name}` : ""}
+                    {s.section?.name ? ` - ${s.section.name}` : ""}
+                    {")"}
+                  </option>
+                ))}
+              </select>
 
-            <button
-              onClick={handleGenerate}
-              disabled={!selectedStudentId || !reason.trim() || actionLoading || generateMutation.isPending}
-              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50 whitespace-nowrap"
-            >
-              {actionLoading || generateMutation.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Download className="w-4 h-4" />
-              )}
-              Generate TC
-            </button>
-          </div>
-        </motion.div>
-      )}
+              {/* Reason */}
+              <input
+                type="text"
+                placeholder="Reason for leaving"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                className="text-sm border border-white/30 dark:border-white/10 rounded-xl px-3 py-2.5 bg-white/60 dark:bg-slate-800/60 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-ring flex-1 min-w-[180px]"
+              />
 
-      {/* TC Records table */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-        className="rounded-2xl border border-border/60 bg-card/80 shadow-soft overflow-hidden"
-      >
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border/60 bg-secondary/40">
-                <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
-                  Student
-                </th>
-                <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden md:table-cell">
-                  Class
-                </th>
-                <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden lg:table-cell">
-                  Section
-                </th>
-                <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden lg:table-cell">
-                  Issue Date
-                </th>
-                <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
-                  Reason
-                </th>
-                <th className="px-5 py-3.5" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/40">
-              {tcsLoading ? (
-                Array.from({ length: 6 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse">
-                    <td className="px-5 py-4"><Skel className="w-28 h-4" /></td>
-                    <td className="px-5 py-4 hidden md:table-cell"><Skel className="w-20 h-4" /></td>
-                    <td className="px-5 py-4 hidden lg:table-cell"><Skel className="w-16 h-4" /></td>
-                    <td className="px-5 py-4 hidden lg:table-cell"><Skel className="w-24 h-4" /></td>
-                    <td className="px-5 py-4"><Skel className="w-32 h-4" /></td>
-                    <td className="px-5 py-4"><Skel className="w-8 h-8 rounded" /></td>
-                  </tr>
-                ))
-              ) : recentTCs.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-5 py-16 text-center">
-                    <FileBadge className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
-                    <p className="text-sm text-muted-foreground">No TC records found.</p>
-                  </td>
-                </tr>
-              ) : (
-                recentTCs.map((tc) => (
-                  <tr key={tc.id} className="hover:bg-secondary/20 transition-colors">
-                    <td className="px-5 py-4">
-                      <div>
-                        <p className="font-medium">{tc.studentName}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {tc.studentEmail}
-                        </p>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 font-medium hidden md:table-cell">
-                      {tc.className}
-                    </td>
-                    <td className="px-5 py-4 text-muted-foreground hidden lg:table-cell">
-                      {tc.sectionName}
-                    </td>
-                    <td className="px-5 py-4 text-muted-foreground hidden lg:table-cell">
-                      <span className="inline-flex items-center gap-1.5">
-                        <CalendarDays className="w-3.5 h-3.5 text-muted-foreground" />
-                        {tc.issueDate ? fmt(tc.issueDate) : "—"}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-muted-foreground max-w-[200px] truncate">
-                      {tc.reason ?? "—"}
-                    </td>
-                    <td className="px-5 py-4 text-right">
-                      <button
-                        onClick={() => {
-                          api
-                            .get(`/tc/${tc.studentId}/download`, {
-                              responseType: "blob",
-                            })
-                            .then((res) => {
-                              const blob = res.data as Blob;
-                              const url = window.URL.createObjectURL(blob);
-                              const a = document.createElement("a");
-                              a.href = url;
-                              a.download = `TC_${tc.studentId}.pdf`;
-                              document.body.appendChild(a);
-                              a.click();
-                              a.remove();
-                              window.URL.revokeObjectURL(url);
-                            })
-                            .catch(() => toast.error("Failed to download TC"));
-                        }}
-                        className="w-8 h-8 rounded-lg hover:bg-secondary flex items-center justify-center ml-auto transition-colors"
-                        title="Download TC"
-                      >
-                        <Download className="w-4 h-4 text-muted-foreground" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {!tcsLoading && recentTCs.length > 0 && (
-          <div className="px-5 py-4 border-t border-border/60 flex items-center justify-between text-sm">
-            <span className="text-muted-foreground text-xs">
-              Showing {recentTCs.length} of {totalTCIssued} records
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {totalTCIssued} total issued
-            </span>
-          </div>
+              <button
+                onClick={handleGenerate}
+                disabled={!selectedStudentId || !reason.trim() || actionLoading || generateMutation.isPending}
+                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50 whitespace-nowrap"
+              >
+                {actionLoading || generateMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+                Generate TC
+              </button>
+            </div>
+          </motion.div>
         )}
+
+        {/* TC Records table */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl shadow-slate-200/40 dark:shadow-none overflow-hidden"
+        >
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/30 dark:border-white/10 bg-sky-50/60 dark:bg-sky-500/5">
+                  <th className="text-left px-5 py-3.5 font-semibold text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    Student
+                  </th>
+                  <th className="text-left px-5 py-3.5 font-semibold text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 hidden md:table-cell">
+                    Class
+                  </th>
+                  <th className="text-left px-5 py-3.5 font-semibold text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 hidden lg:table-cell">
+                    Section
+                  </th>
+                  <th className="text-left px-5 py-3.5 font-semibold text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 hidden lg:table-cell">
+                    Issue Date
+                  </th>
+                  <th className="text-left px-5 py-3.5 font-semibold text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    Reason
+                  </th>
+                  <th className="px-5 py-3.5" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/20 dark:divide-white/5">
+                {tcsLoading ? (
+                  Array.from({ length: 6 }).map((_, i) => (
+                    <tr key={i} className="animate-pulse">
+                      <td className="px-5 py-4"><Skel className="w-28 h-4" /></td>
+                      <td className="px-5 py-4 hidden md:table-cell"><Skel className="w-20 h-4" /></td>
+                      <td className="px-5 py-4 hidden lg:table-cell"><Skel className="w-16 h-4" /></td>
+                      <td className="px-5 py-4 hidden lg:table-cell"><Skel className="w-24 h-4" /></td>
+                      <td className="px-5 py-4"><Skel className="w-32 h-4" /></td>
+                      <td className="px-5 py-4"><Skel className="w-8 h-8 rounded" /></td>
+                    </tr>
+                  ))
+                ) : recentTCs.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-5 py-16 text-center">
+                      <FileBadge className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+                      <p className="text-sm text-slate-500 dark:text-slate-400">No TC records found.</p>
+                    </td>
+                  </tr>
+                ) : (
+                  recentTCs.map((tc) => (
+                    <tr key={tc.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
+                      <td className="px-5 py-4">
+                        <div>
+                          <p className="font-medium text-slate-800 dark:text-slate-200">{tc.studentName}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {tc.studentEmail}
+                          </p>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4 font-medium text-slate-800 dark:text-slate-200 hidden md:table-cell">
+                        {tc.className}
+                      </td>
+                      <td className="px-5 py-4 text-slate-500 dark:text-slate-400 hidden lg:table-cell">
+                        {tc.sectionName}
+                      </td>
+                      <td className="px-5 py-4 text-slate-500 dark:text-slate-400 hidden lg:table-cell">
+                        <span className="inline-flex items-center gap-1.5">
+                          <CalendarDays className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+                          {tc.issueDate ? fmt(tc.issueDate) : "—"}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 text-slate-500 dark:text-slate-400 max-w-[200px] truncate">
+                        {tc.reason ?? "—"}
+                      </td>
+                      <td className="px-5 py-4 text-right">
+                        <button
+                          onClick={() => {
+                            api
+                              .get(`/tc/${tc.studentId}/download`, {
+                                responseType: "blob",
+                              })
+                              .then((res) => {
+                                const blob = res.data as Blob;
+                                const url = window.URL.createObjectURL(blob);
+                                const a = document.createElement("a");
+                                a.href = url;
+                                a.download = `TC_${tc.studentId}.pdf`;
+                                document.body.appendChild(a);
+                                a.click();
+                                a.remove();
+                                window.URL.revokeObjectURL(url);
+                              })
+                              .catch(() => toast.error("Failed to download TC"));
+                          }}
+                          className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 flex items-center justify-center ml-auto transition-colors"
+                          title="Download TC"
+                        >
+                          <Download className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {!tcsLoading && recentTCs.length > 0 && (
+            <div className="px-5 py-4 border-t border-white/30 dark:border-white/10 flex items-center justify-between text-sm">
+              <span className="text-slate-500 dark:text-slate-400 text-xs">
+                Showing {recentTCs.length} of {totalTCIssued} records
+              </span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">
+                {totalTCIssued} total issued
+              </span>
+            </div>
+          )}
+        </motion.div>
       </motion.div>
     </div>
   );

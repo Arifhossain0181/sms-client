@@ -133,10 +133,10 @@ function SubjectModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
         transition={{ duration: 0.2 }}
-        className="relative bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md"
+        className="relative bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl w-full max-w-md"
       >
-        <div className="sticky top-0 bg-card/95 backdrop-blur border-b border-border/60 px-6 py-4 flex items-center justify-between z-10">
-          <h2 className="font-semibold text-base">{subject ? "Edit Subject" : "Add New Subject"}</h2>
+        <div className="sticky top-0 bg-white/80 dark:bg-slate-900/60 backdrop-blur border-b border-white/30 dark:border-white/10 px-6 py-4 flex items-center justify-between z-10">
+          <h2 className="font-semibold text-base text-slate-800 dark:text-white">{subject ? "Edit Subject" : "Add New Subject"}</h2>
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-lg hover:bg-secondary flex items-center justify-center"
@@ -147,7 +147,7 @@ function SubjectModal({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Subject Name</label>
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 block">Subject Name</label>
             <div className="relative">
               <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
@@ -161,7 +161,7 @@ function SubjectModal({
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Subject Code</label>
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 block">Subject Code</label>
             <div className="relative">
               <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
@@ -175,7 +175,7 @@ function SubjectModal({
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Class</label>
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 block">Class</label>
             <div className="relative">
               <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               <select
@@ -195,7 +195,7 @@ function SubjectModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Full Marks</label>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 block">Full Marks</label>
               <div className="relative">
                 <Target className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
@@ -208,7 +208,7 @@ function SubjectModal({
               </div>
             </div>
             <div>
-              <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Pass Marks</label>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 block">Pass Marks</label>
               <div className="relative">
                 <CheckCircle2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
@@ -366,234 +366,252 @@ export default function SchoolAdminSubjectsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="relative min-h-screen p-4 sm:p-6 overflow-hidden bg-slate-50/50 dark:bg-slate-950">
       <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between flex-wrap gap-3"
-      >
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Subjects</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Create and manage subjects per class, assign teachers, and set marks.
-          </p>
-        </div>
-        {canManage && (
-          <button
-            onClick={handleAdd}
-            className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl border border-border hover:bg-secondary transition-colors"
-          >
-            <Plus className="w-4 h-4" /> Add Subject
-          </button>
-        )}
-      </motion.div>
+        animate={{ x: [0, 40, 0], y: [0, -30, 0] }}
+        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-10 -left-32 w-[500px] h-[500px] bg-sky-300/20 dark:bg-sky-500/10 rounded-full blur-3xl pointer-events-none"
+      />
+      <motion.div
+        animate={{ x: [0, -30, 0], y: [0, 40, 0] }}
+        transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute bottom-10 -right-32 w-[600px] h-[600px] bg-violet-300/20 dark:bg-violet-500/10 rounded-full blur-3xl pointer-events-none"
+      />
+      <motion.div
+        animate={{ scale: [1, 1.2, 1] }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-indigo-300/10 dark:bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"
+      />
 
-      {/* Stats strip */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
-        className="grid grid-cols-3 gap-4"
-      >
-        {[
-          {
-            label: "Total Subjects",
-            value: totalSubjects,
-            color: "text-foreground",
-            bg: "bg-secondary/60",
-            icon: BookOpen,
-          },
-          {
-            label: "Compulsory",
-            value: totalCompulsory,
-            color: "text-emerald-600 dark:text-emerald-400",
-            bg: "bg-emerald-50 dark:bg-emerald-950/30",
-            icon: CheckCircle2,
-          },
-          {
-            label: "Optional",
-            value: totalOptional,
-            color: "text-amber-600 dark:text-amber-400",
-            bg: "bg-amber-50 dark:bg-amber-950/30",
-            icon: CircleOff,
-          },
-        ].map(({ label, value, color, bg, icon: Icon }) => (
-          <div key={label} className={`${bg} rounded-2xl p-4`}>
-            <div className="flex items-center gap-2 mb-1">
-              <Icon className={`w-4 h-4 ${color}`} />
-              <span className="text-xs text-muted-foreground">{label}</span>
-            </div>
-            <p className={`text-2xl font-bold ${color}`}>
-              {isLoading ? <Skel className="w-10 h-7 inline-block" /> : value}
+      <div className="relative space-y-6">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between flex-wrap gap-3"
+        >
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-slate-800 dark:text-white">Subjects</h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
+              Create and manage subjects per class, assign teachers, and set marks.
             </p>
           </div>
-        ))}
-      </motion.div>
+          {canManage && (
+            <button
+              onClick={handleAdd}
+              className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl border border-border hover:bg-secondary transition-colors"
+            >
+              <Plus className="w-4 h-4" /> Add Subject
+            </button>
+          )}
+        </motion.div>
 
-      {/* Filters */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.1 }}
-        className="flex flex-col sm:flex-row gap-3 flex-wrap"
-      >
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search by name, code or class…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-        </div>
-        <select
-          value={classFilter}
-          onChange={(e) => setClassFilter(e.target.value)}
-          className="text-sm border border-border rounded-xl px-3 py-2.5 bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+        {/* Stats strip */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="grid grid-cols-3 gap-4"
         >
-          <option value="">All Classes</option>
-          {classes.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
+          {[
+            {
+              label: "Total Subjects",
+              value: totalSubjects,
+              color: "text-foreground",
+              bg: "bg-secondary/60",
+              icon: BookOpen,
+            },
+            {
+              label: "Compulsory",
+              value: totalCompulsory,
+              color: "text-emerald-600 dark:text-emerald-400",
+              bg: "bg-emerald-50 dark:bg-emerald-950/30",
+              icon: CheckCircle2,
+            },
+            {
+              label: "Optional",
+              value: totalOptional,
+              color: "text-amber-600 dark:text-amber-400",
+              bg: "bg-amber-50 dark:bg-amber-950/30",
+              icon: CircleOff,
+            },
+          ].map(({ label, value, color, bg, icon: Icon }) => (
+            <div key={label} className={`${bg} rounded-2xl p-4`}>
+              <div className="flex items-center gap-2 mb-1">
+                <Icon className={`w-4 h-4 ${color}`} />
+                <span className="text-xs text-muted-foreground">{label}</span>
+              </div>
+              <p className={`text-2xl font-bold ${color}`}>
+                {isLoading ? <Skel className="w-10 h-7 inline-block" /> : value}
+              </p>
+            </div>
           ))}
-        </select>
-        <button
-          onClick={() => refetch()}
-          className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl border border-border hover:bg-secondary transition-colors"
-        >
-          <BookOpen className="w-4 h-4" /> Refresh
-        </button>
-      </motion.div>
+        </motion.div>
 
-      {/* Table */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-        className="rounded-2xl border border-border/60 bg-card/80 shadow-soft overflow-hidden"
-      >
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border/60 bg-secondary/40">
-                <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
-                  Subject
-                </th>
-                <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
-                  Code
-                </th>
-                <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden md:table-cell">
-                  Class
-                </th>
-                <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden lg:table-cell">
-                  Teacher
-                </th>
-                <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
-                  Full / Pass
-                </th>
-                <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
-                  Type
-                </th>
-                {canManage && <th className="px-5 py-3.5" />}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/40">
-              {isLoading ? (
-                Array.from({ length: 6 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse">
-                    <td className="px-5 py-4"><Skel className="w-24 h-4" /></td>
-                    <td className="px-5 py-4"><Skel className="w-12 h-4" /></td>
-                    <td className="px-5 py-4 hidden md:table-cell"><Skel className="w-20 h-4" /></td>
-                    <td className="px-5 py-4 hidden lg:table-cell"><Skel className="w-28 h-4" /></td>
-                    <td className="px-5 py-4"><Skel className="w-16 h-4" /></td>
-                    <td className="px-5 py-4"><Skel className="w-16 h-5 rounded-full" /></td>
-                    {canManage && <td className="px-5 py-4"><Skel className="w-20 h-8 rounded" /></td>}
-                  </tr>
-                ))
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={canManage ? 7 : 6} className="px-5 py-16 text-center">
-                    <BookOpen className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
-                    <p className="text-sm text-muted-foreground">No subjects found.</p>
-                  </td>
+        {/* Filters */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.1 }}
+          className="flex flex-col sm:flex-row gap-3 flex-wrap"
+        >
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search by name, code or class…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2.5 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+          <select
+            value={classFilter}
+            onChange={(e) => setClassFilter(e.target.value)}
+            className="text-sm border border-border rounded-xl px-3 py-2.5 bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="">All Classes</option>
+            {classes.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={() => refetch()}
+            className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl border border-border hover:bg-secondary transition-colors"
+          >
+            <BookOpen className="w-4 h-4" /> Refresh
+          </button>
+        </motion.div>
+
+        {/* Table */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl overflow-hidden"
+        >
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/30 dark:border-white/10 bg-gradient-to-r from-sky-50 via-indigo-50 to-violet-50 dark:from-sky-500/10 dark:via-indigo-500/10 dark:to-violet-500/10">
+                  <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
+                    Subject
+                  </th>
+                  <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
+                    Code
+                  </th>
+                  <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden md:table-cell">
+                    Class
+                  </th>
+                  <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden lg:table-cell">
+                    Teacher
+                  </th>
+                  <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
+                    Full / Pass
+                  </th>
+                  <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
+                    Type
+                  </th>
+                  {canManage && <th className="px-5 py-3.5" />}
                 </tr>
-              ) : (
-                filtered.map((subj) => (
-                  <tr key={subj.id} className="hover:bg-secondary/20 transition-colors">
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-sm font-bold text-primary shrink-0">
-                          {subj.name.charAt(0).toUpperCase()}
-                        </div>
-                        <span className="font-medium">{subj.name}</span>
-                      </div>
+              </thead>
+              <tbody className="divide-y divide-white/20 dark:divide-white/5">
+                {isLoading ? (
+                  Array.from({ length: 6 }).map((_, i) => (
+                    <tr key={i} className="animate-pulse">
+                      <td className="px-5 py-4"><Skel className="w-24 h-4" /></td>
+                      <td className="px-5 py-4"><Skel className="w-12 h-4" /></td>
+                      <td className="px-5 py-4 hidden md:table-cell"><Skel className="w-20 h-4" /></td>
+                      <td className="px-5 py-4 hidden lg:table-cell"><Skel className="w-28 h-4" /></td>
+                      <td className="px-5 py-4"><Skel className="w-16 h-4" /></td>
+                      <td className="px-5 py-4"><Skel className="w-16 h-5 rounded-full" /></td>
+                      {canManage && <td className="px-5 py-4"><Skel className="w-20 h-8 rounded" /></td>}
+                    </tr>
+                  ))
+                ) : filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={canManage ? 7 : 6} className="px-5 py-16 text-center">
+                      <BookOpen className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
+                      <p className="text-sm text-muted-foreground">No subjects found.</p>
                     </td>
-                    <td className="px-5 py-3.5">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-secondary text-muted-foreground text-xs font-mono font-semibold">
-                        {subj.code}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5 text-muted-foreground hidden md:table-cell">
-                      {subj.class?.name ?? "—"}
-                    </td>
-                    <td className="px-5 py-3.5 text-muted-foreground hidden lg:table-cell">
-                      {subj.teacher?.name ?? "—"}
-                    </td>
-                    <td className="px-5 py-3.5 text-muted-foreground">
-                      {subj.fullMarks} / {subj.passMarks}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      {subj.isCompulsory ? (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
-                          <CheckCircle2 className="w-3 h-3" /> Compulsory
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
-                          <CircleOff className="w-3 h-3" /> Optional
-                        </span>
-                      )}
-                    </td>
-                    {canManage && (
+                  </tr>
+                ) : (
+                  filtered.map((subj) => (
+                    <tr key={subj.id} className="hover:bg-secondary/20 transition-colors">
                       <td className="px-5 py-3.5">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => handleEdit(subj)}
-                            className="w-8 h-8 rounded-lg hover:bg-secondary flex items-center justify-center transition-colors"
-                            title="Edit subject"
-                          >
-                            <Pencil className="w-4 h-4 text-muted-foreground" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(subj.id)}
-                            disabled={deleteMutation.isPending}
-                            className="w-8 h-8 rounded-lg hover:bg-secondary flex items-center justify-center transition-colors disabled:opacity-50"
-                            title="Delete subject"
-                          >
-                            <Trash2 className="w-4 h-4 text-red-500" />
-                          </button>
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-sm font-bold text-primary shrink-0">
+                            {subj.name.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="font-medium text-slate-800 dark:text-slate-100">{subj.name}</span>
                         </div>
                       </td>
-                    )}
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </motion.div>
+                      <td className="px-5 py-3.5">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-secondary text-muted-foreground text-xs font-mono font-semibold">
+                          {subj.code}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 text-muted-foreground hidden md:table-cell">
+                        {subj.class?.name ?? "—"}
+                      </td>
+                      <td className="px-5 py-3.5 text-muted-foreground hidden lg:table-cell">
+                        {subj.teacher?.name ?? "—"}
+                      </td>
+                      <td className="px-5 py-3.5 text-muted-foreground">
+                        {subj.fullMarks} / {subj.passMarks}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        {subj.isCompulsory ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
+                            <CheckCircle2 className="w-3 h-3" /> Compulsory
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
+                            <CircleOff className="w-3 h-3" /> Optional
+                          </span>
+                        )}
+                      </td>
+                      {canManage && (
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => handleEdit(subj)}
+                              className="w-8 h-8 rounded-lg hover:bg-secondary flex items-center justify-center transition-colors"
+                              title="Edit subject"
+                            >
+                              <Pencil className="w-4 h-4 text-muted-foreground" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(subj.id)}
+                              disabled={deleteMutation.isPending}
+                              className="w-8 h-8 rounded-lg hover:bg-secondary flex items-center justify-center transition-colors disabled:opacity-50"
+                              title="Delete subject"
+                            >
+                              <Trash2 className="w-4 h-4 text-red-500" />
+                            </button>
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </motion.div>
 
-      {/* Modal */}
-      {canManage && (
-        <SubjectModal
-          open={showModal}
-          onClose={handleCloseModal}
-          subject={selectedSubject}
-          classes={classes}
-        />
-      )}
+        {/* Modal */}
+        {canManage && (
+          <SubjectModal
+            open={showModal}
+            onClose={handleCloseModal}
+            subject={selectedSubject}
+            classes={classes}
+          />
+        )}
+      </div>
     </div>
   );
 }

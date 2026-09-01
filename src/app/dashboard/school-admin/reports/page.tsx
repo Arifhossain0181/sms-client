@@ -283,31 +283,56 @@ export default function SchoolAdminReportsPage() {
   if (role !== "SCHOOL_ADMIN" && role !== "SUPER_ADMIN") {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
-        <p className="text-sm text-muted-foreground">You do not have permission to view this page.</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">You do not have permission to view this page.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="relative min-h-screen overflow-hidden bg-slate-50/50 dark:bg-slate-950">
+      <motion.div
+        animate={{ x: [0, 40, 0], y: [0, -30, 0] }}
+        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-10 -left-32 w-[500px] h-[500px] bg-sky-300/20 dark:bg-sky-500/10 rounded-full blur-3xl pointer-events-none"
+      />
+      <motion.div
+        animate={{ x: [0, -30, 0], y: [0, 40, 0] }}
+        transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute bottom-10 -right-32 w-[600px] h-[600px] bg-violet-300/20 dark:bg-violet-500/10 rounded-full blur-3xl pointer-events-none"
+      />
+      <motion.div
+        animate={{ scale: [1, 1.2, 1] }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-indigo-300/10 dark:bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"
+      />
+      <div className="relative z-10 space-y-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between flex-wrap gap-3"
+        className="relative bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl shadow-slate-200/40 dark:shadow-none overflow-hidden"
       >
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Reports</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Export student, attendance, fee, and result reports in PDF or CSV.
-          </p>
+        <div className="relative px-6 sm:px-8 py-6 bg-gradient-to-r from-sky-50 via-indigo-50 to-violet-50 dark:from-sky-500/10 dark:via-indigo-500/10 dark:to-violet-500/10 border-b border-white/40 dark:border-white/5 overflow-hidden">
+          <motion.div
+            animate={{ x: [0, 100, 0] }}
+            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent pointer-events-none"
+          />
+          <div className="relative flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-slate-800 dark:text-white">Reports</h1>
+              <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
+                Export student, attendance, fee, and result reports in PDF or CSV.
+              </p>
+            </div>
+            <button
+              onClick={() => window.location.reload()}
+              className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl border border-white/40 dark:border-white/10 text-slate-700 dark:text-slate-200 hover:bg-secondary transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" /> Refresh
+            </button>
+          </div>
         </div>
-        <button
-          onClick={() => window.location.reload()}
-          className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl border border-border hover:bg-secondary transition-colors"
-        >
-          <RefreshCw className="w-4 h-4" /> Refresh
-        </button>
       </motion.div>
 
       {/* Report type selector */}
@@ -315,8 +340,9 @@ export default function SchoolAdminReportsPage() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
-        className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+        className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl shadow-slate-200/40 dark:shadow-none p-5"
       >
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {REPORT_TYPES.map((report) => {
           const Icon = report.icon;
           const isActive = reportType === report.key;
@@ -324,10 +350,10 @@ export default function SchoolAdminReportsPage() {
             <button
               key={report.key}
               onClick={() => handleTypeChange(report.key)}
-              className={`relative rounded-2xl p-4 text-left transition-all border ${
+              className={`relative rounded-2xl p-4 text-left transition-all border backdrop-blur-sm ${
                 isActive
-                  ? "border-primary/60 bg-primary/5 ring-1 ring-primary/20"
-                  : "border-border/60 bg-card/80 hover:bg-secondary/40"
+                  ? "bg-gradient-to-r from-sky-50/80 via-indigo-50/60 to-violet-50/80 dark:from-sky-500/10 dark:via-indigo-500/10 dark:to-violet-500/10 border-indigo-200/60 dark:border-indigo-400/20 hover:shadow-lg hover:shadow-indigo-500/10"
+                  : "bg-white/60 dark:bg-white/5 border-white/30 dark:border-white/10 hover:bg-white/80 dark:hover:bg-white/10"
               }`}
             >
               <div className="flex items-start gap-3">
@@ -335,10 +361,10 @@ export default function SchoolAdminReportsPage() {
                   <Icon className={`w-5 h-5 ${report.color}`} />
                 </div>
                 <div className="min-w-0">
-                  <p className={`font-semibold text-sm ${isActive ? "text-primary" : "text-foreground"}`}>
+                  <p className={`font-semibold text-sm ${isActive ? "text-primary" : "text-slate-800 dark:text-white"}`}>
                     {report.label}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
                     {report.description}
                   </p>
                 </div>
@@ -354,6 +380,7 @@ export default function SchoolAdminReportsPage() {
             </button>
           );
         })}
+      </div>
       </motion.div>
 
       {/* Filters & Export */}
@@ -361,11 +388,11 @@ export default function SchoolAdminReportsPage() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="rounded-2xl border border-border/60 bg-card/80 shadow-soft p-5"
+        className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl shadow-slate-200/40 dark:shadow-none p-5"
       >
         <div className="flex items-center gap-2 mb-4">
-          <Filter className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm font-semibold text-foreground">
+          <Filter className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+          <span className="text-sm font-semibold text-slate-800 dark:text-white">
             {currentConfig.label} — Filters &amp; Export
           </span>
         </div>
@@ -374,9 +401,9 @@ export default function SchoolAdminReportsPage() {
           {/* Class filter (needed for students, attendance, results) */}
           {(reportType === "students" || reportType === "attendance" || reportType === "results") && (
             <div className="flex-1 min-w-[200px]">
-              <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Class</label>
+              <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 block">Class</label>
               <div className="relative">
-                <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <select
                   value={classFilter}
                   onChange={(e) => { setClassFilter(e.target.value); setSectionFilter(""); }}
@@ -396,9 +423,9 @@ export default function SchoolAdminReportsPage() {
           {/* Section filter (attendance only) */}
           {reportType === "attendance" && (
             <div className="flex-1 min-w-[200px]">
-              <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Section</label>
+              <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 block">Section</label>
               <div className="relative">
-                <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <select
                   value={sectionFilter}
                   onChange={(e) => setSectionFilter(e.target.value)}
@@ -419,9 +446,9 @@ export default function SchoolAdminReportsPage() {
           {/* Date filter (attendance only) */}
           {reportType === "attendance" && (
             <div className="flex-1 min-w-[200px]">
-              <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Date</label>
+              <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 block">Date</label>
               <div className="relative">
-                <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <input
                   type="date"
                   value={attendanceDate}
@@ -435,9 +462,9 @@ export default function SchoolAdminReportsPage() {
           {/* Exam filter (results only) */}
           {reportType === "results" && (
             <div className="flex-1 min-w-[200px]">
-              <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Exam</label>
+              <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 block">Exam</label>
               <div className="relative">
-                <ExamIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <ExamIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <select
                   value={examFilter}
                   onChange={(e) => setExamFilter(e.target.value)}
@@ -457,11 +484,11 @@ export default function SchoolAdminReportsPage() {
           {/* Student filter (single student export) */}
           {reportType && (
             <div className="flex-1 min-w-[200px]">
-              <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">
+              <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 block">
                 Student {reportType !== "results" && "(optional)"}
               </label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <input
                   type="text"
                   placeholder="Search student by name…"
@@ -488,8 +515,8 @@ export default function SchoolAdminReportsPage() {
                 </select>
               )}
               {selectedStudentId && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Exporting for: <span className="font-medium text-foreground">{selectedStudent?.name ?? "selected student"}</span>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Exporting for: <span className="font-medium text-slate-800 dark:text-white">{selectedStudent?.name ?? "selected student"}</span>
                 </p>
               )}
             </div>
@@ -521,7 +548,7 @@ export default function SchoolAdminReportsPage() {
         </div>
 
         {!canExport && (
-          <p className="text-xs text-muted-foreground mt-3">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-3">
             Please select a student or fill the required filters to enable export.
           </p>
         )}
@@ -532,17 +559,17 @@ export default function SchoolAdminReportsPage() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
-        className="rounded-2xl border border-border/60 bg-card/80 shadow-soft p-5"
+        className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl shadow-slate-200/40 dark:shadow-none p-5"
       >
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-xl bg-secondary/60 flex items-center justify-center shrink-0">
-            <FileSpreadsheet className="w-5 h-5 text-muted-foreground" />
+            <FileSpreadsheet className="w-5 h-5 text-slate-400 dark:text-slate-500" />
           </div>
           <div>
-            <h3 className="font-semibold text-sm text-foreground">
+            <h3 className="font-semibold text-sm text-slate-800 dark:text-white">
               {currentConfig.label} Export
             </h3>
-            <p className="text-xs text-muted-foreground mt-1 max-w-2xl">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl">
               {reportType === "students" && "Export the complete student list including ID, name, class, section, roll number, email, and active status. Use class filter or search a single student to narrow down."}
               {reportType === "attendance" && "Export a daily attendance report for a specific class, section, and date. Shows roll number, student ID, name, status, and who marked it. You can also export for a single student."}
               {reportType === "fees" && "Export the complete fee collection report including student name, class, fee type, amount, paid amount, status, and due date. Search a student to export only their fees."}
@@ -551,6 +578,7 @@ export default function SchoolAdminReportsPage() {
           </div>
         </div>
       </motion.div>
+      </div>
     </div>
   );
 }

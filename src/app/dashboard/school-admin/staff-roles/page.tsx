@@ -250,316 +250,344 @@ export default function SchoolAdminStaffRolesPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="relative min-h-screen flex items-start sm:items-center justify-center p-4 sm:p-6 overflow-hidden bg-slate-50/50 dark:bg-slate-950">
       <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between flex-wrap gap-3"
-      >
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Role Assignments</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Assign or revoke specialized roles for staff members.
-          </p>
-        </div>
-        <button
-          onClick={() => refetch()}
-          className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl border border-border hover:bg-secondary transition-colors"
-        >
-          <RefreshCw className="w-4 h-4" /> Refresh
-        </button>
-      </motion.div>
+        animate={{ x: [0, 40, 0], y: [0, -30, 0] }}
+        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-10 -left-32 w-[500px] h-[500px] bg-sky-300/20 dark:bg-sky-500/10 rounded-full blur-3xl pointer-events-none"
+      />
+      <motion.div
+        animate={{ x: [0, -30, 0], y: [0, 40, 0] }}
+        transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute bottom-10 -right-32 w-[600px] h-[600px] bg-violet-300/20 dark:bg-violet-500/10 rounded-full blur-3xl pointer-events-none"
+      />
+      <motion.div
+        animate={{ scale: [1, 1.2, 1] }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-indigo-300/10 dark:bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"
+      />
 
-      {/* Stats strip */}
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
-        className="grid grid-cols-3 gap-4"
+        transition={{ type: "spring", stiffness: 100, damping: 20 }}
+        className="relative w-full max-w-6xl my-8 space-y-6"
       >
-        {[
-          {
-            label: "Total Staff",
-            value: totalStaff,
-            color: "text-foreground",
-            bg: "bg-secondary/60",
-            icon: Users,
-          },
-          {
-            label: "Specialized Roles",
-            value: specializedCount,
-            color: "text-blue-600 dark:text-blue-400",
-            bg: "bg-blue-50 dark:bg-blue-950/30",
-            icon: ShieldCheck,
-          },
-          {
-            label: "Teachers",
-            value: (roleCounts["TEACHER"] || 0) + (roleCounts["TEACHER"] || 0),
-            color: "text-emerald-600 dark:text-emerald-400",
-            bg: "bg-emerald-50 dark:bg-emerald-950/30",
-            icon: GraduationCap,
-          },
-        ].map(({ label, value, color, bg, icon: Icon }) => (
-          <div key={label} className={`${bg} rounded-2xl p-4`}>
-            <div className="flex items-center gap-2 mb-1">
-              <Icon className={`w-4 h-4 ${color}`} />
-              <span className="text-xs text-muted-foreground">{label}</span>
-            </div>
-            <p className={`text-2xl font-bold ${color}`}>
-              {isLoading ? <Skel className="w-10 h-7 inline-block" /> : value}
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative flex items-center justify-between flex-wrap gap-3 px-6 sm:px-8 py-6 bg-gradient-to-r from-sky-50 via-indigo-50 to-violet-50 dark:from-sky-500/10 dark:via-indigo-500/10 dark:to-violet-500/10 border border-white/30 dark:border-white/10 rounded-3xl overflow-hidden"
+        >
+          <motion.div
+            animate={{ x: [0, 100, 0] }}
+            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent pointer-events-none"
+          />
+          <div className="relative">
+            <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-slate-800 dark:text-white">Role Assignments</h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
+              Assign or revoke specialized roles for staff members.
             </p>
           </div>
-        ))}
-      </motion.div>
-
-      {/* Filters */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.1 }}
-        className="flex flex-col sm:flex-row gap-3 flex-wrap"
-      >
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search by name, email, phone or role…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-        </div>
-        <button
-          onClick={() => refetch()}
-          className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl border border-border hover:bg-secondary transition-colors"
-        >
-          <ShieldCheck className="w-4 h-4" /> Refresh
-        </button>
-      </motion.div>
-
-      {/* Table */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-        className="rounded-2xl border border-border/60 bg-card/80 shadow-soft overflow-hidden"
-      >
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border/60 bg-secondary/40">
-                <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
-                  Staff Member
-                </th>
-                <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden md:table-cell">
-                  Contact
-                </th>
-                <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden lg:table-cell">
-                  Department
-                </th>
-                <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
-                  Current Role
-                </th>
-                <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden lg:table-cell">
-                  Status
-                </th>
-                <th className="px-5 py-3.5" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/40">
-              {isLoading ? (
-                Array.from({ length: 6 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse">
-                    <td className="px-5 py-4"><Skel className="w-28 h-4" /></td>
-                    <td className="px-5 py-4 hidden md:table-cell"><Skel className="w-32 h-4" /></td>
-                    <td className="px-5 py-4 hidden lg:table-cell"><Skel className="w-20 h-4" /></td>
-                    <td className="px-5 py-4"><Skel className="w-24 h-5 rounded-full" /></td>
-                    <td className="px-5 py-4 hidden lg:table-cell"><Skel className="w-16 h-4" /></td>
-                    <td className="px-5 py-4"><Skel className="w-28 h-8 rounded" /></td>
-                  </tr>
-                ))
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-5 py-16 text-center">
-                    <Users className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
-                    <p className="text-sm text-muted-foreground">No staff found.</p>
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((teacher) => {
-                  const roleConfig = getRoleConfig(teacher.role);
-                  const RoleIcon = roleConfig.icon;
-                  const isSpecialized = ROLE_OPTIONS.some((r) => r.value === teacher.role);
-
-                  return (
-                    <tr key={teacher.id} className="hover:bg-secondary/20 transition-colors">
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-sm font-bold text-primary shrink-0">
-                            {teacher.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <span className="font-medium block">{teacher.name}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {teacher.designation ?? "—"}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3.5 text-muted-foreground hidden md:table-cell">
-                        <div className="flex flex-col gap-0.5">
-                          <span className="flex items-center gap-1">
-                            <Mail className="w-3 h-3" />
-                            {teacher.email}
-                          </span>
-                          {teacher.phone && (
-                            <span className="flex items-center gap-1">
-                              <Phone className="w-3 h-3" />
-                              {teacher.phone}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-5 py-3.5 text-muted-foreground hidden lg:table-cell">
-                        {teacher.department ?? "—"}
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${roleConfig.bg} ${roleConfig.color}`}>
-                          <RoleIcon className="w-3.5 h-3.5" />
-                          {roleConfig.label}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3.5 hidden lg:table-cell">
-                        <span
-                          className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${
-                            teacher.isActive !== false
-                              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400"
-                              : "bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400"
-                          }`}
-                        >
-                          {teacher.isActive !== false ? (
-                            <CheckCircle2 className="w-3 h-3" />
-                          ) : (
-                            <XCircle className="w-3 h-3" />
-                          )}
-                          {teacher.isActive !== false ? "Active" : "Inactive"}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => openAssignModal(teacher.id, teacher.role ?? "TEACHER")}
-                            className="w-8 h-8 rounded-lg hover:bg-secondary flex items-center justify-center transition-colors"
-                            title="Assign/change role"
-                          >
-                            <ShieldCheck className="w-4 h-4 text-muted-foreground" />
-                          </button>
-                          {isSpecialized && (
-                            <button
-                              onClick={() => handleRevoke(teacher.id)}
-                              disabled={actionLoading}
-                              className="w-8 h-8 rounded-lg hover:bg-secondary flex items-center justify-center transition-colors disabled:opacity-50"
-                              title="Revoke role"
-                            >
-                              <UserX className="w-4 h-4 text-red-500" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </motion.div>
-
-      {/* Assign Role Modal */}
-      {selectedUserId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => { setSelectedUserId(null); setSelectedRole(""); }} />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.2 }}
-            className="relative bg-card border border-border rounded-2xl shadow-2xl w-full max-w-lg"
+          <button
+            onClick={() => refetch()}
+            className="relative flex items-center gap-2 text-sm px-4 py-2 rounded-xl border border-border hover:bg-secondary transition-colors"
           >
-            <div className="sticky top-0 bg-card/95 backdrop-blur border-b border-border/60 px-6 py-4 flex items-center justify-between z-10">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-primary" />
-                <h2 className="font-semibold text-base">Assign Role</h2>
-              </div>
-              <button
-                onClick={() => { setSelectedUserId(null); setSelectedRole(""); }}
-                className="w-8 h-8 rounded-lg hover:bg-secondary flex items-center justify-center"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+            <RefreshCw className="w-4 h-4" /> Refresh
+          </button>
+        </motion.div>
 
-            <div className="p-6 space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Select a specialized role for this staff member:
+        {/* Stats strip */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="grid grid-cols-3 gap-4"
+        >
+          {[
+            {
+              label: "Total Staff",
+              value: totalStaff,
+              color: "text-foreground",
+              bg: "bg-secondary/60",
+              icon: Users,
+            },
+            {
+              label: "Specialized Roles",
+              value: specializedCount,
+              color: "text-blue-600 dark:text-blue-400",
+              bg: "bg-blue-50 dark:bg-blue-950/30",
+              icon: ShieldCheck,
+            },
+            {
+              label: "Teachers",
+              value: (roleCounts["TEACHER"] || 0) + (roleCounts["TEACHER"] || 0),
+              color: "text-emerald-600 dark:text-emerald-400",
+              bg: "bg-emerald-50 dark:bg-emerald-950/30",
+              icon: GraduationCap,
+            },
+          ].map(({ label, value, color, bg, icon: Icon }) => (
+            <div key={label} className={`${bg} rounded-2xl p-4`}>
+              <div className="flex items-center gap-2 mb-1">
+                <Icon className={`w-4 h-4 ${color}`} />
+                <span className="text-xs text-slate-500 dark:text-slate-400">{label}</span>
+              </div>
+              <p className={`text-2xl font-bold ${color}`}>
+                {isLoading ? <Skel className="w-10 h-7 inline-block" /> : value}
               </p>
+            </div>
+          ))}
+        </motion.div>
 
-              <div className="grid gap-2">
-                {ROLE_OPTIONS.map((option) => {
-                  const Icon = option.icon;
-                  return (
-                    <button
-                      key={option.value}
-                      onClick={() => setSelectedRole(option.value)}
-                      className={`flex items-start gap-3 p-4 rounded-xl border text-left transition-colors ${
-                        selectedRole === option.value
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:bg-secondary/50"
-                      }`}
-                    >
-                      <div className={`w-10 h-10 rounded-xl ${option.bg} flex items-center justify-center shrink-0`}>
-                        <Icon className={`w-5 h-5 ${option.color}`} />
-                      </div>
-                      <div>
-                        <p className={`font-semibold text-sm ${selectedRole === option.value ? "text-primary" : "text-foreground"}`}>
-                          {option.label}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {option.description}
-                        </p>
-                      </div>
-                      {selectedRole === option.value && (
-                        <CheckCircle2 className="w-5 h-5 text-primary ml-auto shrink-0" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+        {/* Filters */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.1 }}
+          className="flex flex-col sm:flex-row gap-3 flex-wrap"
+        >
+          <div className="relative flex-1 min-w-[200px] bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search by name, email, phone or role…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2.5 text-sm border border-border rounded-xl bg-transparent focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+          <button
+            onClick={() => refetch()}
+            className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl border border-border hover:bg-secondary transition-colors"
+          >
+            <ShieldCheck className="w-4 h-4" /> Refresh
+          </button>
+        </motion.div>
 
-              <div className="flex gap-3 pt-2">
+        {/* Table */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl overflow-hidden"
+        >
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border/60 bg-secondary/40">
+                  <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
+                    Staff Member
+                  </th>
+                  <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden md:table-cell">
+                    Contact
+                  </th>
+                  <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden lg:table-cell">
+                    Department
+                  </th>
+                  <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
+                    Current Role
+                  </th>
+                  <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden lg:table-cell">
+                    Status
+                  </th>
+                  <th className="px-5 py-3.5" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/40">
+                {isLoading ? (
+                  Array.from({ length: 6 }).map((_, i) => (
+                    <tr key={i} className="animate-pulse">
+                      <td className="px-5 py-4"><Skel className="w-28 h-4" /></td>
+                      <td className="px-5 py-4 hidden md:table-cell"><Skel className="w-32 h-4" /></td>
+                      <td className="px-5 py-4 hidden lg:table-cell"><Skel className="w-20 h-4" /></td>
+                      <td className="px-5 py-4"><Skel className="w-24 h-5 rounded-full" /></td>
+                      <td className="px-5 py-4 hidden lg:table-cell"><Skel className="w-16 h-4" /></td>
+                      <td className="px-5 py-4"><Skel className="w-28 h-8 rounded" /></td>
+                    </tr>
+                  ))
+                ) : filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-5 py-16 text-center">
+                      <Users className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
+                      <p className="text-sm text-muted-foreground">No staff found.</p>
+                    </td>
+                  </tr>
+                ) : (
+                  filtered.map((teacher) => {
+                    const roleConfig = getRoleConfig(teacher.role);
+                    const RoleIcon = roleConfig.icon;
+                    const isSpecialized = ROLE_OPTIONS.some((r) => r.value === teacher.role);
+
+                    return (
+                      <tr key={teacher.id} className="hover:bg-secondary/20 transition-colors">
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-sm font-bold text-primary shrink-0">
+                              {teacher.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <span className="font-medium block">{teacher.name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {teacher.designation ?? "—"}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-5 py-3.5 text-muted-foreground hidden md:table-cell">
+                          <div className="flex flex-col gap-0.5">
+                            <span className="flex items-center gap-1">
+                              <Mail className="w-3 h-3" />
+                              {teacher.email}
+                            </span>
+                            {teacher.phone && (
+                              <span className="flex items-center gap-1">
+                                <Phone className="w-3 h-3" />
+                                {teacher.phone}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-5 py-3.5 text-muted-foreground hidden lg:table-cell">
+                          {teacher.department ?? "—"}
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${roleConfig.bg} ${roleConfig.color}`}>
+                            <RoleIcon className="w-3.5 h-3.5" />
+                            {roleConfig.label}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3.5 hidden lg:table-cell">
+                          <span
+                            className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${
+                              teacher.isActive !== false
+                                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400"
+                                : "bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400"
+                            }`}
+                          >
+                            {teacher.isActive !== false ? (
+                              <CheckCircle2 className="w-3 h-3" />
+                            ) : (
+                              <XCircle className="w-3 h-3" />
+                            )}
+                            {teacher.isActive !== false ? "Active" : "Inactive"}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => openAssignModal(teacher.id, teacher.role ?? "TEACHER")}
+                              className="w-8 h-8 rounded-lg hover:bg-secondary flex items-center justify-center transition-colors"
+                              title="Assign/change role"
+                            >
+                              <ShieldCheck className="w-4 h-4 text-muted-foreground" />
+                            </button>
+                            {isSpecialized && (
+                              <button
+                                onClick={() => handleRevoke(teacher.id)}
+                                disabled={actionLoading}
+                                className="w-8 h-8 rounded-lg hover:bg-secondary flex items-center justify-center transition-colors disabled:opacity-50"
+                                title="Revoke role"
+                              >
+                                <UserX className="w-4 h-4 text-red-500" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </motion.div>
+
+        {/* Assign Role Modal */}
+        {selectedUserId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => { setSelectedUserId(null); setSelectedRole(""); }} />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+              className="relative bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl border border-white/30 dark:border-white/10 shadow-2xl w-full max-w-lg rounded-3xl"
+            >
+              <div className="sticky top-0 bg-white/80 dark:bg-slate-900/60 backdrop-blur border-b border-white/30 dark:border-white/10 px-6 py-4 flex items-center justify-between z-10 rounded-t-3xl">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-primary" />
+                  <h2 className="font-semibold text-base text-slate-800 dark:text-white">Assign Role</h2>
+                </div>
                 <button
                   onClick={() => { setSelectedUserId(null); setSelectedRole(""); }}
-                  className="flex-1 py-2.5 rounded-xl border border-border hover:bg-secondary transition-colors text-sm font-medium"
+                  className="w-8 h-8 rounded-lg hover:bg-secondary flex items-center justify-center"
                 >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleAssign}
-                  disabled={!selectedRole || actionLoading}
-                  className="flex-1 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {actionLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <ShieldCheck className="w-4 h-4" />
-                  )}
-                  Assign Role
+                  <X className="w-4 h-4" />
                 </button>
               </div>
-            </div>
-          </motion.div>
-        </div>
-      )}
+
+              <div className="p-6 space-y-4">
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  Select a specialized role for this staff member:
+                </p>
+
+                <div className="grid gap-2">
+                  {ROLE_OPTIONS.map((option) => {
+                    const Icon = option.icon;
+                    return (
+                      <button
+                        key={option.value}
+                        onClick={() => setSelectedRole(option.value)}
+                        className={`flex items-start gap-3 p-4 rounded-xl border text-left transition-colors ${
+                          selectedRole === option.value
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:bg-secondary/50"
+                        }`}
+                      >
+                        <div className={`w-10 h-10 rounded-xl ${option.bg} flex items-center justify-center shrink-0`}>
+                          <Icon className={`w-5 h-5 ${option.color}`} />
+                        </div>
+                        <div>
+                          <p className={`font-semibold text-sm ${selectedRole === option.value ? "text-primary" : "text-foreground"}`}>
+                            {option.label}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            {option.description}
+                          </p>
+                        </div>
+                        {selectedRole === option.value && (
+                          <CheckCircle2 className="w-5 h-5 text-primary ml-auto shrink-0" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => { setSelectedUserId(null); setSelectedRole(""); }}
+                    className="flex-1 py-2.5 rounded-xl border border-border hover:bg-secondary transition-colors text-sm font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleAssign}
+                    disabled={!selectedRole || actionLoading}
+                    className="flex-1 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {actionLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <ShieldCheck className="w-4 h-4" />
+                    )}
+                    Assign Role
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </motion.div>
     </div>
   );
 }

@@ -156,18 +156,18 @@ function DetailModal({
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.2 }}
-        className="relative bg-card border border-border rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        className="relative bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
       >
-        <div className="sticky top-0 bg-card/95 backdrop-blur border-b border-border/60 px-6 py-4 flex items-center justify-between z-10">
+        <div className="sticky top-0 bg-white/80 dark:bg-slate-900/60 backdrop-blur border-b border-white/30 dark:border-white/10 px-6 py-4 flex items-center justify-between z-10">
           <div className="flex items-center gap-2">
-            <ActionIcon className="w-5 h-5 text-primary" />
-            <h2 className="font-semibold text-base">{actionConfig.label} Request</h2>
+            <ActionIcon className="w-5 h-5 text-slate-700 dark:text-slate-200" />
+            <h2 className="font-semibold text-base text-slate-800 dark:text-white">{actionConfig.label} Request</h2>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg hover:bg-secondary flex items-center justify-center"
+            className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4 text-slate-600 dark:text-slate-300" />
           </button>
         </div>
 
@@ -177,27 +177,27 @@ function DetailModal({
               <StatusIcon className="w-3.5 h-3.5" />
               {statusConfig.label}
             </span>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-slate-500 dark:text-slate-400">
               {fmt(action.createdAt)}
             </span>
           </div>
 
           <div className="space-y-3">
-            <div className="bg-secondary/40 rounded-xl p-4">
-              <p className="text-xs font-semibold text-muted-foreground mb-1">Staff Member</p>
-              <p className="text-sm font-medium">{action.staffName}</p>
-              <p className="text-xs text-muted-foreground">ID: {action.staffId}</p>
+            <div className="bg-slate-100/60 dark:bg-slate-800/40 rounded-xl p-4 backdrop-blur-sm">
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Staff Member</p>
+              <p className="text-sm font-medium text-slate-800 dark:text-white">{action.staffName}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">ID: {action.staffId}</p>
             </div>
 
             <div>
-              <p className="text-xs font-semibold text-muted-foreground mb-1">Reason</p>
-              <p className="text-sm">{action.reason}</p>
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Reason</p>
+              <p className="text-sm text-slate-700 dark:text-slate-200">{action.reason}</p>
             </div>
 
             {action.details && Object.keys(action.details).length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-muted-foreground mb-1">Additional Details</p>
-                <div className="bg-secondary/40 rounded-xl p-3 text-xs font-mono">
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Additional Details</p>
+                <div className="bg-slate-100/60 dark:bg-slate-800/40 rounded-xl p-3 text-xs font-mono backdrop-blur-sm">
                   {JSON.stringify(action.details, null, 2)}
                 </div>
               </div>
@@ -205,8 +205,8 @@ function DetailModal({
 
             {action.reviewComment && (
               <div>
-                <p className="text-xs font-semibold text-muted-foreground mb-1">Review Comment</p>
-                <p className="text-sm">{action.reviewComment}</p>
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Review Comment</p>
+                <p className="text-sm text-slate-700 dark:text-slate-200">{action.reviewComment}</p>
               </div>
             )}
           </div>
@@ -238,12 +238,12 @@ function DetailModal({
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
                     rows={3}
-                    className="w-full text-sm border border-border rounded-xl px-3 py-2 bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                    className="w-full text-sm border border-white/30 dark:border-white/10 rounded-xl px-3 py-2 bg-white/60 dark:bg-slate-800/40 backdrop-blur-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
                   />
                   <div className="flex gap-3">
                     <button
                       onClick={() => { setShowComment(false); setComment(""); }}
-                      className="flex-1 text-sm py-2.5 rounded-xl border border-border hover:bg-secondary transition-colors"
+                      className="flex-1 text-sm py-2.5 rounded-xl border border-white/30 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                     >
                       Cancel
                     </button>
@@ -383,200 +383,239 @@ export default function SchoolAdminEscalationsPage() {
   // ── Render ─────────────────────────────────────────────────────────────────
   if (role !== "SCHOOL_ADMIN" && role !== "SUPER_ADMIN") {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <p className="text-sm text-muted-foreground">You do not have permission to view this page.</p>
+      <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-slate-50/50 dark:bg-slate-950">
+        <motion.div
+          animate={{ x: [0, 40, 0], y: [0, -30, 0] }}
+          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-10 -left-32 w-[500px] h-[500px] bg-sky-300/20 dark:bg-sky-500/10 rounded-full blur-3xl pointer-events-none"
+        />
+        <motion.div
+          animate={{ x: [0, -30, 0], y: [0, 40, 0] }}
+          transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute bottom-10 -right-32 w-[600px] h-[600px] bg-violet-300/20 dark:bg-violet-500/10 rounded-full blur-3xl pointer-events-none"
+        />
+        <motion.div
+          animate={{ scale: [1, 1.2, 1] }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-indigo-300/10 dark:bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"
+        />
+        <div className="relative bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl shadow-slate-200/40 dark:shadow-none p-8">
+          <p className="text-sm text-slate-600 dark:text-slate-400">You do not have permission to view this page.</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="relative min-h-screen overflow-hidden bg-slate-50/50 dark:bg-slate-950">
       <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between flex-wrap gap-3"
-      >
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Escalations</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Review and approve or reject critical staff action requests.
-          </p>
-        </div>
-        <button
-          onClick={() => refetch()}
-          className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl border border-border hover:bg-secondary transition-colors"
+        animate={{ x: [0, 40, 0], y: [0, -30, 0] }}
+        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-10 -left-32 w-[500px] h-[500px] bg-sky-300/20 dark:bg-sky-500/10 rounded-full blur-3xl pointer-events-none"
+      />
+      <motion.div
+        animate={{ x: [0, -30, 0], y: [0, 40, 0] }}
+        transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute bottom-10 -right-32 w-[600px] h-[600px] bg-violet-300/20 dark:bg-violet-500/10 rounded-full blur-3xl pointer-events-none"
+      />
+      <motion.div
+        animate={{ scale: [1, 1.2, 1] }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-indigo-300/10 dark:bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"
+      />
+
+      <div className="relative p-4 sm:p-6 lg:p-8 space-y-6">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl shadow-slate-200/40 dark:shadow-none overflow-hidden"
         >
-          <RefreshCw className="w-4 h-4" /> Refresh
-        </button>
-      </motion.div>
-
-      {/* Stats strip */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
-        className="grid grid-cols-3 gap-4"
-      >
-        {[
-          {
-            label: "Pending",
-            value: totalPending,
-            color: "text-amber-600 dark:text-amber-400",
-            bg: "bg-amber-50 dark:bg-amber-950/30",
-            icon: AlertCircle,
-          },
-          {
-            label: "Approved",
-            value: totalApproved,
-            color: "text-emerald-600 dark:text-emerald-400",
-            bg: "bg-emerald-50 dark:bg-emerald-950/30",
-            icon: CheckCircle2,
-          },
-          {
-            label: "Rejected",
-            value: totalRejected,
-            color: "text-red-600 dark:text-red-400",
-            bg: "bg-red-50 dark:bg-red-950/30",
-            icon: XCircle,
-          },
-        ].map(({ label, value, color, bg, icon: Icon }) => (
-          <div key={label} className={`${bg} rounded-2xl p-4`}>
-            <div className="flex items-center gap-2 mb-1">
-              <Icon className={`w-4 h-4 ${color}`} />
-              <span className="text-xs text-muted-foreground">{label}</span>
+          <div className="bg-gradient-to-r from-sky-50 via-indigo-50 to-violet-50 dark:from-sky-500/10 dark:via-indigo-500/10 dark:to-violet-500/10 border-b border-white/40 dark:border-white/5 px-6 py-5 flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-slate-800 dark:text-white">Escalations</h1>
+              <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
+                Review and approve or reject critical staff action requests.
+              </p>
             </div>
-            <p className={`text-2xl font-bold ${color}`}>
-              {isLoading ? <Skel className="w-10 h-7 inline-block" /> : value}
-            </p>
-          </div>
-        ))}
-      </motion.div>
-
-      {/* Filters */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.1 }}
-        className="flex flex-col sm:flex-row gap-3 flex-wrap"
-      >
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search by staff, action type, or reason…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-        </div>
-        <div className="flex gap-2">
-          {(["ALL", "PENDING", "APPROVED", "REJECTED"] as const).map((s) => (
             <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
-              className={`text-xs px-3 py-2.5 rounded-xl font-medium transition-colors ${
-                statusFilter === s
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary hover:bg-secondary/80 text-muted-foreground"
-              }`}
+              onClick={() => refetch()}
+              className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl border border-white/30 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
-              {s === "ALL" ? "All" : s.charAt(0) + s.slice(1).toLowerCase()}
+              <RefreshCw className="w-4 h-4" /> Refresh
             </button>
+          </div>
+        </motion.div>
+
+        {/* Stats strip */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="grid grid-cols-3 gap-4"
+        >
+          {[
+            {
+              label: "Pending",
+              value: totalPending,
+              color: "text-amber-600 dark:text-amber-400",
+              bg: "bg-amber-50 dark:bg-amber-950/30",
+              icon: AlertCircle,
+            },
+            {
+              label: "Approved",
+              value: totalApproved,
+              color: "text-emerald-600 dark:text-emerald-400",
+              bg: "bg-emerald-50 dark:bg-emerald-950/30",
+              icon: CheckCircle2,
+            },
+            {
+              label: "Rejected",
+              value: totalRejected,
+              color: "text-red-600 dark:text-red-400",
+              bg: "bg-red-50 dark:bg-red-950/30",
+              icon: XCircle,
+            },
+          ].map(({ label, value, color, bg, icon: Icon }) => (
+            <div key={label} className={`${bg} rounded-2xl p-4 border border-white/30 dark:border-white/10 shadow-lg`}>
+              <div className="flex items-center gap-2 mb-1">
+                <Icon className={`w-4 h-4 ${color}`} />
+                <span className="text-xs text-slate-500 dark:text-slate-400">{label}</span>
+              </div>
+              <p className={`text-2xl font-bold ${color}`}>
+                {isLoading ? <Skel className="w-10 h-7 inline-block" /> : value}
+              </p>
+            </div>
           ))}
-        </div>
-      </motion.div>
+        </motion.div>
 
-      {/* Table */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-        className="rounded-2xl border border-border/60 bg-card/80 shadow-soft overflow-hidden"
-      >
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border/60 bg-secondary/40">
-                <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide">Action</th>
-                <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide">Staff</th>
-                <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden md:table-cell">Reason</th>
-                <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide">Status</th>
-                <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden lg:table-cell">Date</th>
-                <th className="px-5 py-3.5" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/40">
-              {isLoading ? (
-                Array.from({ length: 6 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse">
-                    <td className="px-5 py-4"><Skel className="w-20 h-4" /></td>
-                    <td className="px-5 py-4"><Skel className="w-24 h-4" /></td>
-                    <td className="px-5 py-4 hidden md:table-cell"><Skel className="w-32 h-4" /></td>
-                    <td className="px-5 py-4"><Skel className="w-16 h-5 rounded-full" /></td>
-                    <td className="px-5 py-4 hidden lg:table-cell"><Skel className="w-20 h-4" /></td>
-                    <td className="px-5 py-4"><Skel className="w-8 h-8 rounded" /></td>
-                  </tr>
-                ))
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-5 py-16 text-center">
-                    <ClipboardCheck className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
-                    <p className="text-sm text-muted-foreground">No escalations found.</p>
-                  </td>
+        {/* Filters */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.1 }}
+          className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl shadow-slate-200/40 dark:shadow-none p-4"
+        >
+          <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
+              <input
+                type="text"
+                placeholder="Search by staff, action type, or reason…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-9 pr-4 py-2.5 text-sm border border-white/30 dark:border-white/10 rounded-xl bg-white/60 dark:bg-slate-800/40 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+              />
+            </div>
+            <div className="flex gap-2">
+              {(["ALL", "PENDING", "APPROVED", "REJECTED"] as const).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setStatusFilter(s)}
+                  className={`text-xs px-3 py-2.5 rounded-xl font-medium transition-colors ${
+                    statusFilter === s
+                      ? "bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 text-white shadow-lg shadow-indigo-500/30"
+                      : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+                  }`}
+                >
+                  {s === "ALL" ? "All" : s.charAt(0) + s.slice(1).toLowerCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Table */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl shadow-slate-200/40 dark:shadow-none overflow-hidden"
+        >
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/40 dark:border-white/10 bg-slate-100/60 dark:bg-slate-800/40">
+                  <th className="text-left px-5 py-3.5 font-semibold text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wide">Action</th>
+                  <th className="text-left px-5 py-3.5 font-semibold text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wide">Staff</th>
+                  <th className="text-left px-5 py-3.5 font-semibold text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wide hidden md:table-cell">Reason</th>
+                  <th className="text-left px-5 py-3.5 font-semibold text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wide">Status</th>
+                  <th className="text-left px-5 py-3.5 font-semibold text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wide hidden lg:table-cell">Date</th>
+                  <th className="px-5 py-3.5" />
                 </tr>
-              ) : (
-                filtered.map((action) => {
-                  const actionConfig = getActionConfig(action.actionType);
-                  const statusConfig = getStatusConfig(action.status);
-                  const ActionIcon = actionConfig.icon;
-                  const StatusIcon = statusConfig.icon;
-
-                  return (
-                    <tr key={action.id} className="hover:bg-secondary/20 transition-colors">
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-9 h-9 rounded-xl ${actionConfig.bg} flex items-center justify-center shrink-0`}>
-                            <ActionIcon className={`w-4 h-4 ${actionConfig.color}`} />
-                          </div>
-                          <span className="font-medium">{actionConfig.label}</span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <div>
-                          <p className="font-medium">{action.staffName}</p>
-                          <p className="text-xs text-muted-foreground">ID: {action.staffId.slice(0, 8)}</p>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3.5 text-muted-foreground hidden md:table-cell max-w-[200px] truncate">
-                        {action.reason}
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${statusConfig.bg} ${statusConfig.color}`}>
-                          <StatusIcon className="w-3.5 h-3.5" />
-                          {statusConfig.label}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3.5 text-muted-foreground hidden lg:table-cell whitespace-nowrap">
-                        {fmt(action.createdAt)}
-                      </td>
-                      <td className="px-5 py-3.5 text-right">
-                        <button
-                          onClick={() => openDetail(action)}
-                          className="w-8 h-8 rounded-lg hover:bg-secondary flex items-center justify-center ml-auto transition-colors"
-                          title="View details"
-                        >
-                          <Eye className="w-4 h-4 text-muted-foreground" />
-                        </button>
-                      </td>
+              </thead>
+              <tbody className="divide-y divide-white/20 dark:divide-white/5">
+                {isLoading ? (
+                  Array.from({ length: 6 }).map((_, i) => (
+                    <tr key={i} className="animate-pulse">
+                      <td className="px-5 py-4"><Skel className="w-20 h-4" /></td>
+                      <td className="px-5 py-4"><Skel className="w-24 h-4" /></td>
+                      <td className="px-5 py-4 hidden md:table-cell"><Skel className="w-32 h-4" /></td>
+                      <td className="px-5 py-4"><Skel className="w-16 h-5 rounded-full" /></td>
+                      <td className="px-5 py-4 hidden lg:table-cell"><Skel className="w-20 h-4" /></td>
+                      <td className="px-5 py-4"><Skel className="w-8 h-8 rounded" /></td>
                     </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </motion.div>
+                  ))
+                ) : filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-5 py-16 text-center">
+                      <ClipboardCheck className="w-10 h-10 text-slate-400/40 dark:text-slate-500/40 mx-auto mb-3" />
+                      <p className="text-sm text-slate-500 dark:text-slate-400">No escalations found.</p>
+                    </td>
+                  </tr>
+                ) : (
+                  filtered.map((action) => {
+                    const actionConfig = getActionConfig(action.actionType);
+                    const statusConfig = getStatusConfig(action.status);
+                    const ActionIcon = actionConfig.icon;
+                    const StatusIcon = statusConfig.icon;
+
+                    return (
+                      <tr key={action.id} className="hover:bg-slate-100/50 dark:hover:bg-slate-800/30 transition-colors">
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-9 h-9 rounded-xl ${actionConfig.bg} flex items-center justify-center shrink-0`}>
+                              <ActionIcon className={`w-4 h-4 ${actionConfig.color}`} />
+                            </div>
+                            <span className="font-medium text-slate-800 dark:text-white">{actionConfig.label}</span>
+                          </div>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <div>
+                            <p className="font-medium text-slate-800 dark:text-white">{action.staffName}</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">ID: {action.staffId.slice(0, 8)}</p>
+                          </div>
+                        </td>
+                        <td className="px-5 py-3.5 text-slate-500 dark:text-slate-400 hidden md:table-cell max-w-[200px] truncate">
+                          {action.reason}
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${statusConfig.bg} ${statusConfig.color}`}>
+                            <StatusIcon className="w-3.5 h-3.5" />
+                            {statusConfig.label}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3.5 text-slate-500 dark:text-slate-400 hidden lg:table-cell whitespace-nowrap">
+                          {fmt(action.createdAt)}
+                        </td>
+                        <td className="px-5 py-3.5 text-right">
+                          <button
+                            onClick={() => openDetail(action)}
+                            className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center ml-auto transition-colors"
+                            title="View details"
+                          >
+                            <Eye className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </motion.div>
+      </div>
 
       {/* Detail Modal */}
       <AnimatePresence>
