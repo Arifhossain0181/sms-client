@@ -28,7 +28,7 @@ import {
   Plus,
 } from "lucide-react";
 import { admissionService } from "@/app/modules/admission/admission.service";
-import { AdmissionClassOption, CreateAdmissionPayload, Gender } from "@/app/modules/admission/admission.types";
+import { AdmissionClassOption, BloodGroup, CreateAdmissionPayload, Gender } from "@/app/modules/admission/admission.types";
 
 // ─── Types 
 

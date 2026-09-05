@@ -264,13 +264,15 @@ export default function AttendancePage() {
         (s) =>
           s.name.toLowerCase().includes(q) ||
           s.employeeId.toLowerCase().includes(q) ||
-          s.designation.toLowerCase().includes(q) ||
+          s.designation?.toLowerCase().includes(q) ||
           s.email.toLowerCase().includes(q)
       );
     }
 
     if (departmentFilter) {
-      list = list.filter((s) => s.department?.name === departmentFilter);
+      list = list.filter((s) =>
+        (typeof s.department === "string" ? s.department : s.department?.name) === departmentFilter
+      );
     }
 
     if (staffTypeFilter === "TEACHING") {
@@ -285,7 +287,8 @@ export default function AttendancePage() {
   const departments = useMemo(() => {
     const depts = new Map<string, string>();
     staffList.forEach((s) => {
-      if (s.department?.name) depts.set(s.department.name, s.department.name);
+      const departmentName = typeof s.department === "string" ? s.department : s.department?.name;
+      if (departmentName) depts.set(departmentName, departmentName);
     });
     return Array.from(depts.values()).sort();
   }, [staffList]);
@@ -415,7 +418,7 @@ export default function AttendancePage() {
       body: records.map((r) => [
         r.staffName,
         r.employeeId,
-        r.designation,
+        r.designation || "",
         r.department || "—",
         r.status,
         r.note || "—",
@@ -688,7 +691,7 @@ export default function AttendancePage() {
   );
 }
 
-function ViewModeTable({ loading, records, onCycleStatus }: { loading: boolean; records: AttendanceRecord[]; onCycleStatus: (staffId: string, status: string) => void }) {
+function ViewModeTable({ loading, records, onCycleStatus }: { loading: boolean; records: AttendanceRecord[]; onCycleStatus: (staffId: string, status: string, personType?: "STAFF" | "TEACHER") => void }) {
   if (loading) {
     return (
       <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-6 shadow-xl">
@@ -822,8 +825,8 @@ function MarkModeTable({
   filteredStaff: StaffMember[];
   staffList: StaffMember[];
   attendanceMap: Map<string, AttendanceRecord>;
-  onStatusChange: (staffId: string, status: string) => void;
-  onNoteChange: (staffId: string, note: string) => void;
+  onStatusChange: (staffId: string, status: string, personType?: "STAFF" | "TEACHER") => void;
+  onNoteChange: (staffId: string, note: string, personType?: "STAFF" | "TEACHER") => void;
 }) {
   if (loading) {
     return (
@@ -908,7 +911,7 @@ function MarkModeTable({
                   </td>
                   <td className="py-3 text-slate-700 dark:text-slate-200">{staff.designation}</td>
                   <td className="py-3 text-xs text-slate-500 dark:text-slate-400">
-                    {staff.department?.name || "—"}
+                    {(typeof staff.department === "string" ? staff.department : staff.department?.name) || "—"}
                   </td>
                   <td className="py-3">
                     <div className="flex flex-wrap items-center justify-center gap-1">

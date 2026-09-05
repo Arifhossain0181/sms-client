@@ -50,6 +50,7 @@ import {
   ShieldCheck,
   FileSpreadsheet,
   Server,
+  Settings,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import type { Role } from "@/tyPes/auth.tyPes";
