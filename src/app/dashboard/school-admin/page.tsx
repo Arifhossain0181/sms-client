@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useLenis } from "@/hooks/useLenis";
@@ -23,8 +24,13 @@ import {
   ArrowRight,
   AlertCircle,
   LibraryBig,
+  Banknote,
+  CreditCard,
+  Hash,
+  Loader2,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { formatTaka } from "@/lib/utils";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -40,6 +46,11 @@ type FeeSummary = {
   totalPending: number;
   totalPaid: number;
   totalCollected: number;
+  totalPayments?: number;
+  cashCollected?: number;
+  cashPayments?: number;
+  stripeCollected?: number;
+  stripePayments?: number;
 };
 
 type LibrarySummary = {
@@ -74,6 +85,18 @@ type DashboardData = {
   upcomingExams: UpcomingExam[];
 };
 
+type RecentPayment = {
+  id: string;
+  amount: number;
+  method: string;
+  status: string;
+  transactionId?: string;
+  paidAt?: string;
+  createdAt: string;
+  student?: { user?: { name?: string; email?: string } };
+  feeStructure?: { feeType?: string; title?: string };
+};
+
 // ─── Animation variants ──────────────────────────────────────────────────────
 
 const fadeUp = (delay = 0) => ({
@@ -93,6 +116,19 @@ function Skel({ className = "" }: { className?: string }) {
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
+
+const methodStyles: Record<string, { badge: string; label: string; icon: typeof Wallet }> = {
+  CASH: {
+    badge: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/30",
+    label: "Cash",
+    icon: Banknote,
+  },
+  STRIPE: {
+    badge: "bg-blue-50 text-blue-700 ring-1 ring-blue-200 dark:bg-blue-500/10 dark:text-blue-300 dark:ring-blue-500/30",
+    label: "Stripe",
+    icon: CreditCard,
+  },
+};
 
 export default function SchoolAdminDashboard() {
   useLenis();
@@ -123,7 +159,45 @@ export default function SchoolAdminDashboard() {
       }
     };
     load();
+    const refreshTimer = window.setInterval(load, 10000);
+    return () => window.clearInterval(refreshTimer);
   }, []);
+
+  // Fetch recent payments from DB
+  const { data: recentPaymentsData, isLoading: paymentsLoading } = useQuery({
+    queryKey: ["fees", "transactions", "school-admin-recent"],
+    queryFn: async () => {
+      const [feeResponse, admissionResponse] = await Promise.all([
+        api.get("/fees/transactions", { params: { page: 1, limit: 10 } }),
+        api.get("/admission/accountant/payments"),
+      ]);
+      const feePayload = feeResponse.data?.data ?? feeResponse.data;
+      const feePayments = Array.isArray(feePayload) ? feePayload : feePayload?.data;
+      const admissionPayload = admissionResponse.data?.data ?? admissionResponse.data;
+      const admissionPayments = Array.isArray(admissionPayload) ? admissionPayload : [];
+      const normalizedAdmissionPayments: RecentPayment[] = admissionPayments.map((payment) => ({
+        id: `admission-${payment.id}`,
+        amount: Number(payment.paymentAmount ?? 0),
+        method: payment.paymentMethod ?? "CASH",
+        status: "PAID",
+        paidAt: payment.paymentDate ?? payment.createdAt,
+        createdAt: payment.createdAt,
+        student: { user: { name: payment.applicantName } },
+        feeStructure: { feeType: "ADMISSION", title: "Admission Fee" },
+      }));
+      return [
+        ...(Array.isArray(feePayments) ? feePayments : []),
+        ...normalizedAdmissionPayments,
+      ]
+        .sort((a, b) => new Date(b.paidAt ?? b.createdAt).getTime() - new Date(a.paidAt ?? a.createdAt).getTime())
+        .slice(0, 10) as RecentPayment[];
+    },
+    enabled: role === "SCHOOL_ADMIN" || role === "SUPER_ADMIN",
+    retry: false,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchInterval: 10000,
+  });
 
   // ── Today's attendance percentages ────────────────────────────────────────
   const att = data?.attendance;
@@ -296,6 +370,9 @@ export default function SchoolAdminDashboard() {
               <div className="space-y-3">
                 {[
                   { label: "Total Collected", value: `৳${data?.fees?.totalCollected ?? 0}`, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
+                  { label: "Cash Payments", value: `৳${data?.fees?.cashCollected ?? 0}`, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
+                  { label: "Stripe Payments", value: `৳${data?.fees?.stripeCollected ?? 0}`, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/30" },
+                  { label: "Total Transactions", value: data?.fees?.totalPayments ?? 0, color: "text-violet-600", bg: "bg-violet-50 dark:bg-violet-950/30" },
                   { label: "Paid Count",      value: data?.fees?.totalPaid ?? 0,             color: "text-blue-600",    bg: "bg-blue-50 dark:bg-blue-950/30"       },
                   { label: "Pending Count",   value: data?.fees?.totalPending ?? 0,           color: "text-red-500",     bg: "bg-red-50 dark:bg-red-950/30"         },
                 ].map(({ label, value, color, bg }) => (
@@ -310,6 +387,42 @@ export default function SchoolAdminDashboard() {
                 >
                   View full fee report <ArrowRight className="w-3 h-3" />
                 </a>
+
+                <div className="mt-4 border-t border-slate-200/70 pt-4 dark:border-slate-800">
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      Latest Payments
+                    </p>
+                    {paymentsLoading && <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-400" />}
+                  </div>
+                  {recentPaymentsData?.length ? (
+                    <div className="space-y-2">
+                      {recentPaymentsData.slice(0, 5).map((payment) => {
+                        const paymentStyle = methodStyles[payment.method] ?? methodStyles.CASH;
+                        return (
+                          <div
+                            key={payment.id}
+                            className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2.5 dark:bg-slate-800/70"
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-semibold text-slate-800 dark:text-white">
+                                {payment.student?.user?.name ?? "Unknown student"}
+                              </p>
+                              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                                {paymentStyle.label} · {payment.status}
+                              </p>
+                            </div>
+                            <span className="shrink-0 text-sm font-bold text-slate-900 dark:text-white">
+                              {formatTaka(payment.amount)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : !paymentsLoading ? (
+                    <p className="text-xs text-slate-500 dark:text-slate-400">No payment records yet.</p>
+                  ) : null}
+                </div>
               </div>
             )}
           </motion.div>
@@ -420,6 +533,109 @@ export default function SchoolAdminDashboard() {
             )}
           </motion.div>
         </div>
+
+        {/* ── Recent Payments (from DB) ───────────────────────────────────────── */}
+        <motion.div {...fadeUp(0.38)} className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl overflow-hidden">
+          <div className="px-6 py-4 border-b border-white/30 dark:border-white/10 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Wallet className="w-5 h-5 text-primary" />
+              <h2 className="font-semibold text-base text-slate-800 dark:text-white">Recent Payments</h2>
+            </div>
+            <a href="/dashboard/fees" className="text-xs text-primary hover:underline flex items-center gap-1">
+              View all <ArrowRight className="w-3 h-3" />
+            </a>
+          </div>
+
+          {paymentsLoading ? (
+            <div className="p-6 flex items-center justify-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+              <Loader2 className="w-4 h-4 animate-spin" /> Loading payments from database...
+            </div>
+          ) : !recentPaymentsData?.length ? (
+            <div className="p-8 text-center text-sm text-slate-400 dark:text-slate-500">
+              No payment records yet.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-50/80 dark:bg-slate-800/50 border-b border-white/20 dark:border-white/10">
+                    {["Student", "Fee", "Amount", "Method", "Transaction ID", "Date", "Status"].map((h) => (
+                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentPaymentsData.map((payment, idx) => {
+                    const mStyle = methodStyles[payment.method] ?? methodStyles.CASH;
+                    const MIcon = mStyle.icon;
+                    return (
+                      <motion.tr
+                        key={payment.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: idx * 0.04 }}
+                        className="border-b border-white/20 dark:border-white/5 last:border-0 hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors"
+                      >
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-100 to-violet-100 dark:from-indigo-500/20 dark:to-violet-500/20 flex items-center justify-center text-xs font-bold text-indigo-700 dark:text-indigo-300 shrink-0">
+                              {payment.student?.user?.name?.charAt(0)?.toUpperCase() ?? "?"}
+                            </div>
+                            <div>
+                              <p className="font-medium text-slate-800 dark:text-white whitespace-nowrap">{payment.student?.user?.name ?? "—"}</p>
+                              <p className="text-[10px] text-slate-400 dark:text-slate-500">{payment.student?.user?.email ?? ""}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="text-slate-700 dark:text-slate-300 whitespace-nowrap font-medium">{payment.feeStructure?.title ?? "—"}</p>
+                          <p className="text-[10px] text-slate-400 dark:text-slate-500">{payment.feeStructure?.feeType ?? ""}</p>
+                        </td>
+                        <td className="px-4 py-3 font-bold text-slate-900 dark:text-white whitespace-nowrap">
+                          {formatTaka(payment.amount)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${mStyle.badge}`}>
+                            <MIcon className="w-3 h-3" />
+                            {mStyle.label}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          {payment.transactionId ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-mono text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg whitespace-nowrap">
+                              <Hash className="w-2.5 h-2.5" />
+                              {payment.transactionId.length > 14 ? `${payment.transactionId.slice(0, 14)}…` : payment.transactionId}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 text-xs">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                          {payment.paidAt || payment.createdAt
+                            ? new Date(payment.paidAt ?? payment.createdAt).toLocaleString("en-BD", {
+                                day: "2-digit", month: "short", year: "numeric",
+                                hour: "2-digit", minute: "2-digit",
+                              })
+                            : "—"}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                            payment.status === "PAID"
+                              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"
+                              : "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300"
+                          }`}>
+                            <CheckCircle2 className="w-3 h-3" />
+                            {payment.status}
+                          </span>
+                        </td>
+                      </motion.tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </motion.div>
 
         {/* ── Quick Actions ──────────────────────────────────────────────────── */}
         <motion.div {...fadeUp(0.4)} className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl p-6">

@@ -28,6 +28,7 @@ import {
 import api from "@/lib/axios";
 import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 
 const schema = z.object({
   applicantName: z.string().min(1, "Enter the student name"),
@@ -39,7 +40,7 @@ const schema = z.object({
   address: z.string().min(1, "Enter the address"),
   guardianName: z.string().min(1, "Enter the guardian name"),
   guardianPhone: z.string().min(7, "Enter the guardian phone number"),
-  guardianEmail: z.string().email("Enter a valid guardian email"),
+    guardianEmail: z.string().trim().regex(/^[a-z0-9][a-z0-9._%+-]*@gmail\.com$/i, "Enter a valid Gmail address (example@gmail.com)"),
   targetClassId: z.string().min(1, "Select a class"),
   payNow: z.boolean().default(false),
   paymentMethod: z.enum(["CASH", "STRIPE"]).optional(),
@@ -63,6 +64,8 @@ type ClassOption = { id: string; name: string; numericLevel: number };
 // Shared input class — works light + dark
 const inputCls =
   "mt-2 w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur px-4 py-3 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none transition-all focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 focus:bg-white dark:focus:bg-white/10";
+const selectCls = `${inputCls} [color-scheme:light] dark:[color-scheme:dark]`;
+const optionCls = "bg-white text-slate-900 dark:bg-slate-800 dark:text-white";
 const labelCls =
   "flex items-center gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-200";
 const errCls = "text-xs text-red-500 dark:text-red-400 mt-1";
@@ -439,23 +442,13 @@ export default function Admission() {
                   : "border-red-200 dark:border-red-500/30 bg-red-50/80 dark:bg-red-500/10"
               }`}
             >
-              <div className="grid place-items-center h-10 w-10 rounded-full shrink-0" 
-                   style={{
-                     backgroundColor: existingApplication.status === "APPROVED" ? "#10b981" 
-                                    : existingApplication.status === "PENDING" ? "#f59e0b" 
-                                    : "#ef4444"
-                   }}>
-                {existingApplication.status === "APPROVED" && <CheckCircle2 className="h-5 w-5 text-white" />}
-                {existingApplication.status === "PENDING" && <ShieldCheck className="h-5 w-5 text-white" />}
-                {existingApplication.status === "REJECTED" && <span className="text-white font-bold">✕</span>}
-              </div>
               <div className="flex-1">
                 <h3 className={`font-bold ${
                   existingApplication.status === "APPROVED" ? "text-emerald-800 dark:text-emerald-200"
                   : existingApplication.status === "PENDING" ? "text-yellow-800 dark:text-yellow-200"
                   : "text-red-800 dark:text-red-200"
                 }`}>
-                  {existingApplication.status === "APPROVED" && "✅ Your admission has been approved!"}
+                  {existingApplication.status === "APPROVED" && "Your admission has been approved!"}
                   {existingApplication.status === "PENDING" && "⏳ Your admission is pending"}
                   {existingApplication.status === "REJECTED" && "❌ Your admission has been rejected"}
                 </h3>
@@ -468,6 +461,14 @@ export default function Admission() {
                   {existingApplication.status === "PENDING" && "An admin is reviewing your application. Please wait."}
                   {existingApplication.status === "REJECTED" && `Reason: ${existingApplication.rejectionReason || "Not specified"}. You can apply again.`}
                 </p>
+                {existingApplication.status === "APPROVED" && (
+                  <Link
+                    href="/student-login?redirect=/dashboard/student"
+                    className="mt-3 inline-flex items-center rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700"
+                  >
+                    Go to Student Dashboard
+                  </Link>
+                )}
               </div>
             </motion.div>
           )}
@@ -531,31 +532,25 @@ export default function Admission() {
                   {errors.dob && <p className={errCls}>{errors.dob.message}</p>}
                 </Field>
 
-                <Field delay={0.15}>
-                  <label className={labelCls}><Calendar className="h-3.5 w-3.5 text-indigo-500" /> Date of Birth</label>
-                  <input type="date" {...register("dob")} className={inputCls} />
-                  {errors.dob && <p className={errCls}>{errors.dob.message}</p>}
-                </Field>
-
                 <Field delay={0.2}>
                   <label className={labelCls}><Users className="h-3.5 w-3.5 text-indigo-500" /> Gender</label>
-                  <select {...register("gender")} className={inputCls}>
-                    <option value="">Select gender</option>
-                    <option value="MALE">Male</option>
-                    <option value="FEMALE">Female</option>
-                    <option value="OTHER">Other</option>
+                  <select {...register("gender")} className={selectCls}>
+                    <option className={optionCls} value="">Select gender</option>
+                    <option className={optionCls} value="MALE">Male</option>
+                    <option className={optionCls} value="FEMALE">Female</option>
+                    <option className={optionCls} value="OTHER">Other</option>
                   </select>
                   {errors.gender && <p className={errCls}>{errors.gender.message}</p>}
                 </Field>
 
                 <Field delay={0.25}>
                   <label className={labelCls}><Droplet className="h-3.5 w-3.5 text-rose-500" /> Blood Group</label>
-                  <select {...register("bloodGroup")} className={inputCls}>
-                    <option value="">Select blood group</option>
-                    <option value="A_POS">A+</option><option value="A_NEG">A-</option>
-                    <option value="B_POS">B+</option><option value="B_NEG">B-</option>
-                    <option value="O_POS">O+</option><option value="O_NEG">O-</option>
-                    <option value="AB_POS">AB+</option><option value="AB_NEG">AB-</option>
+                  <select {...register("bloodGroup")} className={selectCls}>
+                    <option className={optionCls} value="">Select blood group</option>
+                    <option className={optionCls} value="A_POS">A+</option><option className={optionCls} value="A_NEG">A-</option>
+                    <option className={optionCls} value="B_POS">B+</option><option className={optionCls} value="B_NEG">B-</option>
+                    <option className={optionCls} value="O_POS">O+</option><option className={optionCls} value="O_NEG">O-</option>
+                    <option className={optionCls} value="AB_POS">AB+</option><option className={optionCls} value="AB_NEG">AB-</option>
                   </select>
                 </Field>
 
@@ -566,10 +561,10 @@ export default function Admission() {
 
                 <Field delay={0.3}>
                   <label className={labelCls}><GraduationCap className="h-3.5 w-3.5 text-violet-500" /> Applying Class</label>
-                  <select {...register("targetClassId")} className={inputCls} disabled={loadingClasses}>
-                    <option value="">{loadingClasses ? "Loading classes..." : "Select class"}</option>
+                  <select {...register("targetClassId")} className={selectCls} disabled={loadingClasses}>
+                    <option className={optionCls} value="">{loadingClasses ? "Loading classes..." : "Select class"}</option>
                     {classes.map((cls) => (
-                      <option key={cls.id} value={cls.id}>
+                      <option className={optionCls} key={cls.id} value={cls.id}>
                         {cls.name} (Class {cls.numericLevel})
                       </option>
                     ))}
@@ -638,7 +633,7 @@ export default function Admission() {
 
                 <Field delay={0.15} span={2}>
                   <label className={labelCls}><Mail className="h-3.5 w-3.5 text-sky-500" /> Guardian Email</label>
-                  <input type="email" {...register("guardianEmail")} className={inputCls} placeholder="guardian@email.com" />
+                  <input type="email" {...register("guardianEmail")} className={inputCls} placeholder="guardian@gmail.com" />
                   {errors.guardianEmail && <p className={errCls}>{errors.guardianEmail.message}</p>}
                 </Field>
               </div>
@@ -676,10 +671,10 @@ export default function Admission() {
                     <div className="mt-5 grid gap-5 md:grid-cols-2">
                       <Field delay={0.05}>
                         <label className={labelCls}>Payment Method</label>
-                        <select {...register("paymentMethod")} className={inputCls}>
-                          <option value="">Select method</option>
-                          <option value="CASH">Cash</option>
-                          <option value="STRIPE">Stripe</option>
+                        <select {...register("paymentMethod")} className={selectCls}>
+                          <option className={optionCls} value="">Select method</option>
+                          <option className={optionCls} value="CASH">Cash</option>
+                          <option className={optionCls} value="STRIPE">Stripe</option>
                         </select>
                         {errors.paymentMethod && <p className={errCls}>{errors.paymentMethod.message}</p>}
                       </Field>

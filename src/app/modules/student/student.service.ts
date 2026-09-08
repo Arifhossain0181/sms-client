@@ -4,7 +4,10 @@ import { Student, CreateStudentPayload } from "./student.types";
 
 export const studentService = {
   getAll: async (): Promise<Student[]> => {
-    const res = await api.get("/students");
+    // The backend defaults to 10 students per page; payment selection needs the full list.
+    const res = await api.get("/students", {
+      params: { page: 1, limit: 1000 },
+    });
     const payload = res.data?.data ?? res.data;
     // Backend returns { data: [...students], meta: {...} }
     if (Array.isArray(payload)) return payload;

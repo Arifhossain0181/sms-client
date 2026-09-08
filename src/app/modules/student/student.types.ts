@@ -3,6 +3,7 @@ export interface Student {
   name: string;
   email?: string;
   guardianEmail?: string;
+  guardianName?: string;
   phone?: string | null;
   address: string;
   gender?: "Male" | "Female" | "Other";

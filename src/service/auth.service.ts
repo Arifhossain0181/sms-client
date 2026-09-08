@@ -35,6 +35,9 @@ const setAuthCookies = (accessToken?: string, refreshToken?: string) => {
 };
 
 export const authService = {
+    persistTokens: (accessToken?: string, refreshToken?: string) => {
+        setAuthCookies(accessToken, refreshToken);
+    },
     login:async(data:{email:string,password:string})=>{
         const res = await api.post("/auth/login", data);
         const payload = res.data?.data ?? res.data;

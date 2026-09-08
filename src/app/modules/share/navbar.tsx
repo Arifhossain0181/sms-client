@@ -17,7 +17,7 @@ const BASE_NAV_LINKS = [
   { name: "Students", href: "/students" },
   { name: "Careers", href: "/careers" },
   { name: "Apply for Admission", href: "/apply-for-admission" },
-  { name: "Schedules", href: "/schedules" },
+  { name: "About", href: "/about" },
 ];
 
 export default function Navbar() {
@@ -29,7 +29,6 @@ export default function Navbar() {
   const { user, isAuthenticated, logout, role } = useAuth();
   const pathname = usePathname();
   const { theme, toggle } = useTheme();
-  const isNormalUser = isAuthenticated && !!role && (role === "STUDENT" || role === "PARENT");
   const hideDashboardForPendingStudent =
     role === "STUDENT" &&
     (pathname === "/pending-approval" || pathname.startsWith("/apply-for-admission"));
@@ -44,15 +43,19 @@ export default function Navbar() {
   const { data: openJobs = [], isLoading: jobsLoading } = useQuery<PublicJob[]>({
     queryKey: ["recruitment", "jobs", "public"],
     queryFn: async () => {
-      const res = await api.get("/recruitment/jobs/public");
-      const payload = res.data?.data ?? res.data;
-      const postings = payload?.postings ?? [];
-      return postings.map((p: PublicJob) => ({
-        id: p.id,
-        title: p.title,
-        designation: p.designation,
-        department: p.department,
-      }));
+      try {
+        const res = await api.get("/recruitment/jobs/public");
+        const payload = res.data?.data ?? res.data;
+        const postings = payload?.postings ?? [];
+        return postings.map((p: PublicJob) => ({
+          id: p.id,
+          title: p.title,
+          designation: p.designation,
+          department: p.department,
+        }));
+      } catch {
+        return [];
+      }
     },
     retry: false,
   });
@@ -63,33 +66,17 @@ export default function Navbar() {
 
   const visibleBaseLinks = BASE_NAV_LINKS.filter(
     (link) =>
-      !(link.name === "Dashboard" && (isNormalUser || hideDashboardForPendingStudent))
+      !(link.name === "Dashboard" && hideDashboardForPendingStudent)
   );
 
   const navLinks = [
     ...visibleBaseLinks.slice(0, 3),
-    { name: "Careers", href: "/careers" },
     { name: "Apply for Admission", href: "/apply-for-admission" },
     { name: "Apply for Teaching", href: isAuthenticated ? teachingHref : teachingLoginHref },
-    { name: "Schedules", href: "/schedules" },
+    { name: "About", href: "/about" },
   ];
 
-  // useEffect(() => {
-  //   const lenis = new Lenis({
-  //     duration: 1.2,
-  //     easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-  //     smoothWheel: true,
-  //   });
-  //   function raf(time: number) {
-  //     lenis.raf(time);
-  //     requestAnimationFrame(raf);
-  //   }
-  //   const id = requestAnimationFrame(raf);
-  //   return () => {
-  //     cancelAnimationFrame(id);
-  //     lenis.destroy();
-  //   };
-  // }, []);
+
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);

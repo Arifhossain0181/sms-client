@@ -61,7 +61,7 @@ const schema = z
     address: z.string().min(1, "Enter the address"),
     guardianName: z.string().min(1, "Enter the guardian name"),
     guardianPhone: z.string().min(7, "Enter the guardian phone number"),
-    guardianEmail: z.string().email("Enter a valid guardian email"),
+    guardianEmail: z.string().trim().regex(/^[a-z0-9][a-z0-9._%+-]*@gmail\.com$/i, "Enter a valid Gmail address (example@gmail.com)"),
     targetClassId: z.string().min(1, "Select a class"),
     payNow: z.boolean().default(false),
     paymentMethod: z.enum(["CASH", "STRIPE"]).optional(),

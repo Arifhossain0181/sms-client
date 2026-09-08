@@ -81,6 +81,10 @@ export interface FeeSummaryResponse {
   pendingCount: number;
   overdueCount: number;
   overDue: number;
+  admissionTotalPaid?: number;
+  admissionPaymentCount?: number;
+  admissionTotalPaidToday?: number;
+  admissionPaymentCountToday?: number;
 }
 
 export interface CollectionReportResponse {
@@ -131,6 +135,15 @@ export interface MonthlyAnalyticsResponse {
   byMonth: { month: number; total: number; count: number }[];
   byMethod: Record<string, number>;
   byType: Record<string, { amount: number; paid: number }>;
+}
+
+export interface AccountantDashboardOverviewResponse {
+  summary: FeeSummaryResponse;
+  todayCollection: number;
+  todayCount: number;
+  recentPayments: TransactionResponse[];
+  recentPaymentsMeta: TransactionsResponse["meta"];
+  byMethod: Record<string, number>;
 }
 
 export interface BulkCreatePayload {

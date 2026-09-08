@@ -53,6 +53,7 @@ type Admission = {
   paymentStatus?: string;
   paymentAmount?: number;
   paymentMethod?: string;
+  studentId?: string;
   createdAt: string;
   targetClass?: { name: string; numericLevel?: number };
 };
@@ -398,9 +399,14 @@ export default function AdminAdmissionsPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    const guardianEmail = form.guardianEmail.trim().toLowerCase();
+    if (!/^[a-z0-9][a-z0-9._%+-]*@gmail\.com$/i.test(guardianEmail)) {
+      showToast("Guardian email must be a valid Gmail address (example@gmail.com)", false);
+      return;
+    }
     try {
       setSubmitting(true);
-      await admissionService.create(form);
+      await admissionService.create({ ...form, guardianEmail });
       showToast("Admission created ✓");
       setCreateOpen(false);
       setForm({
@@ -479,11 +485,20 @@ export default function AdminAdmissionsPage() {
     try {
       setActionLoading(true);
       await api.patch(`/admission/${id}/status`, { status: "APPROVED" });
-      showToast("Application approved ✓");
+      // Approval must also provision the account; that is what triggers the
+      // student and guardian welcome emails on the backend.
+      const response = await api.post("/admission/convert-to-student", { admissionId: id });
+      const result = response.data?.data ?? response.data;
+      const credentials = result?.__tempPassword
+        ? ` Login: ${result.__email}, Password: ${result.__tempPassword}`
+        : " Guardian notification sent to the submitted Gmail address.";
+      showToast(`Application approved and account created ✓${credentials}`);
       setSelected(null);
       fetchData();
-    } catch {
-      showToast("Failed to approve application", false);
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      showToast(msg ?? "Application approved, but account/email setup failed. Use Convert to Student Account to retry.", false);
+      fetchData();
     } finally {
       setActionLoading(false);
     }
@@ -506,8 +521,12 @@ export default function AdminAdmissionsPage() {
   const handleConvert = async (form: ConvertForm) => {
     try {
       setActionLoading(true);
-      await api.post("/admission/convert-to-student", { admissionId: form.admissionId });
-      showToast("Student account created ✓");
+      const response = await api.post("/admission/convert-to-student", { admissionId: form.admissionId });
+      const result = response.data?.data ?? response.data;
+      const credentials = result?.__tempPassword
+        ? ` Login: ${result.__email}, Password: ${result.__tempPassword}`
+        : " Login credentials were sent to the student email.";
+      showToast(`Student account created ✓${credentials}`);
       setSelected(null);
       fetchData();
     } catch (e: unknown) {
@@ -890,7 +909,7 @@ export default function AdminAdmissionsPage() {
                         type="email"
                         required
                         className="w-full rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-800/40 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
-                        placeholder="guardian@example.com"
+                        placeholder="guardian@gmail.com"
                       />
                     </div>
 

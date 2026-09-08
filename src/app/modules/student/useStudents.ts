@@ -7,8 +7,8 @@ import { useAuth } from "@/hooks/useAuth";
 export const useStudents = () => {
     const { role } = useAuth();
     
-    // Only fetch if user is ADMIN or TEACHER
-    const isAllowedRole = role === 'SCHOOL_ADMIN' || role === 'TEACHER' || role === 'HR' || role === 'SUPER_ADMIN';
+    // Accountants need the student list when recording cash payments.
+    const isAllowedRole = role === 'SCHOOL_ADMIN' || role === 'TEACHER' || role === 'ACCOUNTANT' || role === 'HR' || role === 'SUPER_ADMIN';
     
     return useQuery({
         queryKey : ["students"],

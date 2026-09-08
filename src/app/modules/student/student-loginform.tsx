@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { loginSchema, LoginFormData } from "@/lib/validtation";
 import { useAuthStore } from "@/store/authstore";
+import { authService } from "@/service/auth.service";
 import { motion } from "framer-motion";
 import { GraduationCap, ShieldCheck, BookOpenCheck } from "lucide-react";
 import api from "@/lib/axios";
@@ -41,8 +42,7 @@ export default function StudentLoginForm() {
       const { user, accessToken, refreshToken } = response.data.data;
 
       // Store tokens
-      localStorage.setItem("accessToken", accessToken);
-      localStorage.setItem("refreshToken", refreshToken);
+      authService.persistTokens(accessToken, refreshToken);
 
       // Set user in auth store
       setUser(user);

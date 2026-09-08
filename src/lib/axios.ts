@@ -1,7 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from "axios";
 
-const baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+const configuredBaseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+const isLocalBrowser =
+  typeof window !== "undefined" &&
+  (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+const baseURL = isLocalBrowser ? "http://localhost:5000/api/v1" : configuredBaseURL;
 
 const api = axios.create({
   baseURL,

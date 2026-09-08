@@ -15,11 +15,9 @@ export const useFees = () => {
   const { role } = useAuth();
   const isStudent = role === "STUDENT";
 
-  // one useQuery call, always — never call hooks conditionally (React Rules of Hooks).
-  // queryFn/queryKey/enabled all just vary based on role instead.
   return useQuery({
-    queryKey: isStudent ? ["fees", "my-fees"] : ["fees"],
-    queryFn: isStudent ? feesService.getMyFees : feesService.getAll,
+    queryKey: isStudent ? ["fees", "my-fees"] : ["fees", "all"],
+    queryFn: isStudent ? feesService.getMyFees : () => feesService.getAllPaginated({ limit: 1000 }).then((r) => r.fees),
     enabled: isStudent || (!!role && hasPermission(role, "manage_fees")),
     retry: false,
   });
@@ -53,6 +51,7 @@ export const usePayFee = () => {
     mutationFn: ({ id, data }: { id: string; data: PayFeePayload }) => feesService.pay(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["fees"], exact: false });
+      queryClient.invalidateQueries({ queryKey: ["fees", "dashboard"], exact: false });
       toast.success("Payment successful!");
     },
     onError: (err: unknown) => {
@@ -81,6 +80,7 @@ export const useCashPayment = () => {
     mutationFn: (data: CashPaymentPayload) => feesService.payCash(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["fees"], exact: false });
+      queryClient.invalidateQueries({ queryKey: ["fees", "dashboard"], exact: false });
       toast.success("Cash payment recorded!");
     },
     onError: (err: unknown) => {

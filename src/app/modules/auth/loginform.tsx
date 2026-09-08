@@ -88,9 +88,9 @@ export default function LoginForm() {
         try {
           const meRes = await api.get("/students/me");
           const profile = meRes.data?.data ?? meRes.data;
+          const admissionStatus = profile?.admissionStatus;
           const isPendingApproval =
-            profile?.pending ||
-            (profile?.admissionStatus !== undefined && profile.admissionStatus !== "APPROVED");
+            typeof admissionStatus === "string" && admissionStatus !== "APPROVED";
 
           if (isPendingApproval) {
             toast.info("Your admission is pending approval. Dashboard access is hidden until approval.");

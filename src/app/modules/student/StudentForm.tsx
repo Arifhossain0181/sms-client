@@ -29,8 +29,8 @@ import { Student } from "./student.types";
 
 const baseSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  email: z.string().optional(),
-  password: z.string().optional(),
+  email: z.union([z.string().email("Enter a valid student email"), z.literal("")]).optional(),
+  password: z.union([z.string().min(6, "Password must be at least 6 characters"), z.literal("")]).optional(),
   phone: z.string().min(1, "Phone is required"),
   rollNumber: z.string().min(1, "Roll number is required"),
   classId: z.string().min(1, "Class is required"),
@@ -69,7 +69,7 @@ export default function StudentForm({ student, onClose, mode = "admin" }: Props)
   const students = Array.isArray(studentsData) ? studentsData : [];
 
   const schema = baseSchema.superRefine((data, ctx) => {
-    if (mode === "student" && !student) {
+    if (!student) {
       if (!data.email) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -280,7 +280,7 @@ export default function StudentForm({ student, onClose, mode = "admin" }: Props)
               </div>
 
               {/* Email */}
-              {mode === "student" && (
+              {!student && (
                 <div>
                   <label className={labelCls}>
                     <Mail className="h-3.5 w-3.5 text-indigo-500" /> Email
@@ -296,10 +296,11 @@ export default function StudentForm({ student, onClose, mode = "admin" }: Props)
               )}
 
               {/* Password */}
-              {mode === "student" && !student && (
+              {(mode === "admin" || (!student && mode === "student")) && (
                 <div>
                   <label className={labelCls}>
-                    <Lock className="h-3.5 w-3.5 text-indigo-500" /> Password
+                    <Lock className="h-3.5 w-3.5 text-indigo-500" />
+                    {student ? "New Password (optional)" : "Password"}
                   </label>
                   <input
                     {...register("password")}

@@ -156,6 +156,14 @@ const getNavGroups = (role: Role | null): NavGroup[] => {
           ],
         },
         {
+          groupLabel: "Fee Management",
+          items: [
+            { icon: DollarSign, label: "Fee Structure", href: "/dashboard/accountant/fee-structure" },
+            { icon: Receipt, label: "Transactions", href: "/dashboard/accountant/transactions" },
+            { icon: TimerReset, label: "Overdue Fees", href: "/dashboard/accountant/overdue" },
+          ],
+        },
+        {
           groupLabel: "Communication",
           items: [
             { icon: Megaphone, label: "Notices", href: "/dashboard/school-admin/notices" },

@@ -1,6 +1,7 @@
-import { Bell, Menu, Search, Sun, Moon } from "lucide-react";
+import { Menu, Search, Sun, Moon, LogOut } from "lucide-react";
 import { motion } from "framer-motion";
 import { useTheme } from "@/components/ThemeProvider";
+import { useAuth } from "@/hooks/useAuth";
 
 interface TopbarProps {
   onToggleSidebar: () => void;
@@ -8,6 +9,25 @@ interface TopbarProps {
 
 export const Topbar = ({ onToggleSidebar }: TopbarProps) => {
   const { theme, toggle } = useTheme();
+  const { user, role, logout } = useAuth();
+  const roleLabels: Record<string, string> = {
+    SUPER_ADMIN: "Super Admin",
+    SCHOOL_ADMIN: "School Admin",
+    ACCOUNTANT: "Accountant",
+    TEACHER: "Teacher",
+    STUDENT: "Student",
+    PARENT: "Parent",
+    EXAM_CONTROLLER: "Exam Controller",
+    HR: "HR",
+  };
+  const displayName = user?.name || "User";
+  const initials = displayName
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 
   return (
     <motion.header
@@ -51,23 +71,24 @@ export const Topbar = ({ onToggleSidebar }: TopbarProps) => {
           </motion.div>
         </motion.button>
 
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="relative w-10 h-10 rounded-full bg-secondary hover:bg-secondary/70 flex items-center justify-center"
-        >
-          <Bell className="w-4 h-4" />
-          <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-destructive animate-pulse-glow" />
-        </motion.button>
-
         <div className="ml-2 flex items-center gap-3 pl-3 border-l border-border/60">
           <div className="w-9 h-9 rounded-full gradient-primary flex items-center justify-center text-white text-sm font-semibold shadow-elegant">
-            AD
+            {initials || "U"}
           </div>
           <div className="hidden md:block">
-            <p className="text-sm font-semibold leading-tight">Admin Dey</p>
-            <p className="text-xs text-muted-foreground">Principal</p>
+            <p className="text-sm font-semibold leading-tight">{displayName}</p>
+            <p className="text-xs text-muted-foreground">{role ? roleLabels[role] ?? role : "User"}</p>
           </div>
+          <button
+            type="button"
+            onClick={() => void logout()}
+            className="inline-flex h-9 items-center gap-1.5 rounded-full bg-red-50 px-3 text-xs font-semibold text-red-700 transition-colors hover:bg-red-600 hover:text-white dark:bg-red-500/15 dark:text-red-300 dark:hover:bg-red-500 dark:hover:text-white"
+            aria-label="Logout"
+            title="Logout"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            <span className="hidden lg:inline">Logout</span>
+          </button>
         </div>
       </div>
     </motion.header>

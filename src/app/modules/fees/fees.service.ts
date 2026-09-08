@@ -12,6 +12,7 @@ import {
   OverdueReportResponse,
   TransactionsResponse,
   MonthlyAnalyticsResponse,
+  AccountantDashboardOverviewResponse,
   BulkCreatePayload,
 } from "./fees.types";
 
@@ -90,6 +91,7 @@ function unwrapList(res: { data: any }): ApiFee[] {
   const payload = res.data?.data ?? res.data;
   if (Array.isArray(payload)) return payload;
   if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.fees)) return payload.fees;
   return [];
 }
 
@@ -102,8 +104,15 @@ export const feesService = {
   getAllPaginated: async (params?: Record<string, string | number>): Promise<{ fees: Fee[]; meta?: any }> => {
     const res = await api.get("/fees", { params });
     const payload = res.data?.data ?? res.data;
-    const fees = Array.isArray(payload) ? payload.map(mapFee) : [];
-    const meta = payload?.meta;
+    const list = Array.isArray(payload)
+      ? payload
+      : Array.isArray(payload?.data)
+      ? payload.data
+      : Array.isArray(payload?.fees)
+      ? payload.fees
+      : [];
+    const fees = list.map(mapFee);
+    const meta = payload?.meta ?? res.data?.meta;
     return { fees, meta };
   },
 
@@ -173,6 +182,11 @@ export const feesService = {
 
   getMonthlyAnalytics: async (params?: { year: number }): Promise<MonthlyAnalyticsResponse> => {
     const res = await api.get("/fees/analytics/monthly", { params });
+    return res.data?.data ?? res.data;
+  },
+
+  getDashboardOverview: async (): Promise<AccountantDashboardOverviewResponse> => {
+    const res = await api.get("/fees/dashboard/overview");
     return res.data?.data ?? res.data;
   },
 };

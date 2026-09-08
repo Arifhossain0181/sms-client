@@ -6,6 +6,7 @@ import {
   AdmissionListResponse,
   AdmissionQuery,
   AdmissionStats,
+  PaidAdmissionPayment,
   CreateAdmissionPayload,
   UpdateAdmissionStatusPayload,
 } from "./admission.types";
@@ -53,6 +54,12 @@ export const admissionService = {
   getStats: async (): Promise<AdmissionStats> => {
     const res = await api.get("/admission/stats");
     return unwrap<AdmissionStats>(res);
+  },
+
+  getPaidPayments: async (): Promise<PaidAdmissionPayment[]> => {
+    const res = await api.get('/admission/accountant/payments');
+    const payload = unwrap<PaidAdmissionPayment[]>(res);
+    return Array.isArray(payload) ? payload : [];
   },
 
   getPublicClasses: async (): Promise<AdmissionClassOption[]> => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { motion, type Variants } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -20,6 +20,7 @@ import {
 import { feesService } from "@/app/modules/fees/fees.service";
 import { formatTaka } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
+import api from "@/lib/axios";
 
 const cardVariants: Variants = {
   hidden: { opacity: 0, y: 20 },
@@ -37,46 +38,80 @@ export default function AccountantDashboard() {
   const isAccountant =
     !!role && (role === "ACCOUNTANT" || role === "SUPER_ADMIN");
 
-  const { data: summary, isLoading: summaryLoading } = useQuery({
+  const { data: dashboardData, isLoading: overviewLoading } = useQuery({
     queryKey: ["fees", "dashboard", "summary"],
-    queryFn: () => feesService.getSummary(),
+    queryFn: async () => {
+      const [overview, admissionResponse] = await Promise.all([
+        feesService.getDashboardOverview(),
+        api.get("/admission/accountant/payments"),
+      ]);
+      const feePayments = (overview.recentPayments ?? []).map((payment) => ({
+        id: `fee-${payment.id}`,
+        studentName: payment.student?.user?.name ?? "Fee payment",
+        amount: Number(payment.amount || 0),
+        status: payment.status,
+        method: payment.method,
+        date: payment.paidAt || payment.createdAt,
+      }));
+      const admissionPayload = admissionResponse.data?.data ?? admissionResponse.data;
+      const admissionPayments = Array.isArray(admissionPayload) ? admissionPayload : [];
+      const admissionRows = admissionPayments.map((payment) => ({
+        id: `admission-${payment.id}`,
+        studentName: payment.applicantName ?? "Admission payment",
+        amount: Number(payment.paymentAmount ?? 0),
+        status: "PAID",
+        method: payment.paymentMethod ?? "CASH",
+        date: payment.paymentDate || payment.createdAt,
+      }));
+
+      return {
+        summary: overview.summary,
+        recentPayments: [...feePayments, ...admissionRows]
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          .slice(0, 5),
+        todayCollection: Number(overview.todayCollection ?? 0),
+        todayCount: Number(overview.todayCount ?? 0),
+      };
+    },
     enabled: isAccountant,
+    refetchInterval: 3000,
+    refetchOnWindowFocus: true,
   });
 
-  const { data: transactionsData, isLoading: txLoading } = useQuery({
-    queryKey: ["fees", "dashboard", "recent"],
-    queryFn: () => feesService.getTransactions({ page: 1, limit: 5 }),
-    enabled: isAccountant,
-  });
-
-  const recentPayments = Array.isArray(transactionsData?.data) ? transactionsData.data : [];
+  const summary = dashboardData?.summary;
+  const recentPayments = dashboardData?.recentPayments ?? [];
   const totalCollected = Number(summary?.totalPaid ?? summary?.totalAmount ?? 0);
   const pendingCount = Number(summary?.pendingCount ?? 0);
   const overdueCount = Number(summary?.overdueCount ?? summary?.overDue ?? 0);
-  const todayCollection = 0;
+  const todayCollection = Number(dashboardData?.todayCollection ?? 0);
+  const todayCount = Number(dashboardData?.todayCount ?? 0);
 
   const safeNumber = (value: unknown) => {
     const n = typeof value === "number" ? value : Number(value ?? 0);
     return Number.isFinite(n) ? n : 0;
   };
 
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(value);
-
   const statCards = [
     {
       label: "Total Collected",
-      value: formatCurrency(safeNumber(totalCollected)),
+      value: formatTaka(safeNumber(totalCollected)),
       icon: DollarSign,
       color: "text-emerald-600 dark:text-emerald-400",
       bg: "bg-emerald-50 dark:bg-emerald-500/10",
     },
     {
       label: "Today's Collection",
-      value: formatCurrency(safeNumber(todayCollection)),
+      value: formatTaka(safeNumber(todayCollection)),
       icon: CreditCard,
       color: "text-blue-600 dark:text-blue-400",
       bg: "bg-blue-50 dark:bg-blue-500/10",
+    },
+    {
+      label: "Payments Today",
+      value: String(safeNumber(todayCount)),
+      icon: Sparkles,
+      color: "text-indigo-600 dark:text-indigo-400",
+      bg: "bg-indigo-50 dark:bg-indigo-500/10",
     },
     {
       label: "Pending Fees",
@@ -129,8 +164,8 @@ export default function AccountantDashboard() {
         </motion.div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {summaryLoading || txLoading
-            ? Array.from({ length: 4 }).map((_, i) => (
+          {overviewLoading
+            ? Array.from({ length: 5 }).map((_, i) => (
                 <div
                   key={i}
                   className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 p-6 shadow-xl flex items-center gap-4"
@@ -213,7 +248,7 @@ export default function AccountantDashboard() {
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Recent Payments</h3>
           </div>
 
-          {summaryLoading || txLoading ? (
+          {overviewLoading ? (
             <div className="p-6 space-y-4">
               {Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-800 px-4 py-3">
@@ -238,10 +273,10 @@ export default function AccountantDashboard() {
           ) : (
             <div className="divide-y divide-slate-200 dark:divide-slate-800">
               {recentPayments.map((p) => {
-                const studentName = p.student?.user?.name ?? `Fee #${p.id.slice(0, 8)}`;
+                const studentName = p.studentName;
                 const amount = p.amount;
                 const status = p.status;
-                const date = p.paidAt ? new Date(p.paidAt).toLocaleDateString() : new Date(p.createdAt).toLocaleDateString();
+                const date = new Date(p.date).toLocaleDateString();
                 return (
                   <div key={p.id} className="flex items-center justify-between px-6 py-3 hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
                     <div className="flex items-center gap-3">
@@ -263,7 +298,7 @@ export default function AccountantDashboard() {
                         {formatTaka(amount)}
                       </p>
                       <p className="text-xs text-slate-500 dark:text-slate-400">
-                        {date}
+                        {p.method} · {date}
                       </p>
                     </div>
                   </div>

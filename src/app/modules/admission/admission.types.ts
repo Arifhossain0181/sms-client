@@ -93,6 +93,15 @@ export interface AdmissionStats {
   rejected: number;
 }
 
+export interface PaidAdmissionPayment {
+  id: string;
+  applicantName: string;
+  paymentAmount: number;
+  paymentMethod?: PaymentMethod;
+  paymentDate?: string;
+  createdAt: string;
+}
+
 export interface AdmissionClassOption {
   id: string;
   name: string;

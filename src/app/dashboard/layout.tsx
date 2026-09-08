@@ -14,9 +14,13 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [studentAccessCheckedPath, setStudentAccessCheckedPath] = useState<string | null>(null);
   const { role } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
+  const isStudentDashboardRoute = pathname?.startsWith("/dashboard/student") ?? false;
+  const studentAccessChecking =
+    role === "STUDENT" && isStudentDashboardRoute && studentAccessCheckedPath !== pathname;
   useEffect(() => {
     if (!role) return;
 
@@ -53,7 +57,7 @@ export default function DashboardLayout({
     }
 
     // Student approval check
-    if (pathname?.startsWith("/dashboard/student")) {
+    if (isStudentDashboardRoute) {
       if (role !== "STUDENT" && role !== "PARENT") {
         router.replace("/dashboard");
         return;
@@ -64,19 +68,23 @@ export default function DashboardLayout({
           try {
             const response = await api.get("/students/me");
             const profile = response.data?.data ?? response.data;
+            const admissionStatus =
+              profile?.admissionStatus ?? profile?.admissionRecord?.status ?? "APPROVED";
 
-            if (
-              profile?.pending ||
-              (profile?.admissionStatus !== undefined &&
-                profile.admissionStatus !== "APPROVED")
-            ) {
-              router.replace("/pending-approval");
+            if (admissionStatus !== "APPROVED") {
+              router.replace(
+                typeof admissionStatus === "string"
+                  ? "/pending-approval"
+                  : "/apply-for-admission?reason=profile_not_found"
+              );
               return;
             }
+
+            setStudentAccessCheckedPath(pathname);
           } catch (error: unknown) {
             const status = (error as { response?: { status?: number } }).response?.status;
             if (status === 404) {
-              router.replace("/apply-for-admission");
+              router.replace("/apply-for-admission?reason=profile_not_found");
               return;
             }
 
@@ -87,7 +95,15 @@ export default function DashboardLayout({
         void checkStudentApproval();
       }
     }
-  }, [role, pathname, router]);
+  }, [role, pathname, router, isStudentDashboardRoute]);
+
+  if (studentAccessChecking) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+        <div className="text-sm text-slate-600 dark:text-slate-300">Checking admission approval...</div>
+      </div>
+    );
+  }
 
   if (!role) {
     return (

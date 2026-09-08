@@ -1,6 +1,7 @@
 "use client";
 
-import { SubmitHandler, useForm } from "react-hook-form";
+import { SubmitHandler, useForm, useWatch } from "react-hook-form";
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { motion, AnimatePresence } from "framer-motion";
@@ -14,10 +15,14 @@ import {
   AlertCircle,
   Sparkles,
   Loader2,
+  ChevronDown,
+  Search,
 } from "lucide-react";
 import { useFees, useCashPayment } from "./useFees";
 import { formatTaka } from "@/lib/utils";
 import type { Fee } from "./fees.types";
+import { useStudents } from "../student/useStudents";
+import type { Student } from "../student/student.types";
 
 interface CashPaymentModalProps {
   onClose?: () => void;
@@ -57,12 +62,14 @@ type FormData = z.infer<typeof schema>;
 
 export default function CashPaymentModal({ onClose }: CashPaymentModalProps) {
   const { data: fees } = useFees();
+  const { data: students } = useStudents();
   const { mutate: createPayment, isPending } = useCashPayment();
 
   const {
     register,
     handleSubmit,
-    watch,
+    control,
+    setValue,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -72,7 +79,7 @@ export default function CashPaymentModal({ onClose }: CashPaymentModalProps) {
     },
   });
 
-  const selectedStudentId = watch("studentId");
+  const selectedStudentId = useWatch({ control, name: "studentId" });
   const selectedFee = (fees as Fee[] | undefined)?.find(
     (f) => f.studentId === selectedStudentId && f.status !== "PAID"
   );
@@ -81,11 +88,46 @@ export default function CashPaymentModal({ onClose }: CashPaymentModalProps) {
     createPayment(data, { onSuccess: () => onClose?.() });
   };
 
-  const uniqueStudents = fees
-    ? Array.from(
-        new Map((fees as Fee[] | undefined)?.map((f) => [f.studentId, f.student]) || []).values()
-      )
-    : [];
+  const studentOptions = (Array.isArray(students) ? students : []) as Student[];
+  const [isStudentMenuOpen, setIsStudentMenuOpen] = useState(false);
+  const [studentSearch, setStudentSearch] = useState("");
+  const selectedStudent = studentOptions.find(
+    (student) => student.id === selectedStudentId
+  );
+
+  const studentDetails = (student: Student) => {
+    const rawStudent = student as Student & {
+      parent?: { name?: string };
+      admissionRecord?: { guardianName?: string };
+    };
+
+    return {
+      roll: student.rollNumber ?? "-",
+      className: student.class?.name ?? "-",
+      guardian:
+        student.guardianName ??
+        rawStudent.parent?.name ??
+        rawStudent.admissionRecord?.guardianName ??
+        "-",
+    };
+  };
+
+  const normalizedSearch = studentSearch.trim().toLowerCase();
+  const filteredStudents = studentOptions.filter((student) => {
+    if (!normalizedSearch) return true;
+    const details = studentDetails(student);
+    return [student.name, details.roll, details.className, details.guardian]
+      .join(" ")
+      .toLowerCase()
+      .includes(normalizedSearch);
+  });
+  const sortedFilteredStudents = [...filteredStudents].sort((a, b) => {
+    const classCompare = (a.class?.name ?? "").localeCompare(b.class?.name ?? "");
+    if (classCompare !== 0) return classCompare;
+    return String(a.rollNumber ?? "").localeCompare(String(b.rollNumber ?? ""), undefined, {
+      numeric: true,
+    });
+  });
 
   return (
     <AnimatePresence>
@@ -143,17 +185,99 @@ export default function CashPaymentModal({ onClose }: CashPaymentModalProps) {
                   <User className="h-3.5 w-3.5 text-blue-500" />
                   Student
                 </label>
-                <select
-                  {...register("studentId")}
-                  className="w-full px-4 py-2.5 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/30 transition"
-                >
-                  <option value="">Select a student</option>
-                  {uniqueStudents.map((student) => (
-                    <option key={student?.id} value={student?.id}>
-                      {student?.name}
-                    </option>
-                  ))}
-                </select>
+                <input type="hidden" {...register("studentId")} />
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsStudentMenuOpen((open) => !open)}
+                    className="flex w-full items-center justify-between rounded-xl border-2 border-slate-200 bg-white px-4 py-2.5 text-left text-slate-900 transition focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:ring-blue-900/30"
+                    aria-haspopup="listbox"
+                    aria-expanded={isStudentMenuOpen}
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate font-semibold">
+                        {selectedStudent?.name ?? "Select a student"}
+                      </span>
+                      {selectedStudent && (
+                        <span className="mt-0.5 block truncate text-[11px] text-slate-500 dark:text-slate-400">
+                          Roll: {studentDetails(selectedStudent).roll} · Class: {studentDetails(selectedStudent).className}
+                        </span>
+                      )}
+                    </span>
+                    <ChevronDown className={`ml-3 h-4 w-4 shrink-0 transition-transform ${isStudentMenuOpen ? "rotate-180" : ""}`} />
+                  </button>
+
+                  {isStudentMenuOpen && (
+                    <div
+                      role="listbox"
+                      className="absolute left-0 right-0 z-20 mt-2 max-h-80 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1 shadow-xl dark:border-slate-700 dark:bg-slate-800"
+                    >
+                      <div className="sticky top-0 z-10 bg-white p-1 dark:bg-slate-800">
+                        <div className="relative">
+                          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                          <input
+                            type="search"
+                            value={studentSearch}
+                            onChange={(event) => setStudentSearch(event.target.value)}
+                            onClick={(event) => event.stopPropagation()}
+                            placeholder="Search name, roll, class or guardian..."
+                            className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-xs text-slate-900 outline-none focus:border-blue-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                            autoFocus
+                          />
+                        </div>
+                      </div>
+                      {sortedFilteredStudents.length ? (
+                        sortedFilteredStudents.map((student, index) => {
+                          const details = studentDetails(student);
+                          const previousStudent = sortedFilteredStudents[index - 1];
+                          const isNewClass =
+                            !previousStudent ||
+                            previousStudent.class?.name !== student.class?.name;
+                          return (
+                            <div key={student.id}>
+                              {isNewClass && (
+                                <p className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-300">
+                                  Class: {details.className}
+                                </p>
+                              )}
+                              <button
+                                type="button"
+                                role="option"
+                                aria-selected={student.id === selectedStudentId}
+                                onClick={() => {
+                                  setValue("studentId", student.id, { shouldValidate: true });
+                                  setIsStudentMenuOpen(false);
+                                  setStudentSearch("");
+                                }}
+                                className="w-full rounded-lg px-3 py-2 text-left transition hover:bg-blue-50 dark:hover:bg-slate-700"
+                              >
+                                <span className="block text-sm font-semibold text-slate-900 dark:text-white">
+                                  {student.name}
+                                </span>
+                                <span className="mt-1 grid grid-cols-3 gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                                  <span>Roll: {details.roll}</span>
+                                  <span>Class: {details.className}</span>
+                                  <span className="truncate">Guardian: {details.guardian}</span>
+                                </span>
+                              </button>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <p className="px-3 py-3 text-xs text-slate-500 dark:text-slate-400">
+                          {studentOptions.length
+                            ? "No student matched your search."
+                            : "Student list is still loading or unavailable for this role."}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {!studentOptions.length && (
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                    Student list is still loading or unavailable for this role.
+                  </p>
+                )}
                 {errors.studentId && (
                   <p className="text-xs text-rose-500 mt-1 flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" />
