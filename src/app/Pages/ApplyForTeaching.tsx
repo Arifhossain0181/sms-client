@@ -161,6 +161,7 @@ export default function ApplyForTeaching() {
       isCancelled = true;
     };
   }, [jobId, setValue]);
+  // redirect to login if not authenticated and trying to submit without login
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
     if (!isAuthenticated || !user) {

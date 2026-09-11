@@ -29,6 +29,7 @@ import api from "@/lib/axios";
 import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useAuth } from "@/hooks/useAuth";
 
 const schema = z.object({
   applicantName: z.string().min(1, "Enter the student name"),
@@ -109,6 +110,7 @@ export default function Admission() {
   const [checkingApplication, setCheckingApplication] = useState(true);
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { user, isAuthenticated } = useAuth();
   const autoSubmitRef = useRef(false);
 
   const {
@@ -338,6 +340,12 @@ export default function Admission() {
   };
 
   const onSubmit: SubmitHandler<FormInput> = async (data) => {
+    if (!isAuthenticated || !user) {
+      toast.error("You must be logged in to submit your admission application.");
+      router.push(`/login?redirect=${encodeURIComponent("/apply-for-admission")}`);
+      return;
+    }
+
     try {
       if (data.payNow && data.paymentMethod === "STRIPE" && !stripePaid) {
         toast.error("Complete the Stripe payment");

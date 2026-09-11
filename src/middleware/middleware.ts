@@ -100,7 +100,7 @@ export async function middleware(req: NextRequest) {
   const accessToken = req.cookies.get("accessToken")?.value;
   const refreshToken = req.cookies.get("refreshToken")?.value;
 
-  if (pathname.startsWith("/login") || pathname.startsWith("/register")) {
+  if (pathname.startsWith("/login")) {
     if (accessToken) {
       try {
         const decoded = jwtDecode<{ role: Role; exp: number }>(accessToken);
@@ -119,6 +119,10 @@ export async function middleware(req: NextRequest) {
         return NextResponse.redirect(new URL("/dashboard", req.url));
       }
     }
+    return NextResponse.next();
+  }
+
+  if (pathname.startsWith("/register")) {
     return NextResponse.next();
   }
 
