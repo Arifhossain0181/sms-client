@@ -5,11 +5,24 @@ import { useForm, SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import api from "@/lib/axios";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-import { motion } from "framer-motion";
-import { Briefcase, Building2, Calendar, BookOpen } from "lucide-react";
+import {
+  Briefcase,
+  Building2,
+  Calendar,
+  BookOpen,
+  FileText,
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Loader2,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
 
 const schema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -62,6 +75,35 @@ type JobPosting = {
   description?: string;
   requirements?: string;
 };
+
+const inputCls =
+  "mt-2 w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur px-4 py-3 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none transition-all focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 focus:bg-white dark:focus:bg-white/10";
+const selectCls = `${inputCls} [color-scheme:light] dark:[color-scheme:dark]`;
+const optionCls = "bg-white text-slate-900 dark:bg-slate-800 dark:text-white";
+const labelCls =
+  "flex items-center gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-200";
+const errCls = "text-xs text-red-500 dark:text-red-400 mt-1";
+const sectionTitleCls =
+  "flex items-center gap-2 text-lg font-bold text-slate-800 dark:text-white";
+
+const Field = ({
+  children,
+  delay = 0,
+  span = 1,
+}: {
+  children: React.ReactNode;
+  delay?: number;
+  span?: 1 | 2;
+}) => (
+  <motion.div
+    initial={{ opacity: 0, y: 14 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+    className={span === 2 ? "md:col-span-2" : ""}
+  >
+    {children}
+  </motion.div>
+);
 
 export default function ApplyForTeaching() {
   const router = useRouter();
@@ -161,11 +203,45 @@ export default function ApplyForTeaching() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-4xl mx-auto px-6 lg:px-10 py-12">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Apply for Teaching</h1>
-          <p className="text-muted-foreground mt-2">
+    <section className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-indigo-50/40 to-violet-50/50 dark:from-slate-950 dark:via-indigo-950/40 dark:to-violet-950/40 py-12 px-4 sm:px-6 lg:px-8">
+      {/* Animated background */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <motion.div
+          animate={{ x: [0, 60, 0], y: [0, -30, 0] }}
+          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute -top-32 -left-32 h-96 w-96 rounded-full bg-gradient-to-br from-sky-300/30 to-indigo-400/20 dark:from-sky-500/15 dark:to-indigo-600/15 blur-3xl"
+        />
+        <motion.div
+          animate={{ x: [0, -50, 0], y: [0, 50, 0] }}
+          transition={{ duration: 24, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute -bottom-40 -right-32 h-[28rem] w-[28rem] rounded-full bg-gradient-to-br from-violet-300/30 to-fuchsia-400/20 dark:from-violet-600/15 dark:to-fuchsia-600/15 blur-3xl"
+        />
+        <div
+          className="absolute inset-0 opacity-[0.04] dark:opacity-[0.07]"
+          style={{
+            backgroundImage:
+              "linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)",
+            backgroundSize: "40px 40px",
+          }}
+        />
+      </div>
+
+      <div className="relative mx-auto max-w-4xl">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-center mb-8"
+        >
+          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur px-4 py-1.5 text-xs font-semibold text-indigo-700 dark:text-indigo-300 shadow-sm">
+            <Sparkles className="h-3.5 w-3.5" />
+            Teaching Application · 2024–25
+          </div>
+          <h1 className="mt-4 text-4xl sm:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-slate-900 via-indigo-700 to-violet-700 dark:from-white dark:via-indigo-300 dark:to-violet-300 bg-clip-text text-transparent">
+            Apply for Teaching
+          </h1>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400 max-w-xl mx-auto">
             Fill in your details to apply for a teaching position.
             {jobId && !loadingJob && job && (
               <span className="block text-indigo-500 dark:text-indigo-400 mt-1">
@@ -173,13 +249,13 @@ export default function ApplyForTeaching() {
               </span>
             )}
           </p>
-        </div>
+        </motion.div>
 
         {jobId && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-8 rounded-2xl border border-border/60 bg-card/80 p-6 shadow"
+            className="mb-8 rounded-2xl border border-slate-200/70 dark:border-white/10 bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl p-6 shadow-2xl shadow-indigo-500/5"
           >
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-3">
@@ -187,8 +263,8 @@ export default function ApplyForTeaching() {
                   <Briefcase className="h-5 w-5" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-foreground">{loadingJob ? "Loading job..." : job?.title ?? "Job Details"}</h2>
-                  <p className="text-sm text-muted-foreground mt-0.5">
+                  <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">{loadingJob ? "Loading job..." : job?.title ?? "Job Details"}</h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
                     {!loadingJob && job ? `${job.designation} · ${job.department?.name ?? "—"}` : ""}
                   </p>
                 </div>
@@ -200,23 +276,23 @@ export default function ApplyForTeaching() {
             </div>
 
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="rounded-xl border border-border/60 bg-background/60 p-4">
-                <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur p-4">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1">
                   <BookOpen className="h-3 w-3" /> Subject / Designation
                 </p>
-                <p className="mt-1 text-sm font-semibold text-foreground">{loadingJob ? "..." : job?.designation ?? "—"}</p>
+                <p className="mt-1 text-sm font-semibold text-slate-800 dark:text-slate-100">{loadingJob ? "..." : job?.designation ?? "—"}</p>
               </div>
-              <div className="rounded-xl border border-border/60 bg-background/60 p-4">
-                <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur p-4">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1">
                   <Building2 className="h-3 w-3" /> Department
                 </p>
-                <p className="mt-1 text-sm font-semibold text-foreground">{loadingJob ? "..." : job?.department?.name ?? "—"}</p>
+                <p className="mt-1 text-sm font-semibold text-slate-800 dark:text-slate-100">{loadingJob ? "..." : job?.department?.name ?? "—"}</p>
               </div>
-              <div className="rounded-xl border border-border/60 bg-background/60 p-4">
-                <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur p-4">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1">
                   <Calendar className="h-3 w-3" /> Last Date
                 </p>
-                <p className="mt-1 text-sm font-semibold text-foreground">
+                <p className="mt-1 text-sm font-semibold text-slate-800 dark:text-slate-100">
                   {loadingJob || !job?.deadline ? "..." : new Date(job.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                 </p>
               </div>
@@ -224,187 +300,171 @@ export default function ApplyForTeaching() {
 
             {!loadingJob && job?.description && (
               <div className="mt-4">
-                <p className="text-xs font-medium text-muted-foreground mb-1">Description</p>
-                <p className="text-sm text-foreground whitespace-pre-wrap">{job.description}</p>
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Description</p>
+                <p className="text-sm text-slate-700 dark:text-slate-200 whitespace-pre-wrap">{job.description}</p>
               </div>
             )}
             {!loadingJob && job?.requirements && (
               <div className="mt-3">
-                <p className="text-xs font-medium text-muted-foreground mb-1">Requirements</p>
-                <p className="text-sm text-foreground whitespace-pre-wrap">{job.requirements}</p>
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Requirements</p>
+                <p className="text-sm text-slate-700 dark:text-slate-200 whitespace-pre-wrap">{job.requirements}</p>
               </div>
             )}
           </motion.div>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 bg-card/80 border border-border/60 rounded-2xl p-6 shadow">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <motion.form
+          onSubmit={handleSubmit(onSubmit)}
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          className="relative rounded-3xl border border-slate-200/70 dark:border-white/10 bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl shadow-2xl shadow-indigo-500/5 overflow-hidden"
+        >
+          {/* Top accent bar */}
+          <div className="h-1 bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-600" />
+
+          <div className="p-6 sm:p-8 lg:p-10 space-y-10">
+            {/* Personal Info */}
             <div>
-              <label className="block text-sm font-medium mb-1">Full Name</label>
-              <input
-                {...register("name")}
-                className="w-full bg-transparent border border-border/60 rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="Your name"
-              />
-              {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name.message}</p>}
+              <h2 className={sectionTitleCls}>
+                <span className="grid place-items-center h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 text-white">
+                  <User className="h-4 w-4" />
+                </span>
+                Personal Information
+              </h2>
+
+              <div className="mt-5 grid gap-5 md:grid-cols-2">
+                <Field delay={0.05}>
+                  <label className={labelCls}><User className="h-3.5 w-3.5 text-indigo-500" /> Full Name</label>
+                  <input {...register("name")} className={inputCls} placeholder="Your full name" />
+                  {errors.name && <p className={errCls}>{errors.name.message}</p>}
+                </Field>
+
+                <Field delay={0.1}>
+                  <label className={labelCls}><Mail className="h-3.5 w-3.5 text-indigo-500" /> Email</label>
+                  <input type="email" {...register("email")} className={inputCls} placeholder="you@example.com" />
+                  {errors.email && <p className={errCls}>{errors.email.message}</p>}
+                </Field>
+
+                <Field delay={0.15}>
+                  <label className={labelCls}><Phone className="h-3.5 w-3.5 text-indigo-500" /> Phone</label>
+                  <input {...register("phone")} className={inputCls} placeholder="01XXXXXXXXX" />
+                  {errors.phone && <p className={errCls}>{errors.phone.message}</p>}
+                </Field>
+
+                <Field delay={0.2}>
+                  <label className={labelCls}><User className="h-3.5 w-3.5 text-indigo-500" /> Gender</label>
+                  <select {...register("gender")} className={selectCls}>
+                    <option className={optionCls} value="">Select</option>
+                    <option className={optionCls} value="MALE">Male</option>
+                    <option className={optionCls} value="FEMALE">Female</option>
+                    <option className={optionCls} value="OTHER">Other</option>
+                  </select>
+                  {errors.gender && <p className={errCls}>{errors.gender.message}</p>}
+                </Field>
+
+                <Field delay={0.25}>
+                  <label className={labelCls}><Calendar className="h-3.5 w-3.5 text-indigo-500" /> Date of Birth</label>
+                  <input type="date" {...register("dob")} max={maxDob} className={inputCls} />
+                  {errors.dob && <p className={errCls}>{errors.dob.message}</p>}
+                </Field>
+
+                <Field delay={0.3} span={2}>
+                  <label className={labelCls}><MapPin className="h-3.5 w-3.5 text-indigo-500" /> Address</label>
+                  <textarea {...register("address")} rows={3} className={inputCls} placeholder="Your address" />
+                  {errors.address && <p className={errCls}>{errors.address.message}</p>}
+                </Field>
+              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Email</label>
-              <input
-                {...register("email")}
-                type="email"
-                className="w-full bg-transparent border border-border/60 rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="you@example.com"
-              />
-              {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
+            {/* Professional Info */}
+            <div className="border-t border-slate-200 dark:border-white/10 pt-8">
+              <h2 className={sectionTitleCls}>
+                <span className="grid place-items-center h-8 w-8 rounded-lg bg-gradient-to-br from-sky-500 to-indigo-600 text-white">
+                  <Briefcase className="h-4 w-4" />
+                </span>
+                Professional Information
+              </h2>
+
+              <div className="mt-5 grid gap-5 md:grid-cols-2">
+                <Field delay={0.05}>
+                  <label className={labelCls}><Briefcase className="h-3.5 w-3.5 text-sky-500" /> Designation</label>
+                  <input {...register("designation")} className={inputCls} placeholder="Senior Teacher" />
+                  {errors.designation && <p className={errCls}>{errors.designation.message}</p>}
+                </Field>
+
+                <Field delay={0.1}>
+                  <label className={labelCls}><Building2 className="h-3.5 w-3.5 text-sky-500" /> Department</label>
+                  <input {...register("department")} className={inputCls} placeholder="Science" />
+                </Field>
+
+                <Field delay={0.15}>
+                  <label className={labelCls}><BookOpen className="h-3.5 w-3.5 text-indigo-500" /> Qualification</label>
+                  <input {...register("qualification")} className={inputCls} placeholder="MSc / B.Ed" />
+                  {errors.qualification && <p className={errCls}>{errors.qualification.message}</p>}
+                </Field>
+
+                <Field delay={0.2}>
+                  <label className={labelCls}><Calendar className="h-3.5 w-3.5 text-indigo-500" /> Experience (years)</label>
+                  <input type="number" {...register("experience")} min={0} className={inputCls} />
+                  {errors.experience && <p className={errCls}>{errors.experience.message}</p>}
+                </Field>
+
+                <Field delay={0.25}>
+                  <label className={labelCls}><BookOpen className="h-3.5 w-3.5 text-indigo-500" /> Subject Specialization</label>
+                  <input {...register("subjectSpecialization")} className={inputCls} placeholder="Mathematics" />
+                </Field>
+
+                <Field delay={0.3}>
+                  <label className={labelCls}><Briefcase className="h-3.5 w-3.5 text-indigo-500" /> Expected Salary</label>
+                  <input type="number" {...register("expectedSalary")} min={0} className={inputCls} placeholder="Optional" />
+                </Field>
+
+                <Field delay={0.35} span={2}>
+                  <label className={labelCls}><Mail className="h-3.5 w-3.5 text-indigo-500" /> Resume URL</label>
+                  <input {...register("resumeUrl")} className={inputCls} placeholder="https://..." />
+                  {errors.resumeUrl && <p className={errCls}>{errors.resumeUrl.message}</p>}
+                </Field>
+              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Phone</label>
-              <input
-                {...register("phone")}
-                className="w-full bg-transparent border border-border/60 rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="01XXXXXXXXX"
-              />
-              {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone.message}</p>}
+            {/* Additional Info */}
+            <div className="border-t border-slate-200 dark:border-white/10 pt-8">
+              <h2 className={sectionTitleCls}>
+                <span className="grid place-items-center h-8 w-8 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-600 text-white">
+                  <FileText className="h-4 w-4" />
+                </span>
+                Additional Information
+              </h2>
+
+              <div className="mt-5 grid gap-5 md:grid-cols-2">
+                <Field delay={0.05} span={2}>
+                  <label className={labelCls}><FileText className="h-3.5 w-3.5 text-violet-500" /> Cover Letter</label>
+                  <textarea {...register("coverLetter")} rows={4} className={inputCls} placeholder="Tell us about your teaching experience and motivation" />
+                </Field>
+              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Gender</label>
-              <select
-                {...register("gender")}
-                className="w-full bg-transparent border border-border/60 rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+            {/* Submit */}
+            <div className="border-t border-slate-200 dark:border-white/10 pt-8">
+              <motion.button
+                type="submit"
+                disabled={submitting}
+                whileHover={{ scale: 1.01, y: -2 }}
+                whileTap={{ scale: 0.99 }}
+                className="group relative w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-900 to-violet-900 dark:from-indigo-600 dark:via-violet-600 dark:to-fuchsia-600 px-6 py-4 text-sm font-bold text-white shadow-xl shadow-indigo-900/30 hover:shadow-indigo-900/50 disabled:opacity-60 transition-all overflow-hidden"
               >
-                <option value="">Select</option>
-                <option value="MALE">Male</option>
-                <option value="FEMALE">Female</option>
-                <option value="OTHER">Other</option>
-              </select>
-              {errors.gender && <p className="text-xs text-red-500 mt-1">{errors.gender.message}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Date of Birth</label>
-              <input
-                {...register("dob")}
-                type="date"
-                max={maxDob}
-                className="w-full bg-transparent border border-border/60 rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-              {errors.dob && <p className="text-xs text-red-500 mt-1">Applicant must be at least 20 years old</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Designation</label>
-              <input
-                {...register("designation")}
-                className="w-full bg-transparent border border-border/60 rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="Senior Teacher"
-              />
-              {errors.designation && <p className="text-xs text-red-500 mt-1">{errors.designation.message}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Department</label>
-              <input
-                {...register("department")}
-                className="w-full bg-transparent border border-border/60 rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="Science"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Qualification</label>
-              <input
-                {...register("qualification")}
-                className="w-full bg-transparent border border-border/60 rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="MSc / B.Ed"
-              />
-              {errors.qualification && <p className="text-xs text-red-500 mt-1">{errors.qualification.message}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Experience (years)</label>
-              <input
-                {...register("experience")}
-                type="number"
-                min={0}
-                className="w-full bg-transparent border border-border/60 rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-              {errors.experience && <p className="text-xs text-red-500 mt-1">{errors.experience.message}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Subject Specialization</label>
-              <input
-                {...register("subjectSpecialization")}
-                className="w-full bg-transparent border border-border/60 rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="Mathematics"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Expected Salary</label>
-              <input
-                {...register("expectedSalary")}
-                type="number"
-                min={0}
-                className="w-full bg-transparent border border-border/60 rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="Optional"
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium mb-1">Resume URL</label>
-              <input
-                {...register("resumeUrl")}
-                className="w-full bg-transparent border border-border/60 rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="https://..."
-              />
-              {errors.resumeUrl && <p className="text-xs text-red-500 mt-1">{errors.resumeUrl.message}</p>}
+                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                {submitting ? (
+                  <><Loader2 className="h-4 w-4 animate-spin" /> Submitting...</>
+                ) : (
+                  <><ShieldCheck className="h-4 w-4" /> Submit Application</>
+                )}
+              </motion.button>
             </div>
           </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Address</label>
-            <textarea
-              {...register("address")}
-              rows={3}
-              className="w-full bg-transparent border border-border/60 rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
-              placeholder="Your address"
-            />
-            {errors.address && <p className="text-xs text-red-500 mt-1">{errors.address.message}</p>}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Cover Letter</label>
-            <textarea
-              {...register("coverLetter")}
-              rows={4}
-              className="w-full bg-transparent border border-border/60 rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
-              placeholder="Tell us about your teaching experience and motivation"
-            />
-          </div>
-
-          <div className="flex justify-end gap-3">
-            <button
-              type="reset"
-              onClick={() => reset()}
-              className="px-5 py-2.5 rounded-lg text-sm border border-border/60 text-muted-foreground bg-transparent"
-            >
-              Reset
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-6 py-2.5 rounded-lg text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-            >
-              {submitting ? "Submitting..." : "Submit Application"}
-            </button>
-          </div>
-        </form>
+        </motion.form>
       </div>
-    </div>
+    </section>
   );
 }
