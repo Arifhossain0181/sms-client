@@ -14,6 +14,7 @@ import {
   Filter,
   Inbox,
   CalendarDays,
+  Sparkles,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -127,7 +128,7 @@ export default function TimetableGrid() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="rounded-2xl border border-border/60 bg-card/80 p-6 shadow-soft">
+        <div className="rounded-2xl border border-white/40 dark:border-white/10 bg-white/65 dark:bg-white/5 backdrop-blur-sm p-6 shadow-sm">
           <div className="flex items-center gap-4">
             <Skeleton className="h-12 w-12 rounded-xl" />
             <div className="space-y-2 flex-1">
@@ -140,12 +141,12 @@ export default function TimetableGrid() {
           {DAYS.map((_, idx) => (
             <div
               key={idx}
-              className="rounded-2xl border border-border/60 bg-card/80 shadow-soft overflow-hidden"
+              className="rounded-2xl border border-white/40 dark:border-white/10 bg-white/65 dark:bg-white/5 backdrop-blur-sm shadow-sm overflow-hidden"
             >
               <Skeleton className="h-14 w-full rounded-none" />
               <div className="p-4 space-y-3">
                 {[...Array(3)].map((_, i) => (
-                  <div key={i} className="space-y-2 rounded-xl border border-border/40 bg-secondary/40 p-3">
+                  <div key={i} className="space-y-2 rounded-xl border border-white/40 dark:border-white/10 bg-white/60 dark:bg-white/5 p-3">
                     <div className="flex items-center justify-between gap-2">
                       <Skeleton className="h-4 w-24" />
                       <Skeleton className="h-5 w-20 rounded-md" />
@@ -171,8 +172,11 @@ export default function TimetableGrid() {
         className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
       >
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Timetable</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+            Timetable
+            <Sparkles className="w-4 h-4 text-indigo-400" />
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             {isStudent ? "Your class weekly routine" : isTeacher ? "Your assigned classes routine" : "Weekly routine by class"}
           </p>
         </div>
@@ -193,11 +197,11 @@ export default function TimetableGrid() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.05 }}
-          className="rounded-2xl border border-border/60 bg-card/80 p-4 shadow-soft"
+          className="rounded-2xl border border-white/40 dark:border-white/10 bg-white/65 dark:bg-white/5 backdrop-blur-sm p-4 shadow-sm"
         >
           <div className="flex items-center gap-2 mb-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <Filter className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
               Filter by Class
             </span>
           </div>
@@ -205,7 +209,7 @@ export default function TimetableGrid() {
             <select
               value={classId}
               onChange={(e) => setClassId(e.target.value)}
-              className="w-full appearance-none rounded-lg border border-border bg-background px-4 py-2.5 pr-10 text-sm font-medium text-foreground outline-none transition duration-200 hover:border-indigo-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 cursor-pointer"
+              className="w-full appearance-none rounded-lg border border-white/40 dark:border-white/10 bg-white/70 dark:bg-white/5 px-4 py-2.5 pr-10 text-sm font-medium text-slate-800 dark:text-slate-200 outline-none transition duration-200 hover:border-indigo-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 cursor-pointer"
             >
               <option value="">All Classes</option>
               {classes?.map((cls: any) => (
@@ -218,21 +222,21 @@ export default function TimetableGrid() {
               ))}
             </select>
             <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-              <CalendarDays className="h-4 w-4 text-muted-foreground" />
+              <CalendarDays className="h-4 w-4 text-slate-400 dark:text-slate-500" />
             </div>
           </div>
         </motion.div>
       )}
 
       {/* Grid View */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 w-full">
-        {DAYS.map((day, idx) => (
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+        {DAYS.map((day, index) => (
           <motion.div
             key={day}
-            initial={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: idx * 0.05 }}
-            className="rounded-2xl border border-border/60 bg-card/80 shadow-soft overflow-hidden w-full"
+            transition={{ delay: index * 0.05 }}
+            className="rounded-3xl border border-white/40 dark:border-white/10 bg-white/65 dark:bg-white/5 backdrop-blur-sm shadow-sm overflow-hidden"
           >
             {/* Day Header */}
             <div
@@ -316,10 +320,10 @@ export default function TimetableGrid() {
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-10 text-center">
-                  <div className="grid h-12 w-12 place-items-center rounded-full bg-secondary/60 mb-2">
-                    <Inbox className="h-5 w-5 text-muted-foreground" />
+                  <div className="grid h-12 w-12 place-items-center rounded-full bg-white/60 dark:bg-white/5 mb-2">
+                    <Inbox className="h-5 w-5 text-slate-400 dark:text-slate-500" />
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     No classes on this day
                   </p>
                 </div>
