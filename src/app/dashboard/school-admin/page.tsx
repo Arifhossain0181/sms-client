@@ -397,11 +397,11 @@ export default function SchoolAdminDashboard() {
                   </div>
                   {recentPaymentsData?.length ? (
                     <div className="space-y-2">
-                      {recentPaymentsData.slice(0, 5).map((payment) => {
+                      {recentPaymentsData.slice(0, 5).map((payment, idx) => {
                         const paymentStyle = methodStyles[payment.method] ?? methodStyles.CASH;
                         return (
                           <div
-                            key={payment.id}
+                            key={`${payment.id}-${idx}`}
                             className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2.5 dark:bg-slate-800/70"
                           >
                             <div className="min-w-0">
@@ -570,7 +570,7 @@ export default function SchoolAdminDashboard() {
                     const MIcon = mStyle.icon;
                     return (
                       <motion.tr
-                        key={payment.id}
+                        key={`${payment.id}-${idx}`}
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: idx * 0.04 }}

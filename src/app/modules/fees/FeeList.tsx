@@ -33,6 +33,7 @@ import { formatTaka } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { hasPermission } from "@/config/roles";
 import Pagination from "@/components/ui/pagination";
+import api from "@/lib/axios";
 
 /**
  * ⚠️ SCALE NOTE: this fetches ALL fee records and computes totals/search
@@ -138,11 +139,48 @@ export default function FeeList() {
     retry: false,
   });
 
+  const { data: summaryData } = useQuery({
+    queryKey: ["fees", "summary"],
+    queryFn: () => feesService.getSummary(),
+    enabled: canViewPayments,
+    retry: false,
+  });
+
+  const { data: admissionPayments } = useQuery({
+    queryKey: ["admission", "accountant", "payments"],
+    queryFn: async () => {
+      const res = await api.get("/admission/accountant/payments");
+      const payload = res.data?.data ?? res.data;
+      return Array.isArray(payload) ? payload : [];
+    },
+    enabled: canViewPayments,
+    retry: false,
+  });
+
+  const admissionStudentIds = useMemo(() => {
+    const ids = new Set<string>();
+    (admissionPayments ?? []).forEach((p: any) => {
+      if (p.studentId) ids.add(p.studentId);
+    });
+    return ids;
+  }, [admissionPayments]);
+
+  const admissionCash = useMemo(
+    () => (admissionPayments ?? []).filter((p: any) => (p.paymentMethod ?? "CASH") === "CASH").reduce((s: number, p: any) => s + (Number(p.paymentAmount ?? 0)), 0),
+    [admissionPayments]
+  );
+  const admissionStripe = useMemo(
+    () => (admissionPayments ?? []).filter((p: any) => (p.paymentMethod ?? "CASH") === "STRIPE").reduce((s: number, p: any) => s + (Number(p.paymentAmount ?? 0)), 0),
+    [admissionPayments]
+  );
+
   const safeFees = useMemo(() => (Array.isArray(fees) ? fees : []), [fees]);
   const studentsWithoutFees = useMemo(() => {
-    const assignedStudentIds = new Set(safeFees.map((fee) => fee.studentId));
+    const feeStudentIds = new Set(safeFees.map((fee) => fee.studentId).filter(Boolean));
+    const hasAnyFee = (id: string) => feeStudentIds.has(id) || admissionStudentIds.has(id);
+
     return (Array.isArray(students) ? students : [])
-      .filter((student) => !assignedStudentIds.has(student.id))
+      .filter((student) => !hasAnyFee(student.id))
       .sort((a: Student, b: Student) => {
         const classCompare = (a.class?.name ?? "").localeCompare(b.class?.name ?? "");
         if (classCompare !== 0) return classCompare;
@@ -150,7 +188,7 @@ export default function FeeList() {
           numeric: true,
         });
       });
-  }, [safeFees, students]);
+  }, [safeFees, students, admissionStudentIds]);
   const filtered = safeFees.filter((f) => {
     const matchSearch = f.student?.name?.toLowerCase().includes(search.toLowerCase());
     const matchStatus = filterStatus ? f.status === filterStatus : true;
@@ -175,10 +213,51 @@ export default function FeeList() {
     setSelectedFee(null);
   };
 
-  const totalAmount = safeFees.reduce((sum, f) => sum + f.amount, 0);
-  const totalPaid = safeFees.reduce((sum, f) => sum + f.paidAmount, 0);
-  const totalDue = safeFees.reduce((sum, f) => sum + f.dueAmount, 0);
-  const collectionRate = totalAmount > 0 ? Math.round((totalPaid / totalAmount) * 100) : 0;
+  const totalAmount = useMemo(
+    () => Number(summaryData?.totalAmount ?? safeFees.reduce((sum, f) => sum + (f.amount ?? 0), 0)),
+    [summaryData, safeFees]
+  );
+
+  const totalPaidFromApi = useMemo(
+    () => Number(summaryData?.totalPaid ?? 0),
+    [summaryData]
+  );
+
+  const totalDueFromApi = useMemo(
+    () => Number(summaryData?.outstanding ?? 0),
+    [summaryData]
+  );
+
+  const admissionPaidAmount = useMemo(
+    () => Number(summaryData?.admissionTotalPaid ?? 0),
+    [summaryData]
+  );
+
+  const feeOnlyPaid = useMemo(
+    () => totalPaidFromApi - admissionPaidAmount,
+    [totalPaidFromApi, admissionPaidAmount]
+  );
+
+  const totalPaidDisplay = totalPaidFromApi;
+  const totalDueDisplay = totalDueFromApi;
+  const collectionRate = totalAmount > 0 ? Math.round((feeOnlyPaid / totalAmount) * 100) : 0;
+
+  const cashCollected = useMemo(
+    () => (transactionsData?.data?.filter((p: any) => p.method === "CASH").reduce((s: number, p: any) => s + (Number(p.amount ?? 0)), 0) ?? 0) + admissionCash,
+    [transactionsData, admissionCash]
+  );
+  const stripeCollected = useMemo(
+    () => (transactionsData?.data?.filter((p: any) => p.method === "STRIPE").reduce((s: number, p: any) => s + (Number(p.amount ?? 0)), 0) ?? 0) + admissionStripe,
+    [transactionsData, admissionStripe]
+  );
+  const cashCount = useMemo(
+    () => (transactionsData?.data?.filter((p: any) => p.method === "CASH").length ?? 0) + (admissionPayments ?? []).filter((p: any) => (p.paymentMethod ?? "CASH") === "CASH").length,
+    [transactionsData, admissionPayments]
+  );
+  const stripeCount = useMemo(
+    () => (transactionsData?.data?.filter((p: any) => p.method === "STRIPE").length ?? 0) + (admissionPayments ?? []).filter((p: any) => (p.paymentMethod ?? "CASH") === "STRIPE").length,
+    [transactionsData, admissionPayments]
+  );
 
   if (isLoading) {
     return (
@@ -247,7 +326,7 @@ export default function FeeList() {
             },
             {
               label: "Total Paid",
-              value: totalPaid,
+              value: totalPaidDisplay,
               icon: TrendingUp,
               gradient: "from-emerald-500 to-teal-600",
               ring: "ring-emerald-500/20",
@@ -255,7 +334,7 @@ export default function FeeList() {
             },
             {
               label: "Total Due",
-              value: totalDue,
+              value: totalDueDisplay,
               icon: TrendingDown,
               gradient: "from-rose-500 to-pink-600",
               ring: "ring-rose-500/20",
@@ -293,19 +372,19 @@ export default function FeeList() {
             {[
               {
                 label: "Cash Collected",
-                value: transactionsData?.data.filter(p => p.method === "CASH").reduce((s, p) => s + p.amount, 0) ?? 0,
+                value: cashCollected,
                 icon: Banknote,
                 gradient: "from-emerald-500 to-green-600",
                 ring: "ring-emerald-500/20",
-                count: transactionsData?.data.filter(p => p.method === "CASH").length ?? 0,
+                count: cashCount,
               },
               {
                 label: "Stripe Collected",
-                value: transactionsData?.data.filter(p => p.method === "STRIPE").reduce((s, p) => s + p.amount, 0) ?? 0,
+                value: stripeCollected,
                 icon: CreditCard,
                 gradient: "from-blue-500 to-violet-600",
                 ring: "ring-blue-500/20",
-                count: transactionsData?.data.filter(p => p.method === "STRIPE").length ?? 0,
+                count: stripeCount,
               },
             ].map((card) => (
               <motion.div
@@ -320,14 +399,14 @@ export default function FeeList() {
                       {card.label}
                     </p>
                     <p className="text-2xl font-bold text-slate-900 dark:text-white mt-2">
-                      {transactionsLoading ? (
+                      {transactionsLoading && !summaryData ? (
                         <span className="inline-block w-20 h-7 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
                       ) : (
                         formatTaka(card.value)
                       )}
                     </p>
                     <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                      {transactionsLoading ? "..." : `${card.count} transaction${card.count !== 1 ? "s" : ""} (current page)`}
+                      {transactionsLoading && !summaryData ? "..." : `${card.count} transaction${card.count !== 1 ? "s" : ""}`}
                     </p>
                   </div>
                   <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${card.gradient} flex items-center justify-center shadow-md`}>

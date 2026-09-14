@@ -134,7 +134,7 @@ export default function StudentDashboard() {
             ? unwrap<Array<any>>(resultRes.value)
             : [];
           const fees = feeRes.status === "fulfilled"
-            ? unwrap<{ totalDue?: number; totalPaid?: number; totalOverdue?: number }>(feeRes.value)
+            ? unwrap<{ totalFees?: number; totalPaid?: number; outstanding?: number; overDue?: number }>(feeRes.value)
             : null;
           const exams = examsRes.status === "fulfilled"
             ? unwrap<Array<any>>(examsRes.value)
@@ -150,7 +150,7 @@ export default function StudentDashboard() {
           const percentage = totalFull > 0 ? Math.round((totalObtained / totalFull) * 100) : 0;
 
           setResultPercent(percentage);
-          setPendingFees(fees?.totalDue ?? 0);
+          setPendingFees(fees?.outstanding ?? 0);
 
           const resultItems = latestSubjects.slice(0, 5).map((mark: any) => ({
             id: mark.id,

@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import api from "@/lib/axios";
 import { useLenis } from "@/hooks/useLenis";
-import type { Role } from "@/tyPes/auth.tyPes";
 import { Plus, Building2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,24 +17,13 @@ type Department = {
   isActive: boolean;
 };
 
-const roleLabels: Record<Role, string> = {
-  SUPER_ADMIN: "Super Admin",
-  SCHOOL_ADMIN: "School Admin",
-  ACCOUNTANT: "Accountant",
-  TEACHER: "Teacher",
-  STUDENT: "Student",
-  PARENT: "Parent",
-  EXAM_CONTROLLER: "Exam Controller",
-  HR: "HR",
-};
-
 export default function DepartmentsPage() {
   useLenis();
   const router = useRouter();
   const { role } = useAuth();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
-  const canCreateDepartment = role === "SCHOOL_ADMIN" || role === "SUPER_ADMIN";
+  const canCreateDepartment = role === "HR" || role === "SCHOOL_ADMIN" || role === "SUPER_ADMIN";
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ name: "", code: "", description: "" });
 
@@ -59,7 +47,8 @@ export default function DepartmentsPage() {
   };
 
   useEffect(() => {
-    load();
+    const timer = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -69,8 +58,9 @@ export default function DepartmentsPage() {
       setFormData({ name: "", code: "", description: "" });
       setShowForm(false);
       load();
-    } catch (err: any) {
-      alert(err?.response?.data?.message ?? "Failed to create department");
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      alert(message ?? "Failed to create department");
     }
   };
 
