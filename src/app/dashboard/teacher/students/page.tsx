@@ -73,7 +73,7 @@ type TeacherProfile = {
   id: string;
   name: string;
   email: string;
-  sectionTeacher?: { id: string; class: { id: string; name: string } }[];
+  sectionTeacher?: { id: string; name: string; classId: string; class: { id: string; name: string } }[];
 };
 
 const LIMIT = 12;
@@ -136,7 +136,14 @@ export default function Page() {
   const [selected, setSelected] = useState<Student | null>(null);
 
   const assignedClasses = useMemo(() => {
-    return (profile as TeacherProfile | undefined)?.sectionTeacher?.map((st) => st.class) ?? [];
+    // Deduplicate classes from sectionTeacher
+    const seen = new Map<string, { id: string; name: string }>();
+    (profile as TeacherProfile | undefined)?.sectionTeacher?.forEach((st) => {
+      if (st.class?.id && !seen.has(st.class.id)) {
+        seen.set(st.class.id, st.class);
+      }
+    });
+    return Array.from(seen.values());
   }, [profile]);
 
   const selectedClass = useMemo(() => {
@@ -145,9 +152,11 @@ export default function Page() {
 
   const availableSections = useMemo(() => {
     if (!selectedClassId) return [];
-    return (profile as TeacherProfile | undefined)?.sectionTeacher
-      ?.filter((st) => st.class.id === selectedClassId)
-      .map((st) => ({ id: st.id, name: st.class.name })) ?? [];
+    return (
+      (profile as TeacherProfile | undefined)?.sectionTeacher
+        ?.filter((st) => st.class?.id === selectedClassId)
+        .map((st) => ({ id: st.id, name: st.name ?? st.class?.name ?? "Section" })) ?? []
+    );
   }, [profile, selectedClassId]);
 
   const effectiveClassId = selectedClassId || (assignedClasses[0]?.id ?? "");

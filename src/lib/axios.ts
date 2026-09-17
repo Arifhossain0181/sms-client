@@ -152,11 +152,15 @@ api.interceptors.response.use(
 
     if (!isUnauthorized) {
       const url = error.config?.url || "";
-      const isRecruitmentJobsFetch = url.includes("/recruitment/jobs") && error.config?.method?.toLowerCase() === "get";
+      const method = error.config?.method?.toLowerCase() || "";
+      
+      const isExpectedError = 
+        (url.includes("/recruitment/jobs") && method === "get" && [403, 404].includes(error.response?.status ?? 0)) ||
+        (url.includes("/students/me") && method === "get" && error.response?.status === 404);
       
       if (!error.response) {
         console.error(`[AXIOS-ERROR] Network Error - ${error.message} - URL: ${url}`);
-      } else if (!isRecruitmentJobsFetch || ![403, 404].includes(error.response?.status ?? 0)) {
+      } else if (!isExpectedError) {
         console.error(`[AXIOS-ERROR] ${error.response?.status} ${error.config?.method?.toUpperCase()} ${url}`);
         console.error(`[AXIOS-ERROR] Response:`, error.response?.data);
       }

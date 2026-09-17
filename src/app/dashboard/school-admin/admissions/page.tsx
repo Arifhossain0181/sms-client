@@ -191,21 +191,89 @@ function DetailModal({
           </div>
 
           {/* Info rows */}
-          {[
-            { icon: MapPin, label: "Address", value: admission.address },
-            { icon: Phone, label: "Guardian Phone", value: admission.guardianPhone },
-            { icon: Mail, label: "Guardian Email", value: admission.guardianEmail },
-            { icon: BookOpen, label: "Guardian Name", value: admission.guardianName },
-            { icon: Calendar, label: "Applied On", value: fmt(admission.createdAt) },
-          ].map(({ icon: I, label, value }) => (
-            <div key={label} className="flex items-start gap-3 text-sm">
-              <I className="w-4 h-4 text-slate-400 dark:text-slate-500 mt-0.5 shrink-0" />
-              <div>
-                <span className="text-slate-500 dark:text-slate-400 text-xs">{label}: </span>
-                <span className="font-medium text-slate-800 dark:text-slate-100">{value}</span>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-white/20 dark:border-white/10 pb-1">Basic Info</h4>
+              {[
+                { icon: MapPin, label: "Address", value: admission.address },
+                { icon: MapPin, label: "Present Address", value: [admission.presentHouseRoad, admission.presentArea, admission.presentCity, admission.presentDistrict, admission.presentPostalCode].filter(Boolean).join(", ") || undefined },
+                { icon: Phone, label: "Student Phone", value: admission.studentPhone },
+                { icon: Calendar, label: "Applied On", value: fmt(admission.createdAt) },
+              ].map(({ icon: I, label, value }) => value ? (
+                <div key={label} className="flex items-start gap-3 text-sm">
+                  <I className="w-4 h-4 text-slate-400 dark:text-slate-500 mt-0.5 shrink-0" />
+                  <div>
+                    <span className="text-slate-500 dark:text-slate-400 text-xs">{label}: </span>
+                    <span className="font-medium text-slate-800 dark:text-slate-100">{value}</span>
+                  </div>
+                </div>
+              ) : null)}
             </div>
-          ))}
+
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-white/20 dark:border-white/10 pb-1">Guardian Info</h4>
+              {[
+                { icon: BookOpen, label: "Name", value: admission.guardianName },
+                { icon: BookOpen, label: "Relation", value: admission.guardianRelation },
+                { icon: Phone, label: "Phone", value: admission.guardianPhone },
+                { icon: Mail, label: "Email", value: admission.guardianEmail },
+              ].map(({ icon: I, label, value }) => value ? (
+                <div key={label} className="flex items-start gap-3 text-sm">
+                  <I className="w-4 h-4 text-slate-400 dark:text-slate-500 mt-0.5 shrink-0" />
+                  <div>
+                    <span className="text-slate-500 dark:text-slate-400 text-xs">{label}: </span>
+                    <span className="font-medium text-slate-800 dark:text-slate-100">{value}</span>
+                  </div>
+                </div>
+              ) : null)}
+            </div>
+
+            {(admission.fatherFullName || admission.fatherPhone) && (
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-white/20 dark:border-white/10 pb-1">Father Info</h4>
+                {[
+                  { icon: BookOpen, label: "Name", value: admission.fatherFullName },
+                  { icon: Phone, label: "Phone", value: admission.fatherPhone },
+                  { icon: Mail, label: "Email", value: admission.fatherEmail },
+                  { icon: BookOpen, label: "Occupation", value: admission.fatherOccupation },
+                  { icon: BookOpen, label: "Organization", value: admission.fatherOrganization },
+                  { icon: BookOpen, label: "Designation", value: admission.fatherDesignation },
+                  { icon: BookOpen, label: "Income", value: admission.fatherIncome },
+                ].map(({ icon: I, label, value }) => value ? (
+                  <div key={label} className="flex items-start gap-3 text-sm">
+                    <I className="w-4 h-4 text-slate-400 dark:text-slate-500 mt-0.5 shrink-0" />
+                    <div>
+                      <span className="text-slate-500 dark:text-slate-400 text-xs">{label}: </span>
+                      <span className="font-medium text-slate-800 dark:text-slate-100">{value}</span>
+                    </div>
+                  </div>
+                ) : null)}
+              </div>
+            )}
+
+            {(admission.motherFullName || admission.motherPhone) && (
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-white/20 dark:border-white/10 pb-1">Mother Info</h4>
+                {[
+                  { icon: BookOpen, label: "Name", value: admission.motherFullName },
+                  { icon: Phone, label: "Phone", value: admission.motherPhone },
+                  { icon: Mail, label: "Email", value: admission.motherEmail },
+                  { icon: BookOpen, label: "Occupation", value: admission.motherOccupation },
+                  { icon: BookOpen, label: "Organization", value: admission.motherOrganization },
+                  { icon: BookOpen, label: "Designation", value: admission.motherDesignation },
+                  { icon: BookOpen, label: "Income", value: admission.motherIncome },
+                ].map(({ icon: I, label, value }) => value ? (
+                  <div key={label} className="flex items-start gap-3 text-sm">
+                    <I className="w-4 h-4 text-slate-400 dark:text-slate-500 mt-0.5 shrink-0" />
+                    <div>
+                      <span className="text-slate-500 dark:text-slate-400 text-xs">{label}: </span>
+                      <span className="font-medium text-slate-800 dark:text-slate-100">{value}</span>
+                    </div>
+                  </div>
+                ) : null)}
+              </div>
+            )}
+          </div>
 
           {/* Payment info */}
           {admission.paymentAmount && (
@@ -231,12 +299,27 @@ function DetailModal({
           )}
 
           {/* Documents */}
-          {admission.birthCertUrl && (
-            <a href={admission.birthCertUrl} target="_blank" rel="noreferrer"
-              className="flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 hover:underline transition-colors">
-              <BookOpen className="w-4 h-4" /> View Birth Certificate
-            </a>
-          )}
+          <div className="space-y-3 pt-2">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-white/20 dark:border-white/10 pb-1">Documents</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[
+                { label: "View Birth Certificate", url: admission.birthCertUrl },
+                { label: "View Guardian NID", url: admission.guardianNidUrl },
+                { label: "View Father NID", url: admission.fatherNid },
+                { label: "View Father Photo", url: admission.fatherPhotoUrl },
+                { label: "View Mother NID", url: admission.motherNid },
+                { label: "View Mother Photo", url: admission.motherPhotoUrl },
+              ].map(({ label, url }) => url ? (
+                <a key={label} href={url} target="_blank" rel="noreferrer"
+                  className="flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 hover:underline transition-colors">
+                  <BookOpen className="w-4 h-4" /> {label}
+                </a>
+              ) : null)}
+              {![admission.birthCertUrl, admission.guardianNidUrl, admission.fatherNid, admission.fatherPhotoUrl, admission.motherNid, admission.motherPhotoUrl].some(Boolean) && (
+                <p className="text-sm text-slate-500 dark:text-slate-400">No documents attached.</p>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Actions */}
@@ -349,22 +432,6 @@ export default function AdminAdmissionsPage() {
   const [selected, setSelected] = useState<Admission | null>(null);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
-  // Create admission
-  const [createOpen, setCreateOpen] = useState(false);
-  const [classes, setClasses] = useState<AdmissionClassOption[]>([]);
-  const [classesLoading, setClassesLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState<CreateAdmissionPayload>({
-    applicantName: "",
-    studentEmail: "",
-    guardianName: "",
-    guardianEmail: "",
-    guardianPhone: "",
-    address: "",
-    gender: "MALE",
-    dob: "",
-    targetClassId: "",
-  });
 
   // Filters
   const [search, setSearch] = useState("");
@@ -378,55 +445,9 @@ export default function AdminAdmissionsPage() {
     setTimeout(() => setToast(null), 3500);
   };
 
-  const loadClasses = async () => {
-    setClassesLoading(true);
-    try {
-      const data = await admissionService.getPublicClasses();
-      setClasses(data);
-    } catch {
-      showToast("Failed to load classes", false);
-    } finally {
-      setClassesLoading(false);
-    }
-  };
 
-  const openCreateModal = async () => {
-    setCreateOpen(true);
-    if (classes.length === 0) {
-      await loadClasses();
-    }
-  };
-
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const guardianEmail = form.guardianEmail.trim().toLowerCase();
-    if (!/^[a-z0-9][a-z0-9._%+-]*@gmail\.com$/i.test(guardianEmail)) {
-      showToast("Guardian email must be a valid Gmail address (example@gmail.com)", false);
-      return;
-    }
-    try {
-      setSubmitting(true);
-      await admissionService.create({ ...form, guardianEmail });
-      showToast("Admission created ✓");
-      setCreateOpen(false);
-      setForm({
-        applicantName: "",
-        studentEmail: "",
-        guardianName: "",
-        guardianEmail: "",
-        guardianPhone: "",
-        address: "",
-        gender: "MALE",
-        dob: "",
-        targetClassId: "",
-      });
-      fetchData();
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? "Failed to create admission";
-      showToast(msg, false);
-    } finally {
-      setSubmitting(false);
-    }
+  const openCreateModal = () => {
+    router.push("/dashboard/school-admin/admissions/create");
   };
 
   // ── Fetch 
@@ -792,208 +813,7 @@ export default function AdminAdmissionsPage() {
           )}
         </AnimatePresence>
 
-        {/* Create Admission Modal */}
-        <AnimatePresence>
-          {createOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            >
-              <motion.button
-                type="button"
-                aria-label="Close create admission"
-                className="absolute inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm"
-                onClick={() => setCreateOpen(false)}
-              />
-              <motion.div
-                initial={{ opacity: 0, scale: 0.96, y: 12 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.96, y: 12 }}
-                transition={{ type: "spring", stiffness: 120, damping: 16 }}
-                className="relative w-full max-w-2xl overflow-hidden bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl rounded-3xl border border-white/30 dark:border-white/10 shadow-2xl"
-              >
-                <div className="bg-gradient-to-r from-sky-50 via-indigo-50 to-violet-50 dark:from-sky-500/10 dark:via-indigo-500/10 dark:to-violet-500/10 px-6 py-5 border-b border-white/40 dark:border-white/5">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <h3 className="text-lg font-bold text-slate-800 dark:text-white">New Admission</h3>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">Create a new student admission application.</p>
-                    </div>
-                    <button
-                      onClick={() => setCreateOpen(false)}
-                      className="rounded-full border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-800/40 px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                    >
-                      Close
-                    </button>
-                  </div>
-                </div>
 
-                <form onSubmit={handleCreate} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Applicant Name *</label>
-                      <input
-                        value={form.applicantName}
-                        onChange={(e) => setForm({ ...form, applicantName: e.target.value })}
-                        required
-                        className="w-full rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-800/40 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
-                        placeholder="Student full name"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Student Email *</label>
-                      <input
-                        value={form.studentEmail}
-                        onChange={(e) => setForm({ ...form, studentEmail: e.target.value })}
-                        type="email"
-                        required
-                        className="w-full rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-800/40 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
-                        placeholder="student@example.com"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Date of Birth *</label>
-                      <input
-                        value={form.dob}
-                        onChange={(e) => setForm({ ...form, dob: e.target.value })}
-                        type="date"
-                        required
-                        className="w-full rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-800/40 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Gender *</label>
-                      <select
-                        value={form.gender}
-                        onChange={(e) => setForm({ ...form, gender: e.target.value as Gender })}
-                        className="w-full rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-800/40 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
-                      >
-                        <option value="MALE">Male</option>
-                        <option value="FEMALE">Female</option>
-                        <option value="OTHER">Other</option>
-                      </select>
-                    </div>
-
-                    <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Address *</label>
-                      <textarea
-                        value={form.address}
-                        onChange={(e) => setForm({ ...form, address: e.target.value })}
-                        required
-                        rows={2}
-                        className="w-full rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-800/40 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30 resize-none"
-                        placeholder="Full address"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Guardian Name *</label>
-                      <input
-                        value={form.guardianName}
-                        onChange={(e) => setForm({ ...form, guardianName: e.target.value })}
-                        required
-                        className="w-full rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-800/40 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
-                        placeholder="Guardian full name"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Guardian Email *</label>
-                      <input
-                        value={form.guardianEmail}
-                        onChange={(e) => setForm({ ...form, guardianEmail: e.target.value })}
-                        type="email"
-                        required
-                        className="w-full rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-800/40 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
-                        placeholder="guardian@gmail.com"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Guardian Phone *</label>
-                      <input
-                        value={form.guardianPhone}
-                        onChange={(e) => setForm({ ...form, guardianPhone: e.target.value })}
-                        required
-                        className="w-full rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-800/40 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
-                        placeholder="01XXXXXXXXX"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Target Class *</label>
-                      <select
-                        value={form.targetClassId}
-                        onChange={(e) => setForm({ ...form, targetClassId: e.target.value })}
-                        required
-                        disabled={classesLoading}
-                        className="w-full rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-800/40 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30 disabled:opacity-60"
-                      >
-                        <option value="">Select class</option>
-                        {classes.map((cls) => (
-                          <option key={cls.id} value={cls.id}>
-                            {cls.name} {cls.numericLevel ? `(Class ${cls.numericLevel})` : ""}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Blood Group</label>
-                      <select
-                        value={form.bloodGroup ?? ""}
-                        onChange={(e) => setForm({ ...form, bloodGroup: e.target.value ? (e.target.value as BloodGroup) : undefined })}
-                        className="w-full rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-800/40 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
-                      >
-                        <option value="">Select</option>
-                        <option value="A_POS">A+</option>
-                        <option value="A_NEG">A-</option>
-                        <option value="B_POS">B+</option>
-                        <option value="B_NEG">B-</option>
-                        <option value="O_POS">O+</option>
-                        <option value="O_NEG">O-</option>
-                        <option value="AB_POS">AB+</option>
-                        <option value="AB_NEG">AB-</option>
-                      </select>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Religion</label>
-                      <input
-                        value={form.religion ?? ""}
-                        onChange={(e) => setForm({ ...form, religion: e.target.value })}
-                        className="w-full rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-800/40 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
-                        placeholder="Optional"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-end gap-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setCreateOpen(false)}
-                      className="px-5 py-2.5 rounded-xl border border-white/40 dark:border-white/10 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={submitting}
-                      className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 text-white text-sm font-semibold shadow-lg shadow-indigo-500/20 hover:shadow-xl hover:shadow-indigo-500/40 disabled:opacity-60 transition-all"
-                    >
-                      {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                      {submitting ? "Creating..." : "Create Admission"}
-                    </button>
-                  </div>
-                </form>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
     </div>
   );

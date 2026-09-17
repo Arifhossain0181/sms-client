@@ -34,6 +34,7 @@ const schema = z
   .object({
     applicantName: z.string().min(1, "Student name is required"),
     studentEmail: z.string().email("Enter a valid student email"),
+    studentPhone: z.string().min(7, "Student phone is required"),
     dob: z.string().min(1, "Date of birth is required"),
     gender: z.enum(["MALE", "FEMALE", "OTHER"], { message: "Select a gender" }),
     bloodGroup: z
@@ -44,8 +45,9 @@ const schema = z
     guardianName: z.string().min(1, "Guardian name is required"),
     guardianPhone: z.string().min(7, "Enter a valid guardian phone"),
     guardianEmail: z.string().trim().regex(/^[a-z0-9][a-z0-9._%+-]*@gmail\.com$/i, "Enter a valid Gmail address (example@gmail.com)"),
+    guardianRelation: z.enum(["FATHER", "MOTHER", "OTHER"], { message: "Select the relation" }),
     targetClassId: z.string().min(1, "Select a class"),
-    payNow: z.boolean().default(false),
+    payNow: z.boolean().default(true),
     paymentMethod: z.enum(["CASH", "STRIPE"]).optional(),
     paymentAmount: z.coerce.number().optional(),
     transactionId: z.string().optional(),
@@ -53,21 +55,11 @@ const schema = z
     birthCertUrl: z.string().optional(),
   })
   .superRefine((data, ctx) => {
-    if (data.payNow) {
-      if (!data.paymentMethod) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["paymentMethod"],
-          message: "Select a payment method",
-        });
-      }
-      if (!data.paymentAmount || data.paymentAmount <= 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["paymentAmount"],
-          message: "Enter a payment amount",
-        });
-      }
+    if (!data.paymentMethod) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["paymentMethod"], message: "Select a payment method" });
+    }
+    if (!data.paymentAmount || data.paymentAmount <= 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["paymentAmount"], message: "Enter a payment amount" });
     }
   });
 
@@ -109,9 +101,19 @@ export default function Admission() {
 
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [birthCertUrl, setBirthCertUrl] = useState<string | null>(null);
-  const [uploading, setUploading] = useState<{ photo: boolean; birthCert: boolean }>({
+  const [guardianNidUrl, setGuardianNidUrl] = useState<string | null>(null);
+  const [fatherNidUrl, setFatherNidUrl] = useState<string | null>(null);
+  const [fatherPhotoUrl, setFatherPhotoUrl] = useState<string | null>(null);
+  const [motherNidUrl, setMotherNidUrl] = useState<string | null>(null);
+  const [motherPhotoUrl, setMotherPhotoUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState<Record<string, boolean>>({
     photo: false,
     birthCert: false,
+    guardianNid: false,
+    fatherNid: false,
+    fatherPhoto: false,
+    motherNid: false,
+    motherPhoto: false,
   });
   const [stripeVerifying, setStripeVerifying] = useState(false);
   const [stripePaid, setStripePaid] = useState(false);
@@ -127,7 +129,7 @@ export default function Admission() {
     setValue,
     watch,
     formState: { errors, isSubmitting },
-  } = useForm<FormInput>({ resolver: zodResolver(schema) });
+  } = useForm<FormInput>({ resolver: zodResolver(schema), defaultValues: { payNow: true } });
 
   const payNow = watch("payNow");
   const paymentMethod = watch("paymentMethod");
@@ -211,7 +213,7 @@ export default function Admission() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const uploadDocument = async (file: File, type: "photo" | "birthCert") => {
+  const uploadDocument = async (file: File, type: "photo" | "birthCert" | "guardianNid" | "fatherNid" | "fatherPhoto" | "motherNid" | "motherPhoto") => {
     setUploading((prev) => ({ ...prev, [type]: true }));
     try {
       const formData = new FormData();
@@ -222,7 +224,12 @@ export default function Admission() {
       const url = res.data?.data?.url || res.data?.url;
       if (!url) throw new Error("Upload failed");
       if (type === "photo") setPhotoUrl(url);
-      else setBirthCertUrl(url);
+      else if (type === "birthCert") setBirthCertUrl(url);
+      else if (type === "guardianNid") setGuardianNidUrl(url);
+      else if (type === "fatherNid") setFatherNidUrl(url);
+      else if (type === "fatherPhoto") setFatherPhotoUrl(url);
+      else if (type === "motherNid") setMotherNidUrl(url);
+      else setMotherPhotoUrl(url);
       toast.success("Document uploaded");
     } catch (err: unknown) {
       const message = (err as { response?: { data?: { message?: string } } })?.response?.data
@@ -242,6 +249,7 @@ export default function Admission() {
     await createAdmission({
       applicantName: draft.applicantName!,
       studentEmail: draft.studentEmail!,
+        studentPhone: draft.studentPhone!,
       dob: draft.dob!,
       gender: draft.gender!,
       bloodGroup: draft.bloodGroup,
@@ -250,6 +258,7 @@ export default function Admission() {
       guardianName: draft.guardianName!,
       guardianPhone: draft.guardianPhone!,
       guardianEmail: draft.guardianEmail!,
+      guardianRelation: draft.guardianRelation!,
       targetClassId: draft.targetClassId!,
       paymentMethod: "STRIPE",
       paymentAmount: amountTotal ?? (draft.paymentAmount as number | undefined),
@@ -321,6 +330,11 @@ export default function Admission() {
   };
 
   const onSubmit: SubmitHandler<FormInput> = async (data) => {
+    if (!photoUrl || !guardianNidUrl || !fatherNidUrl || !fatherPhotoUrl || !motherNidUrl || !motherPhotoUrl) {
+      toast.error("Student photo, guardian NID, father/mother NID and photos are required");
+      return;
+    }
+
     if (data.payNow && data.paymentMethod === "STRIPE" && !stripePaid) {
       toast.error("Please complete the Stripe payment first");
       return;
@@ -330,6 +344,7 @@ export default function Admission() {
       await createAdmission({
         applicantName: data.applicantName,
         studentEmail: data.studentEmail,
+        studentPhone: data.studentPhone,
         dob: data.dob,
         gender: data.gender,
         bloodGroup: data.bloodGroup,
@@ -338,12 +353,18 @@ export default function Admission() {
         guardianName: data.guardianName,
         guardianPhone: data.guardianPhone,
         guardianEmail: data.guardianEmail,
+        guardianRelation: data.guardianRelation,
         targetClassId: data.targetClassId,
         paymentMethod: data.payNow ? data.paymentMethod : undefined,
         paymentAmount: data.payNow ? (data.paymentAmount as number | undefined) : undefined,
         transactionId: data.payNow ? data.transactionId : undefined,
         photoUrl: photoUrl || undefined,
         birthCertUrl: birthCertUrl || undefined,
+        guardianNidUrl: guardianNidUrl || undefined,
+        fatherNid: fatherNidUrl || undefined,
+        fatherPhotoUrl: fatherPhotoUrl || undefined,
+        motherNid: motherNidUrl || undefined,
+        motherPhotoUrl: motherPhotoUrl || undefined,
       });
       finalizeSuccess();
     } catch {
@@ -439,6 +460,12 @@ export default function Admission() {
                 </Field>
 
                 <Field delay={0.15}>
+                  <label className={labelCls}><Phone className="h-3.5 w-3.5 text-indigo-500" /> Student Phone</label>
+                  <input {...register("studentPhone")} className={inputCls} placeholder="01XXXXXXXXX" />
+                  {errors.studentPhone && <p className={errCls}>{errors.studentPhone.message}</p>}
+                </Field>
+
+                <Field delay={0.2}>
                   <label className={labelCls}>
                     <Calendar className="h-3.5 w-3.5 text-indigo-500" /> Date of Birth
                   </label>
@@ -508,8 +535,7 @@ export default function Admission() {
 
                 <Field delay={0.45} span={2}>
                   <label className={labelCls} style={{ alignItems: "center" }}>
-                    <ImageIcon className="h-3.5 w-3.5 text-emerald-500" /> Student Photo{" "}
-                    <span className="text-slate-400 font-normal">(optional)</span>
+                    <ImageIcon className="h-3.5 w-3.5 text-emerald-500" /> Student Photo <span className="text-red-500">*</span>
                   </label>
                   <label className="mt-2 group flex items-center justify-between gap-3 rounded-xl border-2 border-dashed border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur px-4 py-3 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/40 dark:hover:bg-indigo-500/5 transition">
                     <span className="text-sm text-slate-500 dark:text-slate-400 truncate">
@@ -604,6 +630,31 @@ export default function Admission() {
                   />
                   {errors.guardianEmail && <p className={errCls}>{errors.guardianEmail.message}</p>}
                 </Field>
+
+                <Field delay={0.2}>
+                  <label className={labelCls}>Guardian Relation <span className="text-red-500">*</span></label>
+                  <select {...register("guardianRelation")} className={inputCls}>
+                    <option value="">Select relation</option><option value="FATHER">Father</option><option value="MOTHER">Mother</option><option value="OTHER">Other</option>
+                  </select>
+                  {errors.guardianRelation && <p className={errCls}>{errors.guardianRelation.message}</p>}
+                </Field>
+                {([
+                  ["Guardian NID image", "guardianNid", guardianNidUrl, "image/*,.pdf"],
+                  ["Father NID image", "fatherNid", fatherNidUrl, "image/*,.pdf"],
+                  ["Father Photo", "fatherPhoto", fatherPhotoUrl, "image/*"],
+                  ["Mother NID image", "motherNid", motherNidUrl, "image/*,.pdf"],
+                  ["Mother Photo", "motherPhoto", motherPhotoUrl, "image/*"],
+                ] as const).map(([label, type, url, accept]) => (
+                  <Field key={type} delay={0.2}>
+                    <label className={labelCls}>{label} <span className="text-red-500">*</span></label>
+                    <label className="mt-2 flex items-center justify-between gap-3 rounded-xl border-2 border-dashed border-slate-200 dark:border-white/10 px-4 py-3 cursor-pointer hover:border-indigo-400 transition">
+                      <span className="text-sm text-slate-500 truncate">{url ? "✓ Uploaded" : "Upload file"}</span>
+                      <span className="text-xs font-semibold text-indigo-600">Browse</span>
+                      <input type="file" accept={accept} className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) uploadDocument(file, type); }} />
+                    </label>
+                    {uploading[type] && <p className="text-xs text-slate-400 mt-1"><Loader2 className="inline h-3 w-3 animate-spin" /> Uploading...</p>}
+                  </Field>
+                ))}
               </div>
             </div>
 
@@ -613,13 +664,13 @@ export default function Admission() {
                 <span className="grid place-items-center h-8 w-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
                   <CreditCard className="h-4 w-4" />
                 </span>
-                Payment <span className="text-xs font-normal text-slate-500 dark:text-slate-400">(optional)</span>
+                Payment <span className="text-red-500">*</span>
               </h2>
 
               <Field delay={0.05}>
                 <label className="mt-5 flex items-center gap-3 cursor-pointer select-none group">
                   <span className="relative inline-flex">
-                    <input type="checkbox" {...register("payNow")} className="peer sr-only" />
+                    <input type="checkbox" checked readOnly className="peer sr-only" />
                     <span className="h-6 w-11 rounded-full bg-slate-200 dark:bg-white/10 peer-checked:bg-gradient-to-r peer-checked:from-emerald-500 peer-checked:to-teal-600 transition-colors" />
                     <span className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow peer-checked:translate-x-5 transition-transform" />
                   </span>

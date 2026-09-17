@@ -34,20 +34,36 @@ import { useAuth } from "@/hooks/useAuth";
 const schema = z.object({
   applicantName: z.string().min(1, "Enter the student name"),
   studentEmail: z.string().email("Enter a valid student email"),
+  studentPhone: z.string().min(7, "Enter the student phone number"),
   dob: z.string().min(1, "Enter the date of birth"),
   gender: z.enum(["MALE", "FEMALE", "OTHER"], { message: "Select a gender" }),
   bloodGroup: z.enum(["A_POS", "A_NEG", "B_POS", "B_NEG", "O_POS", "O_NEG", "AB_POS", "AB_NEG"]).optional(),
   religion: z.string().optional(),
   address: z.string().min(1, "Enter the address"),
+  presentHouseRoad: z.string().optional(),
+  presentArea: z.string().optional(),
+  presentCity: z.string().optional(),
+  presentDistrict: z.string().optional(),
+  presentPostalCode: z.string().optional(),
   guardianName: z.string().min(1, "Enter the guardian name"),
   guardianPhone: z.string().min(7, "Enter the guardian phone number"),
+  guardianRelation: z.enum(["FATHER", "MOTHER", "OTHER"], { message: "Select the guardian relation" }),
     guardianEmail: z.string().trim().regex(/^[a-z0-9][a-z0-9._%+-]*@gmail\.com$/i, "Enter a valid Gmail address (example@gmail.com)"),
+    fatherFullName: z.string().optional(), fatherPhone: z.string().optional(), fatherEmail: z.string().email().optional().or(z.literal("")),
+    fatherNid: z.string().optional(), fatherOccupation: z.string().optional(), fatherOrganization: z.string().optional(), fatherDesignation: z.string().optional(), fatherIncome: z.string().optional(), fatherAddress: z.string().optional(),
+    motherFullName: z.string().optional(), motherPhone: z.string().optional(), motherEmail: z.string().email().optional().or(z.literal("")),
+    motherNid: z.string().optional(), motherOccupation: z.string().optional(), motherOrganization: z.string().optional(), motherDesignation: z.string().optional(), motherIncome: z.string().optional(), motherAddress: z.string().optional(),
   targetClassId: z.string().min(1, "Select a class"),
-  payNow: z.boolean().default(false),
+  payNow: z.boolean().default(true),
   paymentMethod: z.enum(["CASH", "STRIPE"]).optional(),
   paymentAmount: z.coerce.number().optional(),
   transactionId: z.string().optional(),
 }).superRefine((data, ctx) => {
+  const minimumDob = new Date();
+  minimumDob.setFullYear(minimumDob.getFullYear() - 3);
+  if (!data.dob || new Date(`${data.dob}T00:00:00`) > minimumDob) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["dob"], message: "Student must be at least 3 years old" });
+  }
   if (data.payNow) {
     if (!data.paymentMethod) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["paymentMethod"], message: "Select a payment method" });
@@ -93,15 +109,29 @@ const Field = ({
   </motion.div>
 );
 
-export default function Admission() {
+interface AdmissionProps {
+  isAdmin?: boolean;
+}
+
+export default function Admission({ isAdmin = false }: AdmissionProps) {
   const [classes, setClasses] = useState<ClassOption[]>([]);
   const [loadingClasses, setLoadingClasses] = useState(false);
   const [classLoadError, setClassLoadError] = useState<string | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [birthCertUrl, setBirthCertUrl] = useState<string | null>(null);
-  const [uploading, setUploading] = useState<{ photo: boolean; birthCert: boolean }>({
+  const [fatherNidUrl, setFatherNidUrl] = useState<string | null>(null);
+  const [motherNidUrl, setMotherNidUrl] = useState<string | null>(null);
+  const [guardianNidUrl, setGuardianNidUrl] = useState<string | null>(null);
+  const [fatherPhotoUrl, setFatherPhotoUrl] = useState<string | null>(null);
+  const [motherPhotoUrl, setMotherPhotoUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState<{ photo: boolean; birthCert: boolean; fatherNid: boolean; motherNid: boolean; guardianNid: boolean; fatherPhoto: boolean; motherPhoto: boolean }>({
     photo: false,
     birthCert: false,
+    fatherNid: false,
+    motherNid: false,
+    guardianNid: false,
+    fatherPhoto: false,
+    motherPhoto: false,
   });
   const [stripeVerifying, setStripeVerifying] = useState(false);
   const [stripePaid, setStripePaid] = useState(false);
@@ -152,12 +182,21 @@ export default function Admission() {
     setValue("transactionId", undefined);
     setPhotoUrl(null);
     setBirthCertUrl(null);
+    setFatherNidUrl(null);
+    setMotherNidUrl(null);
+    setGuardianNidUrl(null);
+    setFatherPhotoUrl(null);
+    setMotherPhotoUrl(null);
     setStripePaid(false);
     autoSubmitRef.current = false;
     if (typeof window !== "undefined") {
       window.sessionStorage.removeItem("admissionDraft");
     }
-    router.replace("/apply-for-admission?success=1");
+    if (isAdmin) {
+      router.replace("/dashboard/school-admin/admissions");
+    } else {
+      router.replace("/apply-for-admission?success=1");
+    }
   };
 
   const submitDraftForStripe = async (sessionId: string, amountTotal?: number | null) => {
@@ -169,8 +208,9 @@ export default function Admission() {
     }
     const draft = JSON.parse(raw) as FormInput & { photoUrl?: string; birthCertUrl?: string };
     const requiredMissing = [
-      draft.applicantName, draft.dob, draft.gender, draft.address,
-      draft.guardianName, draft.guardianPhone, draft.guardianEmail, draft.targetClassId,
+      draft.applicantName, draft.studentPhone, draft.dob, draft.gender, draft.address,
+      draft.guardianName, draft.guardianPhone, draft.guardianEmail, draft.guardianRelation, draft.targetClassId,
+      draft.birthCertUrl, draft.guardianNidUrl, draft.fatherPhotoUrl, draft.motherPhotoUrl
     ].some((v) => !v);
     if (requiredMissing) {
       toast.error("Stripe payment is complete, but the form data is incomplete. Please complete the form.");
@@ -184,6 +224,12 @@ export default function Admission() {
       transactionId: sessionId,
       photoUrl: draft.photoUrl,
       birthCertUrl: draft.birthCertUrl,
+      fatherNid: draft.fatherNidUrl || draft.fatherNid,
+      motherNid: draft.motherNidUrl || draft.motherNid,
+      guardianRelation: draft.guardianRelation,
+      guardianNidUrl: draft.guardianNidUrl,
+      fatherPhotoUrl: draft.fatherPhotoUrl,
+      motherPhotoUrl: draft.motherPhotoUrl,
     });
     toast.success("Admission application submitted");
     finalizeSuccess();
@@ -193,14 +239,20 @@ export default function Admission() {
     if (typeof window === "undefined") return;
     const values = {
       applicantName: watch("applicantName"),
+      studentEmail: watch("studentEmail"),
+      studentPhone: watch("studentPhone"),
       dob: watch("dob"),
       gender: watch("gender"),
       bloodGroup: watch("bloodGroup"),
       religion: watch("religion"),
       address: watch("address"),
+      presentHouseRoad: watch("presentHouseRoad"), presentArea: watch("presentArea"), presentCity: watch("presentCity"), presentDistrict: watch("presentDistrict"), presentPostalCode: watch("presentPostalCode"),
       guardianName: watch("guardianName"),
       guardianPhone: watch("guardianPhone"),
       guardianEmail: watch("guardianEmail"),
+      guardianRelation: watch("guardianRelation"),
+      fatherFullName: watch("fatherFullName"), fatherPhone: watch("fatherPhone"), fatherEmail: watch("fatherEmail"), fatherNid: watch("fatherNid"), fatherOccupation: watch("fatherOccupation"), fatherOrganization: watch("fatherOrganization"), fatherDesignation: watch("fatherDesignation"), fatherIncome: watch("fatherIncome"), fatherAddress: watch("fatherAddress"),
+      motherFullName: watch("motherFullName"), motherPhone: watch("motherPhone"), motherEmail: watch("motherEmail"), motherNid: watch("motherNid"), motherOccupation: watch("motherOccupation"), motherOrganization: watch("motherOrganization"), motherDesignation: watch("motherDesignation"), motherIncome: watch("motherIncome"), motherAddress: watch("motherAddress"),
       targetClassId: watch("targetClassId"),
       payNow: watch("payNow"),
       paymentMethod: watch("paymentMethod"),
@@ -208,6 +260,11 @@ export default function Admission() {
       transactionId: watch("transactionId"),
       photoUrl,
       birthCertUrl,
+      fatherNidUrl,
+      motherNidUrl,
+      guardianNidUrl,
+      fatherPhotoUrl,
+      motherPhotoUrl,
     };
     try {
       window.sessionStorage.setItem("admissionDraft", JSON.stringify(values));
@@ -219,17 +276,23 @@ export default function Admission() {
     try {
       const raw = window.sessionStorage.getItem("admissionDraft");
       if (!raw) return;
-      const draft = JSON.parse(raw) as FormInput & { photoUrl?: string; birthCertUrl?: string };
+      const draft = JSON.parse(raw) as FormInput & { photoUrl?: string; birthCertUrl?: string; fatherNidUrl?: string; motherNidUrl?: string; guardianNidUrl?: string; fatherPhotoUrl?: string; motherPhotoUrl?: string; };
       reset({
         applicantName: draft.applicantName,
+        studentEmail: draft.studentEmail,
+        studentPhone: draft.studentPhone,
         dob: draft.dob,
         gender: draft.gender,
         bloodGroup: draft.bloodGroup,
         religion: draft.religion,
         address: draft.address,
+        presentHouseRoad: draft.presentHouseRoad, presentArea: draft.presentArea, presentCity: draft.presentCity, presentDistrict: draft.presentDistrict, presentPostalCode: draft.presentPostalCode,
         guardianName: draft.guardianName,
         guardianPhone: draft.guardianPhone,
         guardianEmail: draft.guardianEmail,
+        guardianRelation: draft.guardianRelation,
+        fatherFullName: draft.fatherFullName, fatherPhone: draft.fatherPhone, fatherEmail: draft.fatherEmail, fatherNid: draft.fatherNid, fatherOccupation: draft.fatherOccupation, fatherOrganization: draft.fatherOrganization, fatherDesignation: draft.fatherDesignation, fatherIncome: draft.fatherIncome, fatherAddress: draft.fatherAddress,
+        motherFullName: draft.motherFullName, motherPhone: draft.motherPhone, motherEmail: draft.motherEmail, motherNid: draft.motherNid, motherOccupation: draft.motherOccupation, motherOrganization: draft.motherOrganization, motherDesignation: draft.motherDesignation, motherIncome: draft.motherIncome, motherAddress: draft.motherAddress,
         targetClassId: draft.targetClassId,
         payNow: draft.payNow,
         paymentMethod: draft.paymentMethod,
@@ -238,8 +301,20 @@ export default function Admission() {
       });
       setPhotoUrl(draft.photoUrl ?? null);
       setBirthCertUrl(draft.birthCertUrl ?? null);
+      setFatherNidUrl(draft.fatherNidUrl ?? null);
+      setMotherNidUrl(draft.motherNidUrl ?? null);
+      setGuardianNidUrl(draft.guardianNidUrl ?? null);
+      setFatherPhotoUrl(draft.fatherPhotoUrl ?? null);
+      setMotherPhotoUrl(draft.motherPhotoUrl ?? null);
     } catch {}
   };
+
+  useEffect(() => {
+    if (user) {
+      if (!watch("applicantName") && (user as any).name) setValue("applicantName", (user as any).name);
+      if (!watch("studentEmail") && user.email) setValue("studentEmail", user.email);
+    }
+  }, [user, setValue, watch]);
 
   // Check for existing admission application
   useEffect(() => {
@@ -340,24 +415,65 @@ export default function Admission() {
   };
 
   const onSubmit: SubmitHandler<FormInput> = async (data) => {
-    if (!isAuthenticated || !user) {
+    if (!isAdmin && (!isAuthenticated || !user)) {
       toast.error("You must be logged in to submit your admission application.");
       router.push(`/login?redirect=${encodeURIComponent("/apply-for-admission")}`);
       return;
     }
 
     try {
-      if (data.payNow && data.paymentMethod === "STRIPE" && !stripePaid) {
+      if (!photoUrl) {
+        toast.error("Student photo is required");
+        return;
+      }
+      if (!birthCertUrl) {
+        toast.error("Birth certificate is required");
+        return;
+      }
+      if (!guardianNidUrl) {
+        toast.error("Guardian NID is required");
+        return;
+      }
+      if (!fatherNidUrl) {
+        toast.error("Father's NID is required");
+        return;
+      }
+      if (!motherNidUrl) {
+        toast.error("Mother's NID is required");
+        return;
+      }
+      if (!fatherPhotoUrl) {
+        toast.error("Father's photo is required");
+        return;
+      }
+      if (!motherPhotoUrl) {
+        toast.error("Mother's photo is required");
+        return;
+      }
+      if (!data.payNow || !data.paymentMethod || !data.paymentAmount) {
+        toast.error("Payment is required");
+        return;
+      }
+      if (!isAdmin && data.payNow && data.paymentMethod === "STRIPE" && !stripePaid) {
         toast.error("Complete the Stripe payment");
         return;
       }
-      await api.post("/admission/apply", {
+      
+      const endpoint = isAdmin ? "/admission" : "/admission/apply";
+      
+      await api.post(endpoint, {
         ...data,
         paymentMethod: data.payNow ? data.paymentMethod : undefined,
         paymentAmount: data.payNow ? data.paymentAmount : undefined,
         transactionId: data.payNow ? data.transactionId : undefined,
         photoUrl: photoUrl || undefined,
         birthCertUrl: birthCertUrl || undefined,
+        fatherNid: fatherNidUrl || data.fatherNid || undefined,
+        motherNid: motherNidUrl || data.motherNid || undefined,
+        guardianRelation: data.guardianRelation,
+        guardianNidUrl,
+        fatherPhotoUrl,
+        motherPhotoUrl,
       });
       toast.success("Admission application submitted");
       finalizeSuccess();
@@ -366,7 +482,7 @@ export default function Admission() {
     }
   };
 
-  const uploadDocument = async (file: File, type: "photo" | "birthCert") => {
+  const uploadDocument = async (file: File, type: "photo" | "birthCert" | "fatherNid" | "motherNid" | "guardianNid" | "fatherPhoto" | "motherPhoto") => {
     setUploading((prev) => ({ ...prev, [type]: true }));
     try {
       const formData = new FormData();
@@ -377,7 +493,12 @@ export default function Admission() {
       const url = res.data?.data?.url || res.data?.url;
       if (!url) throw new Error("Upload failed");
       if (type === "photo") setPhotoUrl(url);
-      else setBirthCertUrl(url);
+      else if (type === "birthCert") setBirthCertUrl(url);
+      else if (type === "fatherNid") setFatherNidUrl(url);
+      else if (type === "motherNid") setMotherNidUrl(url);
+      else if (type === "guardianNid") setGuardianNidUrl(url);
+      else if (type === "fatherPhoto") setFatherPhotoUrl(url);
+      else if (type === "motherPhoto") setMotherPhotoUrl(url);
       toast.success("Document uploaded");
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Upload failed");
@@ -534,9 +655,15 @@ export default function Admission() {
                   {errors.studentEmail && <p className={errCls}>{errors.studentEmail.message}</p>}
                 </Field>
 
+                <Field delay={0.12}>
+                  <label className={labelCls}><Phone className="h-3.5 w-3.5 text-indigo-500" /> Student Phone</label>
+                  <input type="tel" {...register("studentPhone")} className={inputCls} placeholder="01XXXXXXXXX" />
+                  {errors.studentPhone && <p className={errCls}>{errors.studentPhone.message}</p>}
+                </Field>
+
                 <Field delay={0.15}>
                   <label className={labelCls}><Calendar className="h-3.5 w-3.5 text-indigo-500" /> Date of Birth</label>
-                  <input type="date" {...register("dob")} className={inputCls} />
+                  <input type="date" max={new Date(new Date().setFullYear(new Date().getFullYear() - 3)).toISOString().slice(0, 10)} {...register("dob")} className={inputCls} />
                   {errors.dob && <p className={errCls}>{errors.dob.message}</p>}
                 </Field>
 
@@ -591,8 +718,29 @@ export default function Admission() {
                   {errors.address && <p className={errCls}>{errors.address.message}</p>}
                 </Field>
 
+                <Field delay={0.36}>
+                  <label className={labelCls}>House/Road</label>
+                  <input {...register("presentHouseRoad")} className={inputCls} placeholder="House and road" />
+                </Field>
+                <Field delay={0.37}>
+                  <label className={labelCls}>Area</label>
+                  <input {...register("presentArea")} className={inputCls} placeholder="Area" />
+                </Field>
+                <Field delay={0.38}>
+                  <label className={labelCls}>City</label>
+                  <input {...register("presentCity")} className={inputCls} placeholder="City" />
+                </Field>
+                <Field delay={0.39}>
+                  <label className={labelCls}>District</label>
+                  <input {...register("presentDistrict")} className={inputCls} placeholder="District" />
+                </Field>
+                <Field delay={0.4}>
+                  <label className={labelCls}>Postal Code</label>
+                  <input {...register("presentPostalCode")} className={inputCls} placeholder="Postal code" />
+                </Field>
+
                 <Field delay={0.4} span={2}>
-                  <label className={labelCls}><ImageIcon className="h-3.5 w-3.5 text-emerald-500" /> Student Photo <span className="text-slate-400 font-normal">(optional)</span></label>
+                  <label className={labelCls}><ImageIcon className="h-3.5 w-3.5 text-emerald-500" /> Student Photo <span className="text-red-500 font-normal">(required)</span></label>
                   <label className="mt-2 group flex items-center justify-between gap-3 rounded-xl border-2 border-dashed border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur px-4 py-3 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/40 dark:hover:bg-indigo-500/5 transition">
                     <span className="text-sm text-slate-500 dark:text-slate-400 truncate">
                       {photoUrl ? "✓ Photo uploaded" : "Click to upload student photo"}
@@ -604,7 +752,7 @@ export default function Admission() {
                 </Field>
 
                 <Field delay={0.45} span={2}>
-                  <label className={labelCls}><FileText className="h-3.5 w-3.5 text-emerald-500" /> Birth Certificate <span className="text-slate-400 font-normal">(optional)</span></label>
+                  <label className={labelCls}><FileText className="h-3.5 w-3.5 text-emerald-500" /> Birth Certificate <span className="text-red-500 font-normal">(required)</span></label>
                   <label className="mt-2 group flex items-center justify-between gap-3 rounded-xl border-2 border-dashed border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur px-4 py-3 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/40 dark:hover:bg-indigo-500/5 transition">
                     <span className="text-sm text-slate-500 dark:text-slate-400 truncate">
                       {birthCertUrl ? "✓ Document uploaded" : "Click to upload birth certificate"}
@@ -628,7 +776,7 @@ export default function Admission() {
 
               <div className="mt-5 grid gap-5 md:grid-cols-2">
                 <Field delay={0.05}>
-                  <label className={labelCls}><User className="h-3.5 w-3.5 text-sky-500" /> Guardian Name</label>
+                  <label className={labelCls}><User className="h-3.5 w-3.5 text-sky-500" /> Guardian Name (Father or Mother or Others)</label>
                   <input {...register("guardianName")} className={inputCls} placeholder="Guardian name" />
                   {errors.guardianName && <p className={errCls}>{errors.guardianName.message}</p>}
                 </Field>
@@ -639,10 +787,107 @@ export default function Admission() {
                   {errors.guardianPhone && <p className={errCls}>{errors.guardianPhone.message}</p>}
                 </Field>
 
-                <Field delay={0.15} span={2}>
+                <Field delay={0.15}>
+                  <label className={labelCls}><Users className="h-3.5 w-3.5 text-sky-500" /> Guardian Relation</label>
+                  <select {...register("guardianRelation")} className={selectCls}>
+                    <option className={optionCls} value="">Select relation</option>
+                    <option className={optionCls} value="FATHER">Father</option>
+                    <option className={optionCls} value="MOTHER">Mother</option>
+                    <option className={optionCls} value="OTHER">Other</option>
+                  </select>
+                  {errors.guardianRelation && <p className={errCls}>{errors.guardianRelation.message}</p>}
+                </Field>
+
+                <Field delay={0.15}>
                   <label className={labelCls}><Mail className="h-3.5 w-3.5 text-sky-500" /> Guardian Email</label>
                   <input type="email" {...register("guardianEmail")} className={inputCls} placeholder="guardian@gmail.com" />
                   {errors.guardianEmail && <p className={errCls}>{errors.guardianEmail.message}</p>}
+                </Field>
+
+                <Field delay={0.18} span={2}>
+                  <label className={labelCls}><FileText className="h-3.5 w-3.5 text-emerald-500" /> Guardian NID <span className="text-red-500 font-normal">(required)</span></label>
+                  <label className="mt-2 group flex items-center justify-between gap-3 rounded-xl border-2 border-dashed border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur px-4 py-3 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/40 dark:hover:bg-indigo-500/5 transition">
+                    <span className="text-sm text-slate-500 dark:text-slate-400 truncate">
+                      {guardianNidUrl ? "✓ Guardian NID uploaded" : "Click to upload Guardian NID"}
+                    </span>
+                    <span className="shrink-0 text-xs font-semibold text-indigo-600 dark:text-indigo-300 group-hover:translate-x-0.5 transition">Browse</span>
+                    <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadDocument(f, "guardianNid"); }} />
+                  </label>
+                  {uploading.guardianNid && <p className="text-xs text-slate-400 mt-1 flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Uploading...</p>}
+                </Field>
+
+                <Field delay={0.2} span={2}>
+                  <h3 className="text-base font-bold text-slate-800 dark:text-white">Father&apos;s Information</h3>
+                </Field>
+                {([
+                  ["fatherFullName", "Father's Full Name"], ["fatherPhone", "Father's Phone Number"], ["fatherEmail", "Father's Email"],
+                  ["fatherOccupation", "Occupation"], ["fatherOrganization", "Organization/Company"], ["fatherDesignation", "Designation"], ["fatherIncome", "Monthly/Annual Income (optional)"], ["fatherAddress", "Address"],
+                ] as const).map(([name, label]) => (
+                  <Field key={name} delay={0.22}>
+                    <label className={labelCls}>{label}</label>
+                    <input type={name.endsWith("Email") ? "email" : "text"} {...register(name)} className={inputCls} placeholder={label} />
+                  </Field>
+                ))}
+                
+                <Field delay={0.25} span={2}>
+                  <label className={labelCls}><ImageIcon className="h-3.5 w-3.5 text-emerald-500" /> Father&apos;s NID Image <span className="text-red-500 font-normal">(required)</span></label>
+                  <label className="mt-2 group flex items-center justify-between gap-3 rounded-xl border-2 border-dashed border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur px-4 py-3 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/40 dark:hover:bg-indigo-500/5 transition">
+                    <span className="text-sm text-slate-500 dark:text-slate-400 truncate">
+                      {fatherNidUrl ? "✓ NID uploaded" : "Click to upload Father's NID"}
+                    </span>
+                    <span className="shrink-0 text-xs font-semibold text-indigo-600 dark:text-indigo-300 group-hover:translate-x-0.5 transition">Browse</span>
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadDocument(f, "fatherNid"); }} />
+                  </label>
+                  {uploading.fatherNid && <p className="text-xs text-slate-400 mt-1 flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Uploading...</p>}
+                </Field>
+                
+                <Field delay={0.26} span={2}>
+                  <label className={labelCls}><ImageIcon className="h-3.5 w-3.5 text-emerald-500" /> Father&apos;s Photo <span className="text-red-500 font-normal">(required)</span></label>
+                  <label className="mt-2 group flex items-center justify-between gap-3 rounded-xl border-2 border-dashed border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur px-4 py-3 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/40 dark:hover:bg-indigo-500/5 transition">
+                    <span className="text-sm text-slate-500 dark:text-slate-400 truncate">
+                      {fatherPhotoUrl ? "✓ Photo uploaded" : "Click to upload Father's Photo"}
+                    </span>
+                    <span className="shrink-0 text-xs font-semibold text-indigo-600 dark:text-indigo-300 group-hover:translate-x-0.5 transition">Browse</span>
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadDocument(f, "fatherPhoto"); }} />
+                  </label>
+                  {uploading.fatherPhoto && <p className="text-xs text-slate-400 mt-1 flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Uploading...</p>}
+                </Field>
+
+                <Field delay={0.3} span={2}>
+                  <h3 className="text-base font-bold text-slate-800 dark:text-white">Mother&apos;s Information</h3>
+                </Field>
+                {([
+                  ["motherFullName", "Mother's Full Name"], ["motherPhone", "Mother's Phone Number"], ["motherEmail", "Mother's Email"],
+                  ["motherOccupation", "Occupation"], ["motherOrganization", "Organization/Company"], ["motherDesignation", "Designation"], ["motherIncome", "Monthly/Annual Income (optional)"], ["motherAddress", "Address"],
+                ] as const).map(([name, label]) => (
+                  <Field key={name} delay={0.32}>
+                    <label className={labelCls}>{label}</label>
+                    <input type={name.endsWith("Email") ? "email" : "text"} {...register(name)} className={inputCls} placeholder={label} />
+                  </Field>
+                ))}
+
+                <Field delay={0.35} span={2}>
+                  <label className={labelCls}><ImageIcon className="h-3.5 w-3.5 text-emerald-500" /> Mother&apos;s NID Image <span className="text-red-500 font-normal">(required)</span></label>
+                  <label className="mt-2 group flex items-center justify-between gap-3 rounded-xl border-2 border-dashed border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur px-4 py-3 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/40 dark:hover:bg-indigo-500/5 transition">
+                    <span className="text-sm text-slate-500 dark:text-slate-400 truncate">
+                      {motherNidUrl ? "✓ NID uploaded" : "Click to upload Mother's NID"}
+                    </span>
+                    <span className="shrink-0 text-xs font-semibold text-indigo-600 dark:text-indigo-300 group-hover:translate-x-0.5 transition">Browse</span>
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadDocument(f, "motherNid"); }} />
+                  </label>
+                  {uploading.motherNid && <p className="text-xs text-slate-400 mt-1 flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Uploading...</p>}
+                </Field>
+                
+                <Field delay={0.36} span={2}>
+                  <label className={labelCls}><ImageIcon className="h-3.5 w-3.5 text-emerald-500" /> Mother&apos;s Photo <span className="text-red-500 font-normal">(required)</span></label>
+                  <label className="mt-2 group flex items-center justify-between gap-3 rounded-xl border-2 border-dashed border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/5 backdrop-blur px-4 py-3 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/40 dark:hover:bg-indigo-500/5 transition">
+                    <span className="text-sm text-slate-500 dark:text-slate-400 truncate">
+                      {motherPhotoUrl ? "✓ Photo uploaded" : "Click to upload Mother's Photo"}
+                    </span>
+                    <span className="shrink-0 text-xs font-semibold text-indigo-600 dark:text-indigo-300 group-hover:translate-x-0.5 transition">Browse</span>
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadDocument(f, "motherPhoto"); }} />
+                  </label>
+                  {uploading.motherPhoto && <p className="text-xs text-slate-400 mt-1 flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Uploading...</p>}
                 </Field>
               </div>
             </div>
@@ -653,22 +898,14 @@ export default function Admission() {
                 <span className="grid place-items-center h-8 w-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
                   <CreditCard className="h-4 w-4" />
                 </span>
-                Payment <span className="text-xs font-normal text-slate-500 dark:text-slate-400">(optional)</span>
+                Payment <span className="text-xs font-normal text-slate-500 dark:text-slate-400">(required)</span>
               </h2>
 
-              <Field delay={0.05}>
-                <label className="mt-5 flex items-center gap-3 cursor-pointer select-none group">
-                  <span className="relative inline-flex">
-                    <input type="checkbox" {...register("payNow")} className="peer sr-only" />
-                    <span className="h-6 w-11 rounded-full bg-slate-200 dark:bg-white/10 peer-checked:bg-gradient-to-r peer-checked:from-emerald-500 peer-checked:to-teal-600 transition-colors" />
-                    <span className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow peer-checked:translate-x-5 transition-transform" />
-                  </span>
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-200 group-hover:text-emerald-600 transition">Pay now</span>
-                </label>
-              </Field>
+              <div className="hidden">
+                <input type="checkbox" {...register("payNow")} defaultChecked={true} />
+              </div>
 
               <AnimatePresence>
-                {payNow && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
@@ -720,7 +957,6 @@ export default function Admission() {
                       )}
                     </div>
                   </motion.div>
-                )}
               </AnimatePresence>
             </div>
 

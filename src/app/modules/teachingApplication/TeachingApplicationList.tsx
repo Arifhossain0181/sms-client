@@ -6,6 +6,7 @@ import {
   GraduationCap, Search, Filter, Eye, CheckCircle2, XCircle, Loader2, Inbox,
   User, Mail, Phone, Calendar, Briefcase, Building2, Award, Clock, BookOpen,
   Banknote, MapPin, FileText, FileSignature, AlertCircle, X, Users, Sparkles,
+  FileCheck, ShieldCheck, Heart, ExternalLink, Image as ImageIcon, CheckCircle,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { hasPermission } from "@/config/roles";
@@ -54,14 +55,34 @@ export default function TeachingApplicationList() {
   const canManage = role && hasPermission(role, "create_teacher");
 
   const handleApprove = (id: string) => {
-    if (confirm("Approve this application?")) updateStatus({ id, data: { status: "APPROVED" } });
+    if (confirm("Approve this application? This will create a Teacher account and link it automatically.")) {
+      updateStatus({ id, data: { status: "APPROVED" } });
+    }
   };
   const handleReject = (id: string) => {
     const reason = prompt("Enter a rejection reason (optional)") ?? undefined;
-    if (confirm("Reject this application?")) updateStatus({ id, data: { status: "REJECTED", rejectionReason: reason } });
+    if (confirm("Reject this application?")) {
+      updateStatus({ id, data: { status: "REJECTED", rejectionReason: reason } });
+    }
   };
   const handleView = (item: TeachingApplication) => { setSelected(item); setShowDetail(true); };
   const handleClose = () => { setSelected(null); setShowDetail(false); };
+
+  const renderDocLink = (title: string, url?: string) => {
+    if (!url) return null;
+    return (
+      <a
+        href={url}
+        target="_blank"
+        rel="noreferrer"
+        className="flex items-center gap-2 text-xs font-semibold text-indigo-600 dark:text-sky-400 bg-indigo-50/60 dark:bg-white/5 hover:bg-indigo-100 dark:hover:bg-white/10 px-3 py-2 rounded-xl border border-indigo-100 dark:border-white/10 transition group"
+      >
+        <FileText className="h-4 w-4 text-indigo-500 group-hover:scale-110 transition-transform" />
+        <span className="truncate flex-1">{title}</span>
+        <ExternalLink className="h-3 w-3 text-slate-400 shrink-0" />
+      </a>
+    );
+  };
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-white to-sky-50/40 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950/30 p-4 md:p-6 lg:p-8">
@@ -86,7 +107,7 @@ export default function TeachingApplicationList() {
                 <Sparkles className="h-4 w-4 text-amber-500 shrink-0" />
               </div>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
-                Total {list.length} applications
+                Total {list.length} applications received
               </p>
             </div>
           </div>
@@ -138,7 +159,7 @@ export default function TeachingApplicationList() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name or email..."
+              placeholder="Search by applicant name or email..."
               className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/60 py-2.5 pl-10 pr-4 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 backdrop-blur-sm focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/15 transition-all"
             />
           </div>
@@ -190,7 +211,7 @@ export default function TeachingApplicationList() {
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Applicant</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 hidden sm:table-cell">Phone</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 hidden md:table-cell">Designation</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 hidden lg:table-cell">Exp</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 hidden lg:table-cell">Qualification</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Status</th>
                     <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Actions</th>
                   </tr>
@@ -208,9 +229,17 @@ export default function TeachingApplicationList() {
                         >
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-3">
-                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500/15 to-indigo-500/15 text-indigo-600 dark:text-sky-300 ring-1 ring-indigo-500/10">
-                                <User className="h-4 w-4" />
-                              </div>
+                              {item.photoUrl ? (
+                                <img
+                                  src={item.photoUrl}
+                                  alt={item.name}
+                                  className="h-9 w-9 rounded-xl object-cover ring-1 ring-indigo-500/20 shrink-0"
+                                />
+                              ) : (
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500/15 to-indigo-500/15 text-indigo-600 dark:text-sky-300 ring-1 ring-indigo-500/10">
+                                  <User className="h-4 w-4" />
+                                </div>
+                              )}
                               <div className="min-w-0">
                                 <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{item.name}</p>
                                 <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{item.email}</p>
@@ -227,7 +256,7 @@ export default function TeachingApplicationList() {
                             <span className="text-sm text-slate-700 dark:text-slate-200">{item.designation}</span>
                           </td>
                           <td className="px-4 py-3 hidden lg:table-cell">
-                            <span className="text-sm text-slate-600 dark:text-slate-300">{item.experience} yrs</span>
+                            <span className="text-sm text-slate-600 dark:text-slate-300">{item.qualification}</span>
                           </td>
                           <td className="px-4 py-3">
                             <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${status.cls}`}>
@@ -241,7 +270,7 @@ export default function TeachingApplicationList() {
                                 whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
                                 onClick={() => handleView(item)}
                                 className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 dark:text-slate-400 hover:bg-sky-100 dark:hover:bg-sky-500/15 hover:text-sky-700 dark:hover:text-sky-300 transition-all duration-300 hover:-translate-y-0.5"
-                                title="View"
+                                title="View Details"
                               >
                                 <Eye className="h-4 w-4" />
                               </motion.button>
@@ -252,7 +281,7 @@ export default function TeachingApplicationList() {
                                     onClick={() => handleApprove(item.id)}
                                     disabled={isUpdating}
                                     className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 dark:text-slate-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/15 hover:text-emerald-700 dark:hover:text-emerald-300 transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-50"
-                                    title="Approve"
+                                    title="Approve & Convert to Teacher"
                                   >
                                     <CheckCircle2 className="h-4 w-4" />
                                   </motion.button>
@@ -261,7 +290,7 @@ export default function TeachingApplicationList() {
                                     onClick={() => handleReject(item.id)}
                                     disabled={isUpdating}
                                     className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 dark:text-slate-400 hover:bg-rose-100 dark:hover:bg-rose-500/15 hover:text-rose-700 dark:hover:text-rose-300 transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-50"
-                                    title="Reject"
+                                    title="Reject Application"
                                   >
                                     <XCircle className="h-4 w-4" />
                                   </motion.button>
@@ -280,12 +309,12 @@ export default function TeachingApplicationList() {
         </motion.div>
       </div>
 
-      {/* Detail Modal */}
+      {/* Complete Detail Modal */}
       <AnimatePresence>
         {showDetail && selected && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
             onClick={handleClose}
           >
             <motion.div
@@ -294,19 +323,27 @@ export default function TeachingApplicationList() {
               exit={{ opacity: 0, scale: 0.96, y: 12 }}
               transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden rounded-3xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 shadow-2xl transition-transform duration-300"
+              className="relative w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden rounded-3xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 shadow-2xl transition-transform duration-300"
             >
               {/* Header */}
               <div className="relative overflow-hidden bg-gradient-to-br from-sky-500 via-indigo-500 to-violet-600 px-6 py-5">
                 <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
                 <div className="relative flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 backdrop-blur ring-1 ring-white/20">
-                      <GraduationCap className="h-5 w-5 text-white" />
-                    </div>
+                    {selected.photoUrl ? (
+                      <img
+                        src={selected.photoUrl}
+                        alt={selected.name}
+                        className="h-12 w-12 rounded-2xl object-cover ring-2 ring-white/30 shrink-0"
+                      />
+                    ) : (
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 backdrop-blur ring-1 ring-white/20">
+                        <GraduationCap className="h-5 w-5 text-white" />
+                      </div>
+                    )}
                     <div>
-                      <h2 className="text-lg font-bold text-white">Teaching Application</h2>
-                      <p className="text-xs text-white/70">ID: {selected.id.slice(0, 8)}…</p>
+                      <h2 className="text-lg font-bold text-white">{selected.name}</h2>
+                      <p className="text-xs text-white/80">{selected.designation} {selected.department ? `· ${selected.department}` : ""}</p>
                     </div>
                   </div>
                   <button
@@ -318,9 +355,10 @@ export default function TeachingApplicationList() {
                 </div>
               </div>
 
-              {/* Body */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-5">
-                <div>
+              {/* Modal Body */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                {/* Status Badges */}
+                <div className="flex items-center justify-between gap-3">
                   {(() => {
                     const s = statusConfig[selected.status as StatusKey];
                     const I = s.icon;
@@ -331,51 +369,129 @@ export default function TeachingApplicationList() {
                       </span>
                     );
                   })()}
+
+                  {selected.convertedToTeacherId && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 px-3 py-1.5 text-xs font-semibold border border-indigo-200 dark:border-indigo-800">
+                      <CheckCircle className="h-3.5 w-3.5 text-indigo-500" />
+                      Converted to Teacher
+                    </span>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {[
-                    { label: "Name", value: selected.name, icon: User },
-                    { label: "Email", value: selected.email, icon: Mail },
-                    { label: "Phone", value: selected.phone, icon: Phone },
-                    { label: "Gender", value: selected.gender, icon: User },
-                    { label: "Date of Birth", value: selected.dob, icon: Calendar },
-                    { label: "Designation", value: selected.designation, icon: Briefcase },
-                    { label: "Department", value: selected.department || "—", icon: Building2 },
-                    { label: "Qualification", value: selected.qualification, icon: Award },
-                    { label: "Experience", value: `${selected.experience} yrs`, icon: Clock },
-                    { label: "Subject", value: selected.subjectSpecialization || "—", icon: BookOpen },
-                    { label: "Expected Salary", value: selected.expectedSalary ?? "—", icon: Banknote },
-                    { label: "Address", value: selected.address, icon: MapPin },
-                    {
-                      label: "Resume URL",
-                      value: selected.resumeUrl ? (
-                        <a href={selected.resumeUrl} target="_blank" rel="noreferrer" className="text-indigo-600 dark:text-sky-400 hover:underline break-all">
-                          {selected.resumeUrl}
-                        </a>
-                      ) : "—",
-                      icon: FileText,
-                    },
-                    { label: "Cover Letter", value: selected.coverLetter || "—", icon: FileSignature },
-                  ].map((field) => {
-                    const Icon = field.icon;
-                    return (
-                      <div key={field.label} className="flex gap-3 rounded-xl border border-slate-200/70 dark:border-white/10 bg-slate-50/60 dark:bg-white/[0.02] p-3">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-sky-500/15 to-indigo-500/15 text-indigo-600 dark:text-sky-300">
-                          <Icon className="h-4 w-4" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">{field.label}</p>
-                          <div className="text-sm text-slate-800 dark:text-slate-100 break-words">{field.value as React.ReactNode}</div>
-                        </div>
+                {/* 1. Personal Information */}
+                <div>
+                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2 mb-3">
+                    <User className="h-4 w-4 text-indigo-500" /> Personal Information
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    {[
+                      { label: "Full Name", value: selected.name, icon: User },
+                      { label: "Email", value: selected.email, icon: Mail },
+                      { label: "Phone", value: selected.phone, icon: Phone },
+                      { label: "Gender", value: selected.gender, icon: User },
+                      { label: "Date of Birth", value: selected.dob ? new Date(selected.dob).toLocaleDateString() : "—", icon: Calendar },
+                      { label: "National ID", value: selected.nationalId || "—", icon: ShieldCheck },
+                      { label: "Birth Cert No", value: selected.birthCertificateNo || "—", icon: FileText },
+                      { label: "Religion", value: selected.religion || "—", icon: Sparkles },
+                      { label: "Marital Status", value: selected.maritalStatus || "—", icon: Heart },
+                      { label: "Nationality", value: selected.nationality || "—", icon: User },
+                      { label: "Father's Name", value: selected.fatherName || "—", icon: Users },
+                      { label: "Mother's Name", value: selected.motherName || "—", icon: Users },
+                    ].map((field) => (
+                      <div key={field.label} className="rounded-xl border border-slate-200/70 dark:border-white/10 bg-slate-50/60 dark:bg-white/[0.02] p-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">{field.label}</p>
+                        <p className="text-xs font-medium text-slate-800 dark:text-slate-100 mt-0.5 truncate">{field.value}</p>
                       </div>
-                    );
-                  })}
+                    ))}
+                  </div>
                 </div>
+
+                {/* 2. Address & Emergency */}
+                <div>
+                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2 mb-3">
+                    <MapPin className="h-4 w-4 text-sky-500" /> Address & Emergency Contact
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="rounded-xl border border-slate-200/70 dark:border-white/10 bg-slate-50/60 dark:bg-white/[0.02] p-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Present Address</p>
+                      <p className="text-xs text-slate-800 dark:text-slate-100 mt-0.5 whitespace-pre-wrap">{selected.presentAddress || selected.address || "—"}</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200/70 dark:border-white/10 bg-slate-50/60 dark:bg-white/[0.02] p-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Permanent Address</p>
+                      <p className="text-xs text-slate-800 dark:text-slate-100 mt-0.5 whitespace-pre-wrap">{selected.permanentAddress || selected.address || "—"}</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200/70 dark:border-white/10 bg-slate-50/60 dark:bg-white/[0.02] p-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Emergency Contact Name</p>
+                      <p className="text-xs text-slate-800 dark:text-slate-100 mt-0.5">{selected.emergencyContactName || "—"}</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200/70 dark:border-white/10 bg-slate-50/60 dark:bg-white/[0.02] p-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Emergency Contact Phone</p>
+                      <p className="text-xs text-slate-800 dark:text-slate-100 mt-0.5">{selected.emergencyContactPhone || "—"}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Position & Qualifications */}
+                <div>
+                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2 mb-3">
+                    <Briefcase className="h-4 w-4 text-purple-500" /> Position & Qualifications
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    {[
+                      { label: "Applied Position", value: selected.designation },
+                      { label: "Employment Type", value: selected.employmentType || "—" },
+                      { label: "Department", value: selected.department || "—" },
+                      { label: "Subject Specialization", value: selected.subjectSpecialization || "—" },
+                      { label: "Highest Qualification", value: selected.qualification },
+                      { label: "Institution", value: selected.institution || "—" },
+                      { label: "Passing Year", value: selected.passingYear || "—" },
+                      { label: "Result / GPA", value: selected.result || "—" },
+                      { label: "Experience (Years)", value: `${selected.experience} yrs` },
+                      { label: "Previous Org", value: selected.previousOrganization || "—" },
+                      { label: "Previous Designation", value: selected.previousDesignation || "—" },
+                      { label: "Expected Salary", value: selected.expectedSalary ? `BDT ${selected.expectedSalary}` : "—" },
+                    ].map((field) => (
+                      <div key={field.label} className="rounded-xl border border-slate-200/70 dark:border-white/10 bg-slate-50/60 dark:bg-white/[0.02] p-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">{field.label}</p>
+                        <p className="text-xs font-medium text-slate-800 dark:text-slate-100 mt-0.5 truncate">{field.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 4. Uploaded Documents */}
+                <div>
+                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2 mb-3">
+                    <FileCheck className="h-4 w-4 text-emerald-500" /> Uploaded Documents & Certificates
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {renderDocLink("Applicant Photo", selected.photoUrl)}
+                    {renderDocLink("CV / Resume", selected.cvUrl || selected.resumeUrl)}
+                    {renderDocLink("NID Card Document", selected.nidUrl)}
+                    {renderDocLink("Birth Certificate", selected.birthCertUrl)}
+                    {renderDocLink("SSC Certificate", selected.sscCertUrl)}
+                    {renderDocLink("HSC Certificate", selected.hscCertUrl)}
+                    {renderDocLink("B.Sc Certificate", selected.bscCertUrl)}
+                    {renderDocLink("M.Sc Certificate", selected.mscCertUrl)}
+                  </div>
+                  {![selected.photoUrl, selected.cvUrl, selected.resumeUrl, selected.nidUrl, selected.birthCertUrl, selected.sscCertUrl, selected.hscCertUrl, selected.bscCertUrl, selected.mscCertUrl].some(Boolean) && (
+                    <p className="text-xs text-slate-500 italic">No document files uploaded with this application.</p>
+                  )}
+                </div>
+
+                {/* Cover Letter */}
+                {selected.coverLetter && (
+                  <div className="rounded-xl border border-slate-200/70 dark:border-white/10 bg-slate-50/60 dark:bg-white/[0.02] p-4">
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mb-2">
+                      <FileSignature className="h-3.5 w-3.5 text-indigo-500" /> Cover Letter
+                    </p>
+                    <p className="text-xs text-slate-700 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">{selected.coverLetter}</p>
+                  </div>
+                )}
               </div>
 
               {/* Footer */}
-              <div className="flex items-center gap-2 border-t border-slate-200 dark:border-white/10 bg-slate-50/80 dark:bg-white/[0.02] p-4">
+              <div className="flex items-center justify-between gap-2 border-t border-slate-200 dark:border-white/10 bg-slate-50/80 dark:bg-white/[0.02] p-4">
                 {canManage && selected.status === "PENDING" ? (
                   <>
                     <button
@@ -392,7 +508,7 @@ export default function TeachingApplicationList() {
                       className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 disabled:opacity-50 transition-shadow"
                     >
                       {isUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                      {isUpdating ? "Processing…" : "Approve"}
+                      {isUpdating ? "Processing…" : "Approve & Convert to Teacher"}
                     </button>
                   </>
                 ) : (

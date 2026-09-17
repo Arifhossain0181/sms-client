@@ -79,6 +79,7 @@ export default function SuperAdminUsersPage() {
   const [roleFilter, setRoleFilter] = useState<Role | "">("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", email: "", password: "", schoolId: "", phone: "" });
   const [page, setPage] = useState(1);
@@ -138,14 +139,6 @@ export default function SuperAdminUsersPage() {
     return filtered.slice(start, start + PAGE_SIZE);
   }, [filtered, page]);
 
-  const uniqueSchools = useMemo(() => {
-    const map = new Map<string, { id: string; name: string }>();
-    for (const u of users) {
-      if (u.school?.id && !map.has(u.school.id)) map.set(u.school.id, { id: u.school.id, name: u.school.name });
-    }
-    return Array.from(map.values());
-  }, [users]);
-
   const stats = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const u of users) counts[u.role] = (counts[u.role] || 0) + 1;
@@ -173,6 +166,48 @@ export default function SuperAdminUsersPage() {
       setMessage("Failed to create School Admin.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSchoolChange = async (userId: string, schoolId: string) => {
+    setUpdatingUserId(userId);
+    setMessage(null);
+    try {
+      await api.put(`/super-admin/users/${userId}/school`, { schoolId: schoolId || null });
+      setUsers((currentUsers) => currentUsers.map((user) => {
+        if (user.id !== userId) return user;
+        const school = schools.find((item) => item.id === schoolId);
+        return {
+          ...user,
+          schoolId: schoolId || undefined,
+          school: school ? { ...school, code: user.school?.code ?? "" } : null,
+        };
+      }));
+      setMessage("School assignment updated.");
+    } catch {
+      setMessage("Failed to update school assignment.");
+    } finally {
+      setUpdatingUserId(null);
+    }
+  };
+
+  const handleRoleChange = async (user: UserRow, role: Role) => {
+    setUpdatingUserId(user.id);
+    setMessage(null);
+    try {
+      const res = await api.put(`/super-admin/users/${user.id}/assignment`, {
+        role,
+        schoolId: role === "SUPER_ADMIN" ? null : user.schoolId ?? null,
+      });
+      const updatedUser = res.data?.data ?? res.data;
+      setUsers((currentUsers) => currentUsers.map((item) =>
+        item.id === user.id ? { ...item, ...updatedUser } : item
+      ));
+      setMessage("User role updated.");
+    } catch (error: any) {
+      setMessage(error?.response?.data?.message ?? "Select a school before assigning this role.");
+    } finally {
+      setUpdatingUserId(null);
     }
   };
 
@@ -318,7 +353,7 @@ export default function SuperAdminUsersPage() {
                   className="w-full pl-10 pr-4 py-2 rounded-xl bg-white/60 dark:bg-white/5 border border-white/30 dark:border-white/10 text-sm text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400/40 backdrop-blur-sm"
                 />
               </div>
-              {uniqueSchools.length > 0 && (
+              {schools.length > 0 && (
                 <select
                   value={schoolIdFromQuery}
                   onChange={(e) => {
@@ -331,7 +366,7 @@ export default function SuperAdminUsersPage() {
                   className="px-3 py-2 rounded-xl bg-white/60 dark:bg-white/5 border border-white/30 dark:border-white/10 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 backdrop-blur-sm"
                 >
                   <option value="">All Schools</option>
-                  {uniqueSchools.map((s) => (
+                  {schools.map((s) => (
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
                 </select>
@@ -368,12 +403,31 @@ export default function SuperAdminUsersPage() {
                         <td className="px-6 py-4 font-medium text-slate-700 dark:text-slate-200">{user.name}</td>
                         <td className="px-6 py-4 text-slate-500 dark:text-slate-400">{user.email}</td>
                         <td className="px-6 py-4">
-                          <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${roleColors[user.role]}`}>
-                            {roleLabels[user.role]}
-                          </span>
+                          <select
+                            aria-label={`Role assignment for ${user.name}`}
+                            value={user.role}
+                            disabled={updatingUserId === user.id}
+                            onChange={(e) => handleRoleChange(user, e.target.value as Role)}
+                            className={`min-w-32 rounded-lg border border-white/30 dark:border-white/10 px-2.5 py-1.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/40 disabled:cursor-wait disabled:opacity-50 ${roleColors[user.role]}`}
+                          >
+                            {(Object.keys(roleLabels) as Role[]).map((role) => (
+                              <option key={role} value={role}>{roleLabels[role]}</option>
+                            ))}
+                          </select>
                         </td>
                         <td className="px-6 py-4 text-slate-500 dark:text-slate-400">
-                          {user.school?.name ?? <span className="text-xs italic text-slate-400">Platform</span>}
+                          <select
+                            aria-label={`School assignment for ${user.name}`}
+                            value={user.schoolId ?? ""}
+                            disabled={updatingUserId === user.id}
+                            onChange={(e) => handleSchoolChange(user.id, e.target.value)}
+                            className="min-w-32 rounded-lg bg-white/60 dark:bg-white/5 border border-white/30 dark:border-white/10 px-2.5 py-1.5 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 disabled:cursor-wait disabled:opacity-50"
+                          >
+                            <option value="">Platform</option>
+                            {schools.map((school) => (
+                              <option key={school.id} value={school.id}>{school.name}</option>
+                            ))}
+                          </select>
                         </td>
                         <td className="px-6 py-4">
                           <span className={`inline-flex items-center gap-1 text-xs font-medium ${
@@ -587,4 +641,3 @@ export default function SuperAdminUsersPage() {
     </div>
   );
 }
-
