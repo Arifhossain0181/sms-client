@@ -5,6 +5,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLenis } from "@/hooks/useLenis";
 import { useAuth } from "@/hooks/useAuth";
 import { examService } from "@/app/modules/exam/exam.service";
+import { marksService } from "@/app/modules/marks/marks.service";
+import type { MarkEntry } from "@/app/modules/marks/marks.types";
 import { useRouter } from "next/navigation";
 import {
   FileText,
@@ -19,6 +21,7 @@ import {
   RefreshCcw,
   AlertTriangle,
   ChevronRight,
+  MoreHorizontal,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -74,6 +77,14 @@ export default function PublishResultsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [publishingId, setPublishingId] = useState<string | null>(null);
   const [confirmUnpublishId, setConfirmUnpublishId] = useState<string | null>(null);
+  const [marksExamId, setMarksExamId] = useState<string | null>(null);
+  const [openActionId, setOpenActionId] = useState<string | null>(null);
+
+  const marksQuery = useQuery<MarkEntry[]>({
+    queryKey: ["exam-controller-marks", marksExamId],
+    queryFn: () => marksService.listPending(marksExamId!),
+    enabled: !!marksExamId,
+  });
 
   const {
     data: publishableExams = [],
@@ -158,9 +169,23 @@ export default function PublishResultsPage() {
   }, [flatItems]);
 
   const publishMutation = useMutation({
-    mutationFn: (id: string) => examService.publish(id),
-    onSuccess: async () => {
+    mutationFn: async (id: string) => {
+      const exam = (publishableExams as PublishableExam[]).find((item) => item.id === id);
+      if (exam?.pendingCount) {
+        await marksService.approve(id);
+      }
+      return examService.publish(id);
+    },
+    onSuccess: async (result, examId) => {
+      queryClient.setQueryData<PublishableExam[]>(["exams", "publishing"], (currentExams) =>
+        (currentExams ?? []).map((exam) =>
+          exam.id === examId
+            ? { ...exam, status: "PUBLISHED", pendingCount: 0, reportCardCount: result.affectedReportCards }
+            : exam
+        )
+      );
       await queryClient.invalidateQueries({ queryKey: ["exams"] });
+      await queryClient.refetchQueries({ queryKey: ["exams", "publishing"], type: "active" });
       toast.success("Results published successfully.");
       setPublishingId(null);
     },
@@ -175,8 +200,16 @@ export default function PublishResultsPage() {
 
   const unpublishMutation = useMutation({
     mutationFn: (id: string) => examService.unpublish(id),
-    onSuccess: async () => {
+    onSuccess: async (result, examId) => {
+      queryClient.setQueryData<PublishableExam[]>(["exams", "publishing"], (currentExams) =>
+        (currentExams ?? []).map((exam) =>
+          exam.id === examId
+            ? { ...exam, status: "UNPUBLISHED", pendingCount: 0, reportCardCount: result.affectedReportCards }
+            : exam
+        )
+      );
       await queryClient.invalidateQueries({ queryKey: ["exams"] });
+      await queryClient.refetchQueries({ queryKey: ["exams", "publishing"], type: "active" });
       toast.success("Results unpublished.");
       setConfirmUnpublishId(null);
     },
@@ -250,6 +283,10 @@ export default function PublishResultsPage() {
     if (!confirmUnpublishId) return;
     unpublishMutation.mutate(confirmUnpublishId);
   };
+
+  const marksExam = marksExamId
+    ? (publishableExams as PublishableExam[]).find((exam) => exam.id === marksExamId)
+    : null;
 
   if (isLoading) {
     return (
@@ -467,38 +504,65 @@ export default function PublishResultsPage() {
                                   {getStatusBadge(item.status, item.pendingCount, item.reportCardCount)}
                                 </td>
                                 <td className="py-3.5 pr-4">
-                                  <div className="flex items-center justify-end gap-2">
-                                    {item.status === "PUBLISHED" ? (
-                                      <motion.button
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        onClick={() => handleUnpublish(item.examId)}
-                                        disabled={unpublishMutation.isPending && confirmUnpublishId === item.examId}
-                                        className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-100 disabled:opacity-50 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300"
-                                      >
-                                        <XCircle className="h-3.5 w-3.5" /> Unpublish
-                                      </motion.button>
-                                    ) : item.pendingCount === 0 && item.reportCardCount > 0 ? (
-                                      <motion.button
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        onClick={() => handlePublish(item.examId)}
-                                        disabled={publishMutation.isPending && publishingId === item.examId}
-                                        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300"
-                                      >
-                                        <CheckCircle2 className="h-3.5 w-3.5" /> Publish
-                                      </motion.button>
-                                    ) : (
-                                      <span className="text-xs text-slate-400">Not ready</span>
-                                    )}
-                                    <motion.button
-                                      whileHover={{ scale: 1.05 }}
-                                      whileTap={{ scale: 0.95 }}
-                                      onClick={() => router.push(`/dashboard/exam-controller/exams`)}
-                                      className="inline-flex items-center gap-1 rounded-lg border border-white/40 dark:border-white/10 bg-white/60 dark:bg-white/5 px-2.5 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-white/80 disabled:opacity-50"
+                                  <div className="relative flex items-center justify-end">
+                                    <button
+                                      type="button"
+                                      aria-label={`Actions for ${item.examName}`}
+                                      onClick={() => setOpenActionId((current) => current === item.id ? null : item.id)}
+                                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/40 bg-white/70 text-slate-600 hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
                                     >
-                                      <ChevronRight className="h-3.5 w-3.5" />
-                                    </motion.button>
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </button>
+                                    {openActionId === item.id && (
+                                      <div className="absolute right-0 top-11 z-30 min-w-48 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl dark:border-slate-700 dark:bg-slate-900">
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setOpenActionId(null);
+                                            setMarksExamId(item.examId);
+                                          }}
+                                          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                                        >
+                                          <FileText className="h-3.5 w-3.5" /> View teacher marks
+                                        </button>
+                                        {item.status === "PUBLISHED" ? (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setOpenActionId(null);
+                                              handleUnpublish(item.examId);
+                                            }}
+                                            disabled={unpublishMutation.isPending && confirmUnpublishId === item.examId}
+                                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-rose-700 hover:bg-rose-50 disabled:opacity-50 dark:text-rose-300 dark:hover:bg-rose-500/10"
+                                          >
+                                            <XCircle className="h-3.5 w-3.5" /> Unpublish
+                                          </button>
+                                        ) : (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setOpenActionId(null);
+                                              handlePublish(item.examId);
+                                            }}
+                                            disabled={publishMutation.isPending && publishingId === item.examId}
+                                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50 dark:text-emerald-300 dark:hover:bg-emerald-500/10"
+                                          >
+                                            <CheckCircle2 className="h-3.5 w-3.5" />
+                                            {item.pendingCount > 0 ? "Approve & Publish" : "Publish"}
+                                          </button>
+                                        )}
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setOpenActionId(null);
+                                            router.push(`/dashboard/exam-controller/exams`);
+                                          }}
+                                          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                                        >
+                                          <ChevronRight className="h-3.5 w-3.5" /> View exam
+                                        </button>
+                                      </div>
+                                    )}
                                   </div>
                                 </td>
                               </motion.tr>
@@ -516,6 +580,81 @@ export default function PublishResultsPage() {
       </div>
 
       <AnimatePresence>
+        {marksExamId && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
+            onClick={() => setMarksExamId(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(event) => event.stopPropagation()}
+              className="max-h-[80vh] w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900"
+            >
+              <div className="flex items-center justify-between border-b border-slate-200 p-5 dark:border-slate-700">
+                <div>
+                  <h3 className="text-base font-semibold text-slate-900 dark:text-white">
+                    Teacher marks: {marksExam?.name ?? "Exam"}
+                  </h3>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    {marksQuery.isLoading ? "Loading marks..." : `${marksQuery.data?.length ?? 0} mark entries`}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setMarksExamId(null)}
+                  className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  aria-label="Close teacher marks"
+                >
+                  <XCircle className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="scrollbar-hidden max-h-[60vh] overflow-auto p-5">
+                {marksQuery.isLoading ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((item) => <Skeleton key={item} className="h-12 w-full" />)}
+                  </div>
+                ) : marksQuery.isError ? (
+                  <p className="text-sm text-rose-600 dark:text-rose-300">Could not load teacher marks.</p>
+                ) : marksQuery.data?.length ? (
+                  <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+                    <table className="w-full text-left text-sm">
+                      <thead className="bg-slate-50 text-xs uppercase text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                        <tr>
+                          <th className="px-4 py-3">Student</th>
+                          <th className="px-4 py-3">Roll</th>
+                          <th className="px-4 py-3">Subject</th>
+                          <th className="px-4 py-3">Marks</th>
+                          <th className="px-4 py-3">Teacher</th>
+                          <th className="px-4 py-3">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                        {marksQuery.data.map((mark) => (
+                          <tr key={mark.id}>
+                            <td className="px-4 py-3 text-slate-800 dark:text-white">{mark.student.name}</td>
+                            <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{mark.student.rollNumber}</td>
+                            <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{mark.subject.name}</td>
+                            <td className="px-4 py-3 font-semibold text-slate-800 dark:text-white">{mark.marksObtained} / {mark.subject.fullMarks}</td>
+                            <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{mark.teacher?.name ?? "—"}</td>
+                            <td className="px-4 py-3 text-amber-600 dark:text-amber-300">{mark.status}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500 dark:text-slate-400">No teacher marks found for this exam.</p>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
         {confirmUnpublishId && (
           <motion.div
             initial={{ opacity: 0, y: 4 }}

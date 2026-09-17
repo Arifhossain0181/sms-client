@@ -63,21 +63,36 @@ export default function TeacherDashboard() {
           return;
         }
 
-        const [statsRes, scheduleRes] = await Promise.all([
+        const [statsResult, scheduleResult] = await Promise.allSettled([
           api.get(`/teachers/${teacherId}/dashboard`),
           api.get(`/teachers/${teacherId}/schedule`),
         ]);
 
-        const dashboardStats = unwrap<{ totalStudents: number; totalClasses: number; totalSubjects: number; upcomingExams: number }>(statsRes);
-        setStats({
-          totalStudents: dashboardStats.totalStudents ?? 0,
-          totalClasses: dashboardStats.totalClasses ?? 0,
-          totalSubjects: dashboardStats.totalSubjects ?? 0,
-          upcomingExams: dashboardStats.upcomingExams ?? 0,
-        });
+        if (statsResult.status === "fulfilled") {
+          const dashboardStats = unwrap<{
+            totalStudents: number;
+            totalClasses: number;
+            totalSubjects: number;
+            upcomingExams: number;
+          }>(statsResult.value);
+          setStats({
+            totalStudents: dashboardStats.totalStudents ?? 0,
+            totalClasses: dashboardStats.totalClasses ?? 0,
+            totalSubjects: dashboardStats.totalSubjects ?? 0,
+            upcomingExams: dashboardStats.upcomingExams ?? 0,
+          });
+        } else {
+          console.error("Teacher dashboard stats load failed", statsResult.reason);
+        }
 
-        const schedulePayload = unwrap<Array<any>>(scheduleRes);
-        const todaySchedule = schedulePayload
+        const schedulePayload = scheduleResult.status === "fulfilled"
+          ? unwrap<unknown>(scheduleResult.value)
+          : [];
+        if (scheduleResult.status === "rejected") {
+          console.error("Teacher schedule load failed", scheduleResult.reason);
+        }
+
+        const todaySchedule = (Array.isArray(schedulePayload) ? schedulePayload : [])
           .filter((item) => item.dayOfWeek === todayKey)
           .map((item) => ({
             id: item.id,

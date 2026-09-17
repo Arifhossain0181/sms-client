@@ -303,20 +303,49 @@ export default function Page() {
   };
 
   const handleMarkChange = (studentId: string, subjectId: string, value: number, fullMarks: number) => {
-    if (!studentsData) return;
-    const newStudents = { ...studentsData };
-    for (const student of newStudents.students) {
-      if (student.student.id === studentId) {
-        for (const mark of student.subjectMarks) {
-          if (mark.subjectId === subjectId) {
-            mark.marksObtained = Math.max(0, Math.min(value, fullMarks));
-            break;
-          }
-        }
-        break;
+    if (!selectedExam?.id) return;
+
+    const nextValue = Math.max(0, Math.min(value, fullMarks));
+    queryClient.setQueryData<TeacherMarksResponse>(
+      ["teacher-students-for-exam", selectedExam.id],
+      (currentData) => {
+        if (!currentData) return currentData;
+
+        return {
+          ...currentData,
+          students: currentData.students.map((studentEntry) => {
+            if (studentEntry.student.id !== studentId) return studentEntry;
+
+            const existingMark = studentEntry.subjectMarks.find(
+              (mark) => mark.subjectId === subjectId
+            );
+            const nextMark = existingMark
+              ? { ...existingMark, marksObtained: nextValue }
+              : {
+                  subjectId,
+                  subjectName:
+                    selectedExam.schedules.find((schedule) => schedule.subjectId === subjectId)
+                      ?.subjectName ?? "Subject",
+                  marksObtained: nextValue,
+                  fullMarks,
+                  passMarks: 40,
+                  grade: null,
+                  gpa: null,
+                  status: "DRAFT",
+                };
+
+            return {
+              ...studentEntry,
+              subjectMarks: existingMark
+                ? studentEntry.subjectMarks.map((mark) =>
+                    mark.subjectId === subjectId ? nextMark : mark
+                  )
+                : [...studentEntry.subjectMarks, nextMark],
+            };
+          }),
+        };
       }
-    }
-    studentsQuery.refetch();
+    );
   };
 
   const handleExamSelect = (exam: TeacherExam | null) => {
