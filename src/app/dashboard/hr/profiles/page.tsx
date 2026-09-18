@@ -123,14 +123,6 @@ export default function StaffProfilesPage() {
                   Manage teaching and non-teaching staff records
                 </p>
               </div>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => router.push("/dashboard/hr/profiles/new")}
-                className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 text-white px-4 py-2 text-sm font-semibold shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 transition-all"
-              >
-                <Plus className="h-4 w-4" /> New Staff
-              </motion.button>
             </div>
           </div>
 

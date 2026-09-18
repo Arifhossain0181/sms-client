@@ -40,7 +40,6 @@ import {
   UserPlus,
   BriefcaseMedical,
   Handshake,
-  FolderOpen,
   TimerReset,
   CheckSquare,
   FileBadge,
@@ -153,14 +152,6 @@ const getNavGroups = (role: Role | null): NavGroup[] => {
             { icon: ShieldCheck,   label: "Role Assignments",href: "/dashboard/school-admin/staff-roles" },
             { icon: ClipboardCheck,label: "Escalations",    href: "/dashboard/school-admin/escalations" },
             { icon: FileBadge,     label: "Teaching Applications", href: "/dashboard/teaching-applications" },
-          ],
-        },
-        {
-          groupLabel: "Fee Management",
-          items: [
-            { icon: DollarSign, label: "Fee Structure", href: "/dashboard/accountant/fee-structure" },
-            { icon: Receipt, label: "Transactions", href: "/dashboard/accountant/transactions" },
-            { icon: TimerReset, label: "Overdue Fees", href: "/dashboard/accountant/overdue" },
           ],
         },
         {
@@ -363,7 +354,6 @@ const getNavGroups = (role: Role | null): NavGroup[] => {
           items: [
             { icon: UserCog,       label: "All Staff",        href: "/dashboard/teachers" },
             { icon: UserPlus,      label: "Recruitment",      href: "/dashboard/hr/recruitment" },
-            { icon: FolderOpen,    label: "Staff Profiles",   href: "/dashboard/hr/profiles" },
             { icon: UserPlus,      label: "Student Applications", href: "/dashboard/school-admin/admissions" },
           ],
         },
@@ -379,7 +369,6 @@ const getNavGroups = (role: Role | null): NavGroup[] => {
           groupLabel: "Profiles",
           items: [
             { icon: UsersRound,    label: "Directory",        href: "/dashboard/hr/profiles/directory" },
-            { icon: UserPlus,      label: "New Profile",      href: "/dashboard/hr/profiles/new" },
           ],
         },
         {

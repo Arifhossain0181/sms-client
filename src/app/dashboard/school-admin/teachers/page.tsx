@@ -26,6 +26,7 @@ import {
   XCircle,
   Loader2,
   X,
+  Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 import TeacherForm from "@/app/modules/teachers/teacherForm";
@@ -63,8 +64,8 @@ export default function SchoolAdminTeachersPage() {
     }
   }, [role, router]);
 
-  const canCreate = role ? hasPermission(role, "create_teacher") : false;
-  const canEdit = role ? hasPermission(role, "edit_teacher") : false;
+  const canCreate = false;
+  const canEdit = false;
   const canDelete = role ? hasPermission(role, "delete_teacher") : false;
 
   // ── State ─────────────────────────────────────────────────────────────────
@@ -76,6 +77,13 @@ export default function SchoolAdminTeachersPage() {
   const [showSubjectModal, setShowSubjectModal] = useState(false);
   const [showClassModal, setShowClassModal] = useState(false);
   const [assignLoading, setAssignLoading] = useState(false);
+  const [viewTeacherId, setViewTeacherId] = useState<string | null>(null);
+
+  const { data: viewTeacher, isLoading: isViewLoading } = useQuery({
+    queryKey: ["teacher", viewTeacherId],
+    queryFn: () => teacherService.getById(viewTeacherId as string),
+    enabled: Boolean(viewTeacherId),
+  });
 
   // ── Fetch teachers ─────────────────────────────────────────────────────────
   const { data: teachers = [], isLoading, refetch } = useQuery({
@@ -112,9 +120,14 @@ export default function SchoolAdminTeachersPage() {
   // ── Mutations ──────────────────────────────────────────────────────────────
   const deleteMutation = useMutation({
     mutationFn: (id: string) => teacherService.delete(id),
-    onSuccess: async () => {
-      toast.success("Teacher deleted successfully");
+    onSuccess: async (_, deletedTeacherId) => {
+      queryClient.setQueryData<Teacher[]>(["teachers"], (currentTeachers = []) =>
+        currentTeachers.filter((teacher) => teacher.id !== deletedTeacherId)
+      );
+      queryClient.removeQueries({ queryKey: ["teacher", deletedTeacherId] });
       await queryClient.invalidateQueries({ queryKey: ["teachers"] });
+      await queryClient.refetchQueries({ queryKey: ["teachers"], type: "active" });
+      toast.success("Teacher deleted successfully");
     },
     onError: (err: unknown) => {
       const msg =
@@ -171,7 +184,7 @@ export default function SchoolAdminTeachersPage() {
 
   const totalTeachers = teacherList.length;
   const totalDepartments = useMemo(() => {
-    const depts = new Set(teacherList.map((t) => (t as any).department).filter(Boolean));
+    const depts = new Set(teacherList.map((t) => t.department).filter(Boolean));
     return depts.size;
   }, [teacherList]);
 
@@ -195,6 +208,8 @@ export default function SchoolAdminTeachersPage() {
       deleteMutation.mutate(id);
     }
   };
+
+  const handleView = (id: string) => setViewTeacherId(id);
 
   const openAssignSubjects = (teacher: Teacher) => {
     const currentIds = teacher.subjectAssignments?.map((sa) => sa.subjectId) ?? [];
@@ -279,7 +294,7 @@ export default function SchoolAdminTeachersPage() {
               <div>
                 <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-slate-800 dark:text-white">Teachers</h1>
                 <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
-                  Manage teaching staff, assign subjects and classes.
+                  View teaching staff information.
                 </p>
               </div>
               {canCreate && (
@@ -466,6 +481,13 @@ export default function SchoolAdminTeachersPage() {
                              {(canEdit || canDelete) && (
                                <td className="px-5 py-3.5">
                                  <div className="flex items-center justify-end gap-1">
+                                   <button
+                                     onClick={() => handleView(teacher.id)}
+                                     className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 flex items-center justify-center transition-colors"
+                                     title="View teacher information"
+                                   >
+                                     <Eye className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                                   </button>
                                    {canEdit && (
                                      <>
                                        <button
@@ -521,6 +543,74 @@ export default function SchoolAdminTeachersPage() {
             teacher={selectedTeacher ?? undefined}
             onClose={handleCloseModal}
           />
+        )}
+
+        {viewTeacherId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setViewTeacherId(null)} />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl"
+            >
+              <div className="sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-slate-200 dark:border-white/10 px-6 py-4 flex items-center justify-between z-10">
+                <h2 className="font-semibold text-base text-slate-800 dark:text-white">Teacher Information</h2>
+                <button onClick={() => setViewTeacherId(null)} className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 flex items-center justify-center" title="Close">
+                  <X className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                </button>
+              </div>
+              {isViewLoading || !viewTeacher ? (
+                <div className="p-10 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-indigo-500" /></div>
+              ) : (
+                <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[
+                    ["Name", viewTeacher.name],
+                    ["Employee ID", viewTeacher.employeeId],
+                    ["Email", viewTeacher.email],
+                    ["Phone", viewTeacher.phone],
+                    ["Gender", viewTeacher.gender],
+                    ["Department", viewTeacher.department],
+                    ["Designation", viewTeacher.designation],
+                    ["Qualification", viewTeacher.qualification],
+                    ["Experience", viewTeacher.experience ? `${viewTeacher.experience} years` : "—"],
+                    ["Blood group", viewTeacher.bloodGroup],
+                    ["Date of birth", viewTeacher.dateOfBirth ? fmt(viewTeacher.dateOfBirth) : "—"],
+                    ["Joining date", viewTeacher.joiningDate ? fmt(viewTeacher.joiningDate) : "—"],
+                    ["Address", viewTeacher.address],
+                    ["Subject", viewTeacher.subject !== "—" ? viewTeacher.subject : viewTeacher.teachingApplication?.subjectSpecialization],
+                    ["Classes", viewTeacher.classes?.join(", ")],
+                    ["Assigned subjects", viewTeacher.subjectAssignments?.map((item) => (item as { subjectName?: string }).subjectName ?? item.subject?.name).filter(Boolean).join(", ")],
+                    ["Salary", viewTeacher.salary ? String(viewTeacher.salary) : "—"],
+                    ["Account status", viewTeacher.isActive === false ? "Inactive" : "Active"],
+                    ["Created at", viewTeacher.createdAt ? fmt(viewTeacher.createdAt) : "—"],
+                    ["Updated at", viewTeacher.updatedAt ? fmt(viewTeacher.updatedAt) : "—"],
+                  ].map(([label, value]) => (
+                    <div key={label} className="rounded-xl bg-slate-50 dark:bg-white/5 p-3">
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
+                      <p className="mt-1 text-sm font-medium text-slate-800 dark:text-slate-100 break-words">{value || "—"}</p>
+                    </div>
+                  ))}
+                  {viewTeacher.teachingApplication && (
+                    <div className="sm:col-span-2 border-t border-slate-200 dark:border-white/10 pt-4 mt-2">
+                      <h3 className="font-semibold text-sm text-slate-800 dark:text-white mb-3">Submitted Application</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {Object.entries(viewTeacher.teachingApplication)
+                          .filter(([key]) => !["id", "convertedToTeacherId"].includes(key))
+                          .map(([key, value]) => (
+                            <div key={key} className="rounded-xl bg-slate-50 dark:bg-white/5 p-3">
+                              <p className="text-xs text-slate-500 dark:text-slate-400">{key.replace(/([A-Z])/g, " $1")}</p>
+                              <p className="mt-1 text-sm font-medium text-slate-800 dark:text-slate-100 break-words">
+                                {value === null || value === undefined || value === "" ? "—" : String(value)}
+                              </p>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </motion.div>
+          </div>
         )}
 
         {/* Subject Assignment Modal */}

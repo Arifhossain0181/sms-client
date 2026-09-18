@@ -27,27 +27,13 @@ import {
   RefreshCw,
   Plus,
 } from "lucide-react";
-import { admissionService } from "@/app/modules/admission/admission.service";
-import { AdmissionClassOption, BloodGroup, CreateAdmissionPayload, Gender } from "@/app/modules/admission/admission.types";
+import { Admission as FullAdmission, AdmissionClassOption, BloodGroup, CreateAdmissionPayload, Gender } from "@/app/modules/admission/admission.types";
 
 // ─── Types 
 
 type AdmissionStatus = "PENDING" | "APPROVED" | "REJECTED";
 
-type Admission = {
-  id: string;
-  applicantName: string;
-  studentEmail: string;
-  dob: string;
-  gender: "MALE" | "FEMALE" | "OTHER";
-  religion?: string;
-  bloodGroup?: string;
-  address: string;
-  guardianName: string;
-  guardianPhone: string;
-  guardianEmail: string;
-  photoUrl?: string;
-  birthCertUrl?: string;
+type Admission = FullAdmission & {
   status: AdmissionStatus;
   rejectionReason?: string;
   paymentStatus?: string;
@@ -55,7 +41,6 @@ type Admission = {
   paymentMethod?: string;
   studentId?: string;
   createdAt: string;
-  targetClass?: { name: string; numericLevel?: number };
 };
 
 type Stats = {

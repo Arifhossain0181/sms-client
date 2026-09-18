@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { teachingApplicationService } from "./teachingApplication.service";
-import { UpdateTeachingApplicationStatusPayload } from "./teachingApplication.types";
+import { UpdateTeachingApplicationPayload, UpdateTeachingApplicationStatusPayload } from "./teachingApplication.types";
 
 const getErrorMessage = (err: unknown, fallback: string) => {
   if (err && typeof err === "object" && "response" in err) {
@@ -31,5 +31,30 @@ export const useUpdateTeachingApplicationStatus = () => {
     onError: (err: unknown) => {
       toast.error(getErrorMessage(err, "Failed to update"));
     },
+  });
+};
+
+export const useUpdateTeachingApplication = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateTeachingApplicationPayload }) =>
+      teachingApplicationService.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["teaching-applications"] });
+      toast.success("Application updated");
+    },
+    onError: (err: unknown) => toast.error(getErrorMessage(err, "Failed to update application")),
+  });
+};
+
+export const useDeleteTeachingApplication = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => teachingApplicationService.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["teaching-applications"] });
+      toast.success("Application deleted");
+    },
+    onError: (err: unknown) => toast.error(getErrorMessage(err, "Failed to delete application")),
   });
 };

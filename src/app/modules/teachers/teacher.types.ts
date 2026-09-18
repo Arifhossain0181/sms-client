@@ -1,3 +1,5 @@
+import type { TeachingApplication } from "../teachingApplication/teachingApplication.types";
+
 export interface Teacher {
   id: string;
   userId: string;
@@ -19,12 +21,18 @@ export interface Teacher {
   isActive?: boolean;
   createdAt: string;
   updatedAt: string;
-  subjectAssignments?: { id: string; subjectId: string; subject: { id: string; name: string; code: string; fullMarks: number; passMarks: number; isCompulsory: boolean; class: { id: string; name: string } } }[];
+  subjectAssignments?: {
+    id: string;
+    subjectId: string;
+    subjectName?: string;
+    subject?: { id: string; name: string; code: string; fullMarks: number; passMarks: number; isCompulsory: boolean; class: { id: string; name: string } };
+  }[];
   sectionTeacher?: { id: string; name: string; classId: string; class: { id: string; name: string } }[];
   classes?: string[];
   subject?: string;
   subjectId?: string;
   role?: string;
+  teachingApplication?: TeachingApplication | null;
 }
 
 export interface CreateTeacherPayload {

@@ -206,7 +206,7 @@ export default function Admission({ isAdmin = false }: AdmissionProps) {
       toast.error("Form data missing. Please fill the form before paying.");
       return;
     }
-    const draft = JSON.parse(raw) as FormInput & { photoUrl?: string; birthCertUrl?: string };
+    const draft = JSON.parse(raw) as FormInput & { photoUrl?: string; birthCertUrl?: string; guardianNidUrl?: string; fatherPhotoUrl?: string; motherPhotoUrl?: string; fatherNidUrl?: string; motherNidUrl?: string };
     const requiredMissing = [
       draft.applicantName, draft.studentPhone, draft.dob, draft.gender, draft.address,
       draft.guardianName, draft.guardianPhone, draft.guardianEmail, draft.guardianRelation, draft.targetClassId,

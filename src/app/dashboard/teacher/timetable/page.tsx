@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -77,17 +77,36 @@ export default function Page() {
     canLoad
   );
 
-  const groupedByDay = useMemo(() => {
-    return DAYS.reduce((acc, day) => {
-      acc[day] = timetable.filter((slot) => slot.dayOfWeek === day);
-      return acc;
-    }, {} as Record<DayOfWeek, Timetable[]>);
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
+
+  const classOptions = useMemo(() => {
+    const options = new Map<string, string>();
+    timetable.forEach((slot) => {
+      if (slot.classId) options.set(slot.classId, slot.class?.name ?? "Class");
+    });
+    return Array.from(options, ([id, name]) => ({ id, name }));
   }, [timetable]);
 
-  const totalSlots = timetable.length;
-  const totalSubjects = new Set(timetable.map((slot) => slot.subjectId)).size;
+  const activeClassId = selectedClassId && classOptions.some((item) => item.id === selectedClassId)
+    ? selectedClassId
+    : null;
+
+  const visibleTimetable = useMemo(
+    () => activeClassId ? timetable.filter((slot) => slot.classId === activeClassId) : timetable,
+    [activeClassId, timetable]
+  );
+
+  const groupedByDay = useMemo(() => {
+    return DAYS.reduce((acc, day) => {
+      acc[day] = visibleTimetable.filter((slot) => slot.dayOfWeek === day);
+      return acc;
+    }, {} as Record<DayOfWeek, Timetable[]>);
+  }, [visibleTimetable]);
+
+  const totalSlots = visibleTimetable.length;
+  const totalSubjects = new Set(visibleTimetable.map((slot) => slot.subjectId)).size;
   const totalClasses = new Set(
-    timetable.map((slot) => `${slot.classId}-${slot.section?.id ?? ""}`)
+    visibleTimetable.map((slot) => `${slot.classId}-${slot.section?.id ?? ""}`)
   ).size;
   const todayKey = useMemo<DayOfWeek | null>(() => {
     const dayIndex = new Date().getDay();
@@ -104,13 +123,13 @@ export default function Page() {
   const todaySlots = todayKey ? groupedByDay[todayKey].length : 0;
 
   const nextClass = useMemo(() => {
-    const sorted = [...timetable].sort((a, b) => {
+    const sorted = [...visibleTimetable].sort((a, b) => {
       const dayDiff = getDayOrder(a.dayOfWeek) - getDayOrder(b.dayOfWeek);
       if (dayDiff !== 0) return dayDiff;
       return a.startTime.localeCompare(b.startTime);
     });
     return sorted[0] ?? null;
-  }, [timetable]);
+  }, [visibleTimetable]);
 
   useEffect(() => {
     if (role && role !== "TEACHER" && role !== "SUPER_ADMIN" && role !== "SCHOOL_ADMIN") {
@@ -306,6 +325,47 @@ export default function Page() {
               <Clock className="h-3.5 w-3.5 text-indigo-500" />
               {nextClass ? `Next: ${formatTime(nextClass.startTime)}` : "No upcoming slot found"}
             </span>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.08 }}
+            className="space-y-3"
+          >
+            <div className="flex items-center gap-2">
+              <GraduationCap className="h-4 w-4 text-indigo-500" />
+              <h2 className="text-sm font-bold text-slate-800 dark:text-white">Select Class</h2>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => setSelectedClassId(null)}
+                className={`rounded-2xl border px-4 py-3 text-left transition-all ${
+                  selectedClassId === null
+                    ? "border-indigo-400 bg-indigo-600 text-white shadow-lg shadow-indigo-500/25"
+                    : "border-white/40 bg-white/70 text-slate-700 hover:border-indigo-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
+                }`}
+              >
+                <span className="block text-xs font-semibold uppercase tracking-wide opacity-70">Routine</span>
+                <span className="mt-1 block text-sm font-bold">All Classes</span>
+              </button>
+              {classOptions.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setSelectedClassId(item.id)}
+                  className={`rounded-2xl border px-4 py-3 text-left transition-all ${
+                    selectedClassId === item.id
+                      ? "border-indigo-400 bg-indigo-600 text-white shadow-lg shadow-indigo-500/25"
+                      : "border-white/40 bg-white/70 text-slate-700 hover:border-indigo-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
+                  }`}
+                >
+                  <span className="block text-xs font-semibold uppercase tracking-wide opacity-70">Class</span>
+                  <span className="mt-1 block text-sm font-bold">{item.name}</span>
+                </button>
+              ))}
+            </div>
           </motion.div>
 
           {/* Day Cards Grid */}

@@ -6,12 +6,14 @@ import {
   GraduationCap, Search, Filter, Eye, CheckCircle2, XCircle, Loader2, Inbox,
   User, Mail, Phone, Calendar, Briefcase, Building2, Award, Clock, BookOpen,
   Banknote, MapPin, FileText, FileSignature, AlertCircle, X, Users, Sparkles,
-  FileCheck, ShieldCheck, Heart, ExternalLink, Image as ImageIcon, CheckCircle,
+  FileCheck, ShieldCheck, Heart, ExternalLink, Image as ImageIcon, CheckCircle, Pencil, Trash2, Upload,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { hasPermission } from "@/config/roles";
+import api from "@/lib/axios";
 import { TeachingApplication, TeachingApplicationStatus } from "./teachingApplication.types";
-import { useTeachingApplications, useUpdateTeachingApplicationStatus } from "./useTeachingApplication";
+import { useTeachingApplications, useUpdateTeachingApplication, useUpdateTeachingApplicationStatus, useDeleteTeachingApplication } from "./useTeachingApplication";
+import type { UpdateTeachingApplicationPayload } from "./teachingApplication.types";
 
 type StatusKey = "PENDING" | "APPROVED" | "REJECTED";
 
@@ -27,12 +29,17 @@ const rowVariants = { hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0
 export default function TeachingApplicationList() {
   const { data, isLoading } = useTeachingApplications();
   const { mutate: updateStatus, isPending: isUpdating } = useUpdateTeachingApplicationStatus();
+  const { mutate: updateApplication, isPending: isSaving } = useUpdateTeachingApplication();
+  const { mutate: deleteApplication, isPending: isDeleting } = useDeleteTeachingApplication();
   const { role } = useAuth();
 
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<TeachingApplicationStatus | "">("");
   const [selected, setSelected] = useState<TeachingApplication | null>(null);
   const [showDetail, setShowDetail] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+  const [editForm, setEditForm] = useState<Record<string, string>>({});
+  const [uploadingField, setUploadingField] = useState<string | null>(null);
 
   const list: TeachingApplication[] = Array.isArray(data) ? data : [];
 
@@ -67,6 +74,67 @@ export default function TeachingApplicationList() {
   };
   const handleView = (item: TeachingApplication) => { setSelected(item); setShowDetail(true); };
   const handleClose = () => { setSelected(null); setShowDetail(false); };
+  const handleEdit = (item: TeachingApplication) => {
+    const values: Record<string, string> = {};
+    Object.entries(item).forEach(([key, value]) => {
+      if (!["id", "status", "reviewedAt", "rejectionReason", "convertedToTeacherId", "createdAt"].includes(key)) {
+        values[key] = value == null ? "" : String(value);
+      }
+    });
+    if (values.dob) values.dob = values.dob.slice(0, 10);
+    setSelected(item);
+    setEditForm(values);
+    setShowEdit(true);
+  };
+  const handleDelete = (item: TeachingApplication) => {
+    if (confirm(`Delete application from ${item.name}?`)) deleteApplication(item.id);
+  };
+  const handleEditSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!selected) return;
+    const payload: Record<string, unknown> = { ...editForm };
+    payload.experience = Number(editForm.experience || 0);
+    if (editForm.expectedSalary) payload.expectedSalary = Number(editForm.expectedSalary);
+    else delete payload.expectedSalary;
+    updateApplication({ id: selected.id, data: payload as UpdateTeachingApplicationPayload }, {
+      onSuccess: () => { setShowEdit(false); setSelected(null); },
+    });
+  };
+
+  const uploadEditDocument = async (file: File, field: string) => {
+    setUploadingField(field);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("type", field === "resumeUrl" ? "cv" : field.replace(/Url$/, ""));
+      const response = await api.post("/admission/upload-document", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      const url = response.data?.data?.url ?? response.data?.url;
+      if (!url) throw new Error("Upload failed");
+      setEditForm((old) => ({ ...old, [field]: url, ...(field === "cvUrl" ? { resumeUrl: url } : {}) }));
+    } catch (error) {
+      const message = (error as { response?: { data?: { message?: string } } }).response?.data?.message;
+      alert(message ?? "Document upload failed");
+    } finally {
+      setUploadingField(null);
+    }
+  };
+
+  const editFields = [
+    ["name", "Name"], ["email", "Email"], ["phone", "Phone"], ["gender", "Gender"], ["dob", "Date of birth"],
+    ["address", "Address"], ["designation", "Designation"], ["department", "Department"], ["qualification", "Qualification"],
+    ["experience", "Experience"], ["subjectSpecialization", "Subject specialization"], ["expectedSalary", "Expected salary"],
+    ["nationalId", "National ID"], ["birthCertificateNo", "Birth certificate no"], ["religion", "Religion"],
+    ["maritalStatus", "Marital status"], ["nationality", "Nationality"], ["fatherName", "Father name"], ["motherName", "Mother name"],
+    ["employmentType", "Employment type"], ["presentAddress", "Present address"], ["permanentAddress", "Permanent address"],
+    ["emergencyContactName", "Emergency contact name"], ["emergencyContactPhone", "Emergency contact phone"],
+    ["institution", "Institution"], ["passingYear", "Passing year"], ["result", "Result"],
+    ["previousOrganization", "Previous organization"], ["previousDesignation", "Previous designation"],
+    ["photoUrl", "Photo URL"], ["cvUrl", "CV URL"], ["nidUrl", "NID URL"], ["birthCertUrl", "Birth certificate URL"],
+    ["sscCertUrl", "SSC certificate URL"], ["hscCertUrl", "HSC certificate URL"], ["bscCertUrl", "BSc certificate URL"], ["mscCertUrl", "MSc certificate URL"],
+    ["resumeUrl", "Resume URL"], ["coverLetter", "Cover letter"],
+  ] as const;
 
   const renderDocLink = (title: string, url?: string) => {
     if (!url) return null;
@@ -274,6 +342,28 @@ export default function TeachingApplicationList() {
                               >
                                 <Eye className="h-4 w-4" />
                               </motion.button>
+                              {canManage && (
+                                <>
+                                  <motion.button
+                                    whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+                                    onClick={() => handleEdit(item)}
+                                    disabled={isSaving || isDeleting}
+                                    className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 dark:text-slate-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/15 hover:text-indigo-700 dark:hover:text-indigo-300 transition-all disabled:opacity-50"
+                                    title="Edit Application"
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </motion.button>
+                                  <motion.button
+                                    whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+                                    onClick={() => handleDelete(item)}
+                                    disabled={isSaving || isDeleting || item.status === "APPROVED"}
+                                    className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 dark:text-slate-400 hover:bg-rose-100 dark:hover:bg-rose-500/15 hover:text-rose-700 dark:hover:text-rose-300 transition-all disabled:opacity-40"
+                                    title={item.status === "APPROVED" ? "Approved applications cannot be deleted" : "Delete Application"}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </motion.button>
+                                </>
+                              )}
                               {canManage && item.status === "PENDING" && (
                                 <>
                                   <motion.button
@@ -308,6 +398,56 @@ export default function TeachingApplicationList() {
           )}
         </motion.div>
       </div>
+
+      <AnimatePresence>
+        {showEdit && selected && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm"
+            onClick={() => setShowEdit(false)}
+          >
+            <motion.form
+              initial={{ opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 12 }}
+              onSubmit={handleEditSubmit}
+              onClick={(event) => event.stopPropagation()}
+              className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl dark:bg-slate-900"
+            >
+              <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/10">
+                <div><h2 className="text-lg font-bold text-slate-900 dark:text-white">Update Application</h2><p className="text-xs text-slate-500">Edit applicant information</p></div>
+                <button type="button" onClick={() => setShowEdit(false)} className="rounded-xl p-2 hover:bg-slate-100 dark:hover:bg-white/10"><X className="h-4 w-4" /></button>
+              </div>
+              <div className="grid flex-1 gap-4 overflow-y-auto p-6 sm:grid-cols-2">
+                {editFields.map(([key, label]) => (
+                  <label key={key} className={key === "coverLetter" || key.includes("Address") ? "sm:col-span-2" : ""}>
+                    <span className="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-400">{label}</span>
+                    {key.endsWith("Url") ? (
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <input value={editForm[key] ?? ""} onChange={(event) => setEditForm((old) => ({ ...old, [key]: event.target.value }))} className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-slate-950 dark:text-white" />
+                          <label className="flex shrink-0 cursor-pointer items-center gap-1 rounded-xl bg-slate-100 px-3 py-2 text-xs font-semibold dark:bg-white/10 dark:text-white">
+                            {uploadingField === key ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                            Upload
+                            <input type="file" accept={key === "photoUrl" ? "image/*" : "image/*,.pdf"} className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) uploadEditDocument(file, key); event.currentTarget.value = ""; }} />
+                          </label>
+                        </div>
+                        {editForm[key] && <a href={editForm[key]} target="_blank" rel="noreferrer" className="text-xs text-indigo-600 hover:underline dark:text-sky-400">Open uploaded document</a>}
+                      </div>
+                    ) : key === "coverLetter" || key === "address" || key === "presentAddress" || key === "permanentAddress" ? (
+                      <textarea value={editForm[key] ?? ""} onChange={(event) => setEditForm((old) => ({ ...old, [key]: event.target.value }))} rows={3} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-slate-950 dark:text-white" />
+                    ) : (
+                      <input type={key === "dob" ? "date" : key === "experience" || key === "expectedSalary" ? "number" : key === "email" ? "email" : "text"} value={editForm[key] ?? ""} onChange={(event) => setEditForm((old) => ({ ...old, [key]: event.target.value }))} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-slate-950 dark:text-white" />
+                    )}
+                  </label>
+                ))}
+              </div>
+              <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4 dark:border-white/10">
+                <button type="button" onClick={() => setShowEdit(false)} className="rounded-xl border px-4 py-2 text-sm">Cancel</button>
+                <button type="submit" disabled={isSaving} className="rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white disabled:opacity-50">{isSaving ? "Saving..." : "Save Changes"}</button>
+              </div>
+            </motion.form>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Complete Detail Modal */}
       <AnimatePresence>

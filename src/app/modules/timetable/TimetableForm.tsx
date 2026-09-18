@@ -31,6 +31,9 @@ const schema = z.object({
   ]),
   startTime: z.string().min(1, "Enter a start time"),
   endTime:   z.string().min(1, "Enter an end time"),
+}).refine((data) => data.startTime < data.endTime, {
+  path: ["endTime"],
+  message: "End time must be later than start time",
 });
 
 type FormData = z.infer<typeof schema>;

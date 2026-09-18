@@ -22,13 +22,6 @@ import {
 import { motion, type Variants } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -64,18 +57,6 @@ type DailyAttendanceResponse = {
   absent: number;
   late: number;
   records: AttendanceRecord[];
-};
-
-type StaffDirectoryItem = {
-  id?: string;
-  name?: string;
-  email?: string;
-  employeeId?: string | null;
-  designation?: string | null;
-  subject?: string | null;
-  department?: { name: string } | string | null;
-  staffType?: string | null;
-  phone?: string | null;
 };
 
 type TeacherDirectoryItem = {
@@ -155,37 +136,15 @@ export default function AttendancePage() {
   const { isLoading: loadingStaff } = useQuery({
     queryKey: ["hr", "staff", "directory"],
     queryFn: async () => {
-      const [staffRes, teachingRes] = await Promise.all([
-        api.get("/hr/staff/directory"),
-        api.get("/teaching"),
-      ]);
-
-      const staffPayload = staffRes.data?.data ?? staffRes.data;
-      const teachingPayload = teachingRes.data?.data ?? teachingRes.data;
-
-      const staffData = Array.isArray(staffPayload) ? (staffPayload as StaffDirectoryItem[]) : [];
-      const teacherData = Array.isArray(teachingPayload?.data)
-        ? (teachingPayload.data as TeacherDirectoryItem[])
-        : Array.isArray(teachingPayload)
-          ? (teachingPayload as TeacherDirectoryItem[])
+      const res = await api.get("/teachers", { params: { page: 1, limit: 100 } });
+      const payload = res.data?.data ?? res.data;
+      const teacherData = Array.isArray(payload?.teachers)
+        ? (payload.teachers as TeacherDirectoryItem[])
+        : Array.isArray(payload)
+          ? (payload as TeacherDirectoryItem[])
           : [];
 
-      const merged: StaffMember[] = [
-        ...staffData.map((person) => ({
-          id: person.id ?? "",
-          name: person.name ?? "Unknown Staff",
-          email: person.email ?? "",
-          employeeId: person.employeeId ?? "—",
-          designation: person.designation ?? person.subject ?? "—",
-          department:
-            typeof person.department === "string"
-              ? { name: person.department }
-              : person.department ?? null,
-          staffType: person.staffType ?? person.subject ?? "STAFF",
-          phone: person.phone ?? undefined,
-          personType: "STAFF" as const,
-        })),
-        ...teacherData.map((person) => ({
+      const merged: StaffMember[] = teacherData.map((person) => ({
           id: person.id ?? "",
           name: person.name ?? "Unknown Teacher",
           email: person.email ?? "",
@@ -198,8 +157,7 @@ export default function AttendancePage() {
           staffType: person.subject ?? person.designation ?? "TEACHING",
           phone: person.phone ?? undefined,
           personType: "TEACHER" as const,
-        })),
-      ];
+        }));
 
       setStaffList(merged);
       return merged;

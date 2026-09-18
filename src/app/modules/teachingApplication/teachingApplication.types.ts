@@ -54,3 +54,5 @@ export interface UpdateTeachingApplicationStatusPayload {
   status: TeachingApplicationStatus;
   rejectionReason?: string;
 }
+
+export type UpdateTeachingApplicationPayload = Partial<Omit<TeachingApplication, "id" | "status" | "createdAt" | "reviewedAt" | "rejectionReason" | "convertedToTeacherId">>;

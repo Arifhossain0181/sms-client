@@ -147,21 +147,26 @@ export default function SchoolAdminDashboard() {
 
   // Fetch single dashboard endpoint (SRS §Actor 2, UR3, SR3.3)
   useEffect(() => {
+    if (role !== "SCHOOL_ADMIN" && role !== "SUPER_ADMIN") return;
+
+    let cancelled = false;
     const load = async () => {
       try {
-        setLoading(true);
+        if (!cancelled) setLoading(true);
         const res = await api.get("/dashboard/school-admin");
-        setData(res.data?.data ?? res.data ?? null);
+        if (!cancelled) setData(res.data?.data ?? res.data ?? null);
       } catch {
-        // keep data null — UI shows placeholders
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
     load();
     const refreshTimer = window.setInterval(load, 10000);
-    return () => window.clearInterval(refreshTimer);
-  }, []);
+    return () => {
+      cancelled = true;
+      window.clearInterval(refreshTimer);
+    };
+  }, [role]);
 
   // Fetch recent payments from DB
   const { data: recentPaymentsData, isLoading: paymentsLoading } = useQuery({

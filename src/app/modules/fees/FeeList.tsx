@@ -33,7 +33,7 @@ import { formatTaka } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { hasPermission } from "@/config/roles";
 import Pagination from "@/components/ui/pagination";
-import api from "@/lib/axios";
+
 
 /**
  * ⚠️ SCALE NOTE: this fetches ALL fee records and computes totals/search
@@ -146,33 +146,11 @@ export default function FeeList() {
     retry: false,
   });
 
-  const { data: admissionPayments } = useQuery({
-    queryKey: ["admission", "accountant", "payments"],
-    queryFn: async () => {
-      const res = await api.get("/admission/accountant/payments");
-      const payload = res.data?.data ?? res.data;
-      return Array.isArray(payload) ? payload : [];
-    },
-    enabled: canViewPayments,
-    retry: false,
-  });
-
-  const admissionStudentIds = useMemo(() => {
-    const ids = new Set<string>();
-    (admissionPayments ?? []).forEach((p: any) => {
-      if (p.studentId) ids.add(p.studentId);
-    });
-    return ids;
-  }, [admissionPayments]);
-
-  const admissionCash = useMemo(
-    () => (admissionPayments ?? []).filter((p: any) => (p.paymentMethod ?? "CASH") === "CASH").reduce((s: number, p: any) => s + (Number(p.paymentAmount ?? 0)), 0),
-    [admissionPayments]
-  );
-  const admissionStripe = useMemo(
-    () => (admissionPayments ?? []).filter((p: any) => (p.paymentMethod ?? "CASH") === "STRIPE").reduce((s: number, p: any) => s + (Number(p.paymentAmount ?? 0)), 0),
-    [admissionPayments]
-  );
+  // NOTE: /fees/transactions already includes raw admission payments (studentId: null)
+  // that have not yet been converted to a student. For converted students, the Payment
+  // table already has a formal record. So we do NOT fetch /admission/accountant/payments
+  // separately — doing so caused every admission cash payment to be counted twice.
+  const admissionStudentIds = useMemo(() => new Set<string>(), []);
 
   const safeFees = useMemo(() => (Array.isArray(fees) ? fees : []), [fees]);
   const studentsWithoutFees = useMemo(() => {
@@ -242,21 +220,22 @@ export default function FeeList() {
   const totalDueDisplay = totalDueFromApi;
   const collectionRate = totalAmount > 0 ? Math.round((feeOnlyPaid / totalAmount) * 100) : 0;
 
+  // Use only transactionsData (which already covers admission payments via getAllPayments)
   const cashCollected = useMemo(
-    () => (transactionsData?.data?.filter((p: any) => p.method === "CASH").reduce((s: number, p: any) => s + (Number(p.amount ?? 0)), 0) ?? 0) + admissionCash,
-    [transactionsData, admissionCash]
+    () => transactionsData?.data?.filter((p: any) => p.method === "CASH").reduce((s: number, p: any) => s + (Number(p.amount ?? 0)), 0) ?? 0,
+    [transactionsData]
   );
   const stripeCollected = useMemo(
-    () => (transactionsData?.data?.filter((p: any) => p.method === "STRIPE").reduce((s: number, p: any) => s + (Number(p.amount ?? 0)), 0) ?? 0) + admissionStripe,
-    [transactionsData, admissionStripe]
+    () => transactionsData?.data?.filter((p: any) => p.method === "STRIPE").reduce((s: number, p: any) => s + (Number(p.amount ?? 0)), 0) ?? 0,
+    [transactionsData]
   );
   const cashCount = useMemo(
-    () => (transactionsData?.data?.filter((p: any) => p.method === "CASH").length ?? 0) + (admissionPayments ?? []).filter((p: any) => (p.paymentMethod ?? "CASH") === "CASH").length,
-    [transactionsData, admissionPayments]
+    () => transactionsData?.data?.filter((p: any) => p.method === "CASH").length ?? 0,
+    [transactionsData]
   );
   const stripeCount = useMemo(
-    () => (transactionsData?.data?.filter((p: any) => p.method === "STRIPE").length ?? 0) + (admissionPayments ?? []).filter((p: any) => (p.paymentMethod ?? "CASH") === "STRIPE").length,
-    [transactionsData, admissionPayments]
+    () => transactionsData?.data?.filter((p: any) => p.method === "STRIPE").length ?? 0,
+    [transactionsData]
   );
 
   if (isLoading) {
