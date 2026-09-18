@@ -170,6 +170,10 @@ export default function RoutinePage() {
   }, [grouped, search]);
 
   const selectedClass = useMemo(() => classes.find((c: any) => c.id === selectedClassId), [classes, selectedClassId]);
+  const selectedSubject = useMemo(
+    () => subjects.find((subject: any) => subject.id === formSubjectId),
+    [subjects, formSubjectId]
+  );
   const isLoading = classesLoading || routineLoading;
   const totalSlots = flatSlots.length;
 
@@ -403,7 +407,14 @@ export default function RoutinePage() {
                               <td className="px-4 sm:px-6 py-3.5 pl-4 font-medium text-slate-800 dark:text-white">
                                 <span className="inline-flex items-center gap-2">
                                   <span className="w-2 h-2 rounded-full bg-indigo-400 flex-shrink-0" />
-                                  {slot.subject?.name ?? "—"}
+                                  <span>
+                                    {slot.subject?.name ?? "—"}
+                                    {slot.subject?.code && (
+                                      <span className="ml-1.5 text-xs font-normal text-slate-500 dark:text-slate-400">
+                                        ({slot.subject.code})
+                                      </span>
+                                    )}
+                                  </span>
                                 </span>
                               </td>
                               <td className="px-4 sm:px-6 py-3.5 text-slate-600 dark:text-slate-300">
@@ -565,10 +576,23 @@ export default function RoutinePage() {
                     >
                       <option value="">— Select Subject —</option>
                       {subjects.map((sub: any) => (
-                        <option key={sub.id} value={sub.id}>{sub.name}</option>
+                        <option key={sub.id} value={sub.id}>
+                          {sub.name}{sub.code ? ` (${sub.code})` : ""}
+                        </option>
                       ))}
                     </select>
                     <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  </div>
+                  <div className="mt-2">
+                    <label className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-[0.15em]">
+                      Subject Code
+                    </label>
+                    <input
+                      value={selectedSubject?.code ?? ""}
+                      readOnly
+                      placeholder="Subject code will appear here"
+                      className="mt-1 w-full rounded-xl border border-white/40 dark:border-white/10 bg-slate-100/70 dark:bg-slate-950/50 px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 outline-none"
+                    />
                   </div>
                 </div>
 

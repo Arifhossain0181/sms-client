@@ -23,6 +23,7 @@ export interface Timetable {
   subject?: {
     id: string;
     name: string;
+    code?: string;
   };
   teacherId: string;
   teacher?: {
