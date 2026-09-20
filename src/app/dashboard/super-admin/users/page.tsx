@@ -57,6 +57,8 @@ const roleColors: Record<Role, string> = {
   HR: "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300",
 };
 
+const roleChangeEligibleRoles: Role[] = ["SCHOOL_ADMIN", "ACCOUNTANT", "EXAM_CONTROLLER", "HR"];
+
 const cardVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: (i: number) => ({
@@ -192,6 +194,11 @@ export default function SuperAdminUsersPage() {
   };
 
   const handleRoleChange = async (user: UserRow, role: Role) => {
+    if (!roleChangeEligibleRoles.includes(user.role)) {
+      setMessage("Only School Admin, Accountant, Exam Controller, and HR roles can be changed.");
+      return;
+    }
+
     setUpdatingUserId(user.id);
     setMessage(null);
     try {
@@ -406,9 +413,9 @@ export default function SuperAdminUsersPage() {
                           <select
                             aria-label={`Role assignment for ${user.name}`}
                             value={user.role}
-                            disabled={updatingUserId === user.id}
+                            disabled={updatingUserId === user.id || !roleChangeEligibleRoles.includes(user.role)}
                             onChange={(e) => handleRoleChange(user, e.target.value as Role)}
-                            className={`min-w-32 rounded-lg border border-white/30 dark:border-white/10 px-2.5 py-1.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/40 disabled:cursor-wait disabled:opacity-50 ${roleColors[user.role]}`}
+                            className={`min-w-32 rounded-lg border border-white/30 dark:border-white/10 px-2.5 py-1.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/40 disabled:cursor-not-allowed disabled:opacity-60 ${roleColors[user.role]}`}
                           >
                             {(Object.keys(roleLabels) as Role[]).map((role) => (
                               <option key={role} value={role}>{roleLabels[role]}</option>
