@@ -157,27 +157,51 @@ export default function SchoolAdminNoticesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="relative min-h-screen overflow-hidden bg-slate-50/50 dark:bg-slate-950">
+      <motion.div
+        animate={{ x: [0, 40, 0], y: [0, -30, 0] }}
+        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-10 -left-32 w-125 h-125 bg-sky-300/20 dark:bg-sky-500/10 rounded-full blur-3xl pointer-events-none"
+      />
+      <motion.div
+        animate={{ x: [0, -30, 0], y: [0, 40, 0] }}
+        transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute bottom-10 -right-32 w-150 h-150 bg-violet-300/20 dark:bg-violet-500/10 rounded-full blur-3xl pointer-events-none"
+      />
+      <motion.div
+        animate={{ scale: [1, 1.2, 1] }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-100 h-100 bg-indigo-300/10 dark:bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"
+      />
+
+      <div className="relative space-y-8 p-4 sm:p-6 max-w-7xl mx-auto">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between flex-wrap gap-3"
+        className="relative rounded-3xl bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl border border-white/30 dark:border-white/10 shadow-2xl shadow-slate-200/40 dark:shadow-none overflow-hidden"
       >
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Notices</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Publish and manage notices for the school community.
-          </p>
+        <div className="relative px-6 sm:px-8 py-6 bg-linear-to-r from-sky-50 via-indigo-50 to-violet-50 dark:from-sky-500/10 dark:via-indigo-500/10 dark:to-violet-500/10 border-b border-white/40 dark:border-white/5 overflow-hidden">
+          <div className="relative flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-slate-800 dark:text-white flex items-center gap-2">
+                Notices
+                <Megaphone className="w-5 h-5 text-indigo-500" />
+              </h1>
+              <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
+                Publish and manage notices for the school community.
+              </p>
+            </div>
+            {canManage && (
+              <button
+                onClick={() => { setEditingNotice(null); setShowForm(true); }}
+                className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl bg-linear-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 transition-all"
+              >
+                <Plus className="w-4 h-4" /> Publish Notice
+              </button>
+            )}
+          </div>
         </div>
-        {canManage && (
-          <button
-            onClick={() => { setEditingNotice(null); setShowForm(true); }}
-            className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl border border-border hover:bg-secondary transition-colors"
-          >
-            <Plus className="w-4 h-4" /> Publish Notice
-          </button>
-        )}
       </motion.div>
 
       {/* Stats strip */}
@@ -229,7 +253,7 @@ export default function SchoolAdminNoticesPage() {
         transition={{ delay: 0.1 }}
         className="flex flex-col sm:flex-row gap-3 flex-wrap"
       >
-        <div className="relative flex-1 min-w-[200px]">
+        <div className="relative flex-1 min-w-50">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
@@ -359,6 +383,7 @@ export default function SchoolAdminNoticesPage() {
           onClose={closeForm}
         />
       )}
+      </div>
     </div>
   );
 }

@@ -10,7 +10,6 @@ import {
   CalendarCheck,
   CalendarDays,
   ClipboardList,
-  FileText,
   GraduationCap,
   Home,
   LayoutDashboard,
@@ -21,7 +20,6 @@ import {
   X,
   Shield,
   UserRound,
-  ClipboardCheck,
   UserCog,
   UsersRound,
   School,
@@ -48,7 +46,6 @@ import {
   Presentation,
   ShieldCheck,
   FileSpreadsheet,
-  Server,
   Settings,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -116,7 +113,6 @@ const getNavGroups = (role: Role | null): NavGroup[] => {
           groupLabel: "System",
           items: [
             { icon: Settings,     label: "System Settings", href: "/dashboard/super-admin/settings" },
-            { icon: Server,       label: "Backups",         href: "/dashboard/super-admin/backups" },
             { icon: ClipboardList,label: "Audit Logs",      href: "/dashboard/super-admin/audit-logs" },
           ],
         },
@@ -150,7 +146,6 @@ const getNavGroups = (role: Role | null): NavGroup[] => {
           items: [
             { icon: Presentation,  label: "Teachers",       href: "/dashboard/school-admin/teachers" },
             { icon: ShieldCheck,   label: "Role Assignments",href: "/dashboard/school-admin/staff-roles" },
-            { icon: ClipboardCheck,label: "Escalations",    href: "/dashboard/school-admin/escalations" },
             { icon: FileBadge,     label: "Teaching Applications", href: "/dashboard/teaching-applications" },
           ],
         },
@@ -232,9 +227,6 @@ const getNavGroups = (role: Role | null): NavGroup[] => {
         {
           groupLabel: "HR & Personal",
           items: [
-            { icon: TimerReset,    label: "My Leave & Attendance", href: "/dashboard/teacher/hr/leave" },
-            { icon: Receipt,       label: "Payslips",              href: "/dashboard/teacher/hr/payslips" },
-            { icon: Award,         label: "Performance",           href: "/dashboard/teacher/hr/performance" },
             { icon: MessageSquare, label: "My Profile",            href: "/dashboard/teacher/profile" },
           ],
         },
@@ -375,24 +367,13 @@ const getNavGroups = (role: Role | null): NavGroup[] => {
           groupLabel: "Attendance & Leave",
           items: [
             { icon: CalendarCheck, label: "Staff Attendance",       href: "/dashboard/hr/attendance" },
-            { icon: TimerReset,    label: "Leave Requests",   href: "/dashboard/hr/leave" },
-            { icon: CalendarRange, label: "Leave Calendar",   href: "/dashboard/hr/leave-calendar" },
           ],
         },
         {
           groupLabel: "Payroll & Reports",
           items: [
-            { icon: DollarSign,    label: "Payroll",          href: "/dashboard/hr/payroll" },
             { icon: BarChart3,     label: "HR Reports",       href: "/dashboard/hr/reports" },
-            { icon: Award,         label: "Performance",      href: "/dashboard/hr/performance" },
             { icon: Building2,     label: "Departments",      href: "/dashboard/hr/departments" },
-          ],
-        },
-        {
-          groupLabel: "Documents & Approvals",
-          items: [
-            { icon: FileText,      label: "Documents",        href: "/dashboard/hr/documents" },
-            { icon: ShieldCheck,   label: "Approvals",        href: "/dashboard/hr/approvals" },
           ],
         },
         {

@@ -894,6 +894,9 @@ export default function Admission({ isAdmin = false }: AdmissionProps) {
 
             {/* Payment */}
             <div className="border-t border-slate-200 dark:border-white/10 pt-8">
+              <p className="mb-3 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                Admission Fee: 1000 TK
+              </p>
               <h2 className={sectionTitleCls}>
                 <span className="grid place-items-center h-8 w-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
                   <CreditCard className="h-4 w-4" />
