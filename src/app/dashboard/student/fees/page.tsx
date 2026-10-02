@@ -9,6 +9,7 @@ import { useLenis } from "@/hooks/useLenis";
 import { formatDate, formatTaka } from "@/lib/utils";
 import {
   Wallet,
+  Banknote,
   ArrowLeft,
   CreditCard,
   TrendingUp,
@@ -150,7 +151,7 @@ export default function StudentFeesPage() {
   const stats = useMemo(() => {
     if (!summary) return [];
     return [
-      { label: "Total Fees", value: formatTaka(summary.totalFees), icon: Wallet, color: "text-slate-600 dark:text-slate-300" },
+      { label: "Total Fees", value: formatTaka(summary.totalFees), icon: Banknote, color: "text-slate-600 dark:text-slate-300" },
       { label: "Total Paid", value: formatTaka(summary.totalPaid), icon: TrendingUp, color: "text-emerald-600 dark:text-emerald-400" },
       { label: "Outstanding", value: formatTaka(summary.outstanding), icon: TrendingDown, color: "text-amber-600 dark:text-amber-400" },
       { label: "Overdue", value: summary.overDue.toString(), icon: AlertTriangle, color: "text-rose-600 dark:text-rose-400" },

@@ -24,12 +24,24 @@ export const homeworkService = {
   },
 
   create: async (data: CreateHomeworkPayload): Promise<Homework> => {
-    const res = await api.post("/homework", data);
+    const formData = new FormData();
+    formData.append("sectionId", data.sectionId);
+    formData.append("subjectId", data.subjectId);
+    formData.append("title", data.title);
+    formData.append("description", data.description);
+    formData.append("dueDate", data.dueDate);
+    if (data.attachment) formData.append("file", data.attachment);
+    const res = await api.post("/homework", formData);
     return res.data?.data ?? res.data;
   },
 
   update: async (id: string, data: UpdateHomeworkPayload): Promise<Homework> => {
-    const res = await api.patch(`/homework/${id}`, data);
+    const formData = new FormData();
+    if (data.title !== undefined) formData.append("title", data.title);
+    if (data.description !== undefined) formData.append("description", data.description);
+    if (data.dueDate !== undefined) formData.append("dueDate", data.dueDate);
+    if (data.attachment) formData.append("file", data.attachment);
+    const res = await api.patch(`/homework/${id}`, formData);
     return res.data?.data ?? res.data;
   },
 

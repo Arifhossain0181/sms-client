@@ -4,6 +4,7 @@ export interface Homework {
   id: string;
   title: string;
   description: string;
+  attachmentUrl?: string | null;
   dueDate: string;
   isReviewed: boolean;
   isOverdue: boolean;
@@ -34,12 +35,14 @@ export interface CreateHomeworkPayload {
   title: string;
   description: string;
   dueDate: string;
+  attachment?: File;
 }
 
 export interface UpdateHomeworkPayload {
   title?: string;
   description?: string;
   dueDate?: string;
+  attachment?: File;
 }
 
 export interface HomeworkListResponse {

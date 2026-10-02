@@ -11,6 +11,7 @@ import {
   Clock3,
   Eye,
   FileDown,
+  FileUp,
   Loader2,
   Pencil,
   Plus,
@@ -116,6 +117,7 @@ export default function Page() {
   const [formTitle, setFormTitle] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [formDueDate, setFormDueDate] = useState("");
+  const [formAttachment, setFormAttachment] = useState<File | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const createMutation = useCreateHomework();
@@ -255,6 +257,7 @@ export default function Page() {
     setFormTitle("");
     setFormDescription("");
     setFormDueDate(new Date().toISOString().split("T")[0]);
+    setFormAttachment(undefined);
     setIsModalOpen(true);
   };
 
@@ -265,6 +268,7 @@ export default function Page() {
     setFormTitle(hw.title);
     setFormDescription(hw.description);
     setFormDueDate(hw.dueDate.split("T")[0]);
+    setFormAttachment(undefined);
     setIsModalOpen(true);
   };
 
@@ -288,6 +292,7 @@ export default function Page() {
         title: formTitle,
         description: formDescription,
         dueDate: formDueDate,
+        attachment: formAttachment,
       };
 
       if (editingHomework) {
@@ -1047,6 +1052,24 @@ export default function Page() {
                           onChange={(e) => setFormDueDate(e.target.value)}
                           className="w-full rounded-2xl border border-white/40 dark:border-white/10 bg-white/80 dark:bg-slate-950/40 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400/30"
                         />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+                          Resource file
+                        </label>
+                        <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-indigo-300/70 bg-indigo-50/50 px-4 py-3 text-sm text-slate-600 transition hover:bg-indigo-50 dark:border-indigo-500/30 dark:bg-indigo-500/5 dark:text-slate-300">
+                          <FileUp className="h-5 w-5 text-indigo-500" />
+                          <span className="min-w-0 flex-1 truncate">
+                            {formAttachment?.name ?? "Choose PDF or image (max 10MB)"}
+                          </span>
+                          <input
+                            type="file"
+                            accept="application/pdf,image/png,image/jpeg,image/webp"
+                            className="sr-only"
+                            onChange={(e) => setFormAttachment(e.target.files?.[0])}
+                          />
+                        </label>
                       </div>
 
                       <div className="flex items-center justify-end gap-3 pt-2">

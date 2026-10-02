@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -17,6 +18,9 @@ import {
   AlertTriangle,
   Sparkles,
   Loader2,
+  FileText,
+  Upload,
+  Send,
 } from "lucide-react";
 
 const unwrap = <T,>(res: { data: any }) => (res.data?.data ?? res.data) as T;
@@ -31,6 +35,16 @@ type HomeworkItem = {
   isOverdue: boolean;
   subject?: { id: string; name: string };
   teacher?: { user: { name: string } };
+  attachmentUrl?: string | null;
+  submission?: {
+    id: string;
+    answerText?: string | null;
+    attachmentUrl?: string | null;
+    submittedAt: string;
+    marks?: number | null;
+    feedback?: string | null;
+    gradedAt?: string | null;
+  } | null;
 };
 
 type HomeworkResponse = {
@@ -67,6 +81,10 @@ export default function StudentHomeworkPage() {
   const [error, setError] = useState<string | null>(null);
   const [homework, setHomework] = useState<HomeworkItem[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [files, setFiles] = useState<Record<string, File | null>>({});
+  const [submittingId, setSubmittingId] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (role && role !== "STUDENT") {
@@ -92,6 +110,35 @@ export default function StudentHomeworkPage() {
     };
     loadHomework();
   }, [statusFilter]);
+
+  const submitHomework = async (hw: HomeworkItem) => {
+    const file = files[hw.id];
+    const answerText = answers[hw.id]?.trim() ?? "";
+    if (!file && !answerText) {
+      setSubmitError((current) => ({ ...current, [hw.id]: "Write an answer or choose a file first." }));
+      return;
+    }
+
+    const formData = new FormData();
+    if (answerText) formData.append("answerText", answerText);
+    if (file) formData.append("file", file);
+
+    try {
+      setSubmittingId(hw.id);
+      setSubmitError((current) => ({ ...current, [hw.id]: "" }));
+      const res = await api.post(`/homework/${hw.id}/submit`, formData);
+      const submission = unwrap<HomeworkItem["submission"]>(res);
+      setHomework((current) => current.map((item) => item.id === hw.id ? { ...item, submission } : item));
+      setFiles((current) => ({ ...current, [hw.id]: null }));
+    } catch (err: any) {
+      setSubmitError((current) => ({
+        ...current,
+        [hw.id]: err?.response?.data?.message ?? "Unable to submit homework.",
+      }));
+    } finally {
+      setSubmittingId(null);
+    }
+  };
 
   const getStatusBadge = (hw: HomeworkItem) => {
     if (hw.isOverdue) {
@@ -297,6 +344,58 @@ export default function StudentHomeworkPage() {
                       <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
                         {hw.description}
                       </p>
+                      {hw.attachmentUrl && (
+                        <a
+                          href={hw.attachmentUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex text-xs font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-300"
+                        >
+                          View teacher file
+                        </a>
+                      )}
+
+                      <div className="space-y-3 rounded-xl border border-indigo-100/80 dark:border-indigo-400/20 bg-indigo-50/50 dark:bg-indigo-500/5 p-3">
+                        <div className="flex items-center gap-2 text-xs font-semibold text-indigo-700 dark:text-indigo-300">
+                          <FileText className="h-4 w-4" />
+                          Submit your homework
+                        </div>
+                        <textarea
+                          value={answers[hw.id] ?? ""}
+                          onChange={(event) => setAnswers((current) => ({ ...current, [hw.id]: event.target.value }))}
+                          placeholder="Write your answer (optional if you upload a file)"
+                          rows={3}
+                          className="w-full resize-y rounded-lg border border-indigo-100 bg-white/80 px-3 py-2 text-xs text-slate-700 outline-none placeholder:text-slate-400 focus:border-indigo-400 dark:border-white/10 dark:bg-slate-950/40 dark:text-slate-200"
+                        />
+                        <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-indigo-200 bg-white/60 px-3 py-2 text-xs font-medium text-indigo-700 hover:bg-white dark:border-indigo-400/30 dark:bg-white/5 dark:text-indigo-300">
+                          <Upload className="h-4 w-4" />
+                          <span className="truncate">{files[hw.id]?.name ?? "Choose PDF or image"}</span>
+                          <input
+                            type="file"
+                            accept="application/pdf,image/jpeg,image/png,image/webp"
+                            className="sr-only"
+                            onChange={(event) => setFiles((current) => ({ ...current, [hw.id]: event.target.files?.[0] ?? null }))}
+                          />
+                        </label>
+                        {submitError[hw.id] && <p className="text-xs text-rose-600 dark:text-rose-300">{submitError[hw.id]}</p>}
+                        <button
+                          type="button"
+                          onClick={() => submitHomework(hw)}
+                          disabled={submittingId === hw.id}
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {submittingId === hw.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                          {submittingId === hw.id ? "Submitting..." : hw.submission ? "Submit again" : "Submit homework"}
+                        </button>
+                        {hw.submission && (
+                          <div className="space-y-1 text-xs text-slate-600 dark:text-slate-300">
+                            <p className="font-semibold text-emerald-600 dark:text-emerald-300">Submitted successfully</p>
+                            {hw.submission.attachmentUrl && <a href={hw.submission.attachmentUrl} target="_blank" rel="noreferrer" className="block text-indigo-600 hover:underline dark:text-indigo-300">View submitted file</a>}
+                            {hw.submission.marks !== null && hw.submission.marks !== undefined && <p>Marks: {hw.submission.marks}</p>}
+                            {hw.submission.feedback && <p>Feedback: {hw.submission.feedback}</p>}
+                          </div>
+                        )}
+                      </div>
 
                       <div className="space-y-2">
                         <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
